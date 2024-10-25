@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"time"
 
@@ -105,7 +104,7 @@ func (c *Client) DecryptResult(encryptedResult string) (string, error) {
 		return "", fmt.Errorf("error: received status code %d from /decrypt", resp.StatusCode)
 	}
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", fmt.Errorf("error reading response body from /decrypt: %w", err)
 	}
