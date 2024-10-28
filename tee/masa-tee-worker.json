@@ -1,0 +1,27 @@
+{
+ "exe": "./../bin/masa-tee-worker",
+ "key": "private.pem",
+ "debug": true,
+ "heapSize": 4092,
+ "executableHeap": false,
+ "productID": 1,
+ "securityVersion": 1,
+ "mounts": [
+    {
+        "target": "/tmp",
+        "type": "memfs"
+    }
+  ],
+  "env": [
+        {
+            "name": "LANG",
+            "fromHost": true
+        }
+    ],
+ "files": [
+    {
+        "source": "/etc/ssl/certs/ca-certificates.crt",
+        "target": "/etc/ssl/certs/ca-certificates.crt"
+    }
+  ]
+}
