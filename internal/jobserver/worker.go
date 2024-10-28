@@ -29,8 +29,8 @@ type worker interface {
 func (js *JobServer) doWork(j types.Job) error {
 	var w worker
 	switch j.Type {
-	case "web-scraper":
-		w = &jobs.WebScraper{}
+	case jobs.WebScraperType:
+		w = jobs.NewWebScraper()
 	default:
 		js.Lock()
 		js.results[j.UUID] = types.JobResult{

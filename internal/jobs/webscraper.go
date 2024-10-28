@@ -4,6 +4,8 @@ import (
 	"github.com/masa-finance/tee-worker/api/types"
 )
 
+const WebScraperType = "web-scraper"
+
 type WebScraper struct {
 }
 
