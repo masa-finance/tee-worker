@@ -1,0 +1,78 @@
+# If you prefer the allow list template instead of the deny list, see community template:
+# https://github.com/github/gitignore/blob/main/community/Golang/Go.AllowList.gitignore
+#
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+*.log
+
+# Dependency directories (remove the comment below to include it)
+# vendor/
+
+# Go workspace file
+go.work
+
+.env
+.idea/**
+.vscode/**
+*.log
+.DS_Store
+
+private.key
+masa-oracle
+
+tools/tools
+tools/*.json
+tools/*.bin
+bin/
+
+# smart contracts
+node_modules
+
+# Hardhat files
+/cache
+/artifacts
+
+# TypeChain files
+/typechain
+/typechain-types
+
+# solidity-coverage files
+/coverage
+/coverage.json
+
+# masa-keys generated and used with Docker
+.masa-keys
+yarn.lock
+/pkg/masacrypto/cert.pem
+/pkg/masacrypto/key.pem
+/pkg/masacrypto/testCert.pem
+/pkg/masacrypto/testKey.pem
+CACHE/
+
+cmd/masa-node-cli/key.txt
+cmd/masa-node-cli/elabkey.txt
+cmd/masa-node-cli/output.mp3
+cmd/masa-node-cli/log.txt
+output.mp3
+docs/api-reference.md
+./masa-node
+transcription.txt
+snippets.txt
+.env copy
+
+# Build result of goreleaser
+dist/
+bp-todo.md
+
+# TEE
+tee/private.pem
