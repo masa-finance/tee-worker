@@ -43,7 +43,7 @@ curl localhost:8080/job -H "Content-Type: application/json" -d '{ "type": "websc
 ### Jobs results
 curl localhost:8080/job/b678ff77-118d-4a7a-a6ea-190eb850c28a
 
-### Decode job results
+### Decrypt job results
 curl localhost:8080/decrypt -H "Content-Type: application/json" -d '{ "encrypted_result": "'$result'" }'
 
 ```
