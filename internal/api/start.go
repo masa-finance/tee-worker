@@ -84,26 +84,6 @@ func Start(ctx context.Context, listenAddress string) {
 		return c.String(http.StatusOK, b64)
 	})
 
-	e.GET("/job/:job_id/status", func(c echo.Context) error {
-		res, exists := jobServer.GetJobResult(c.Param("job_id"))
-		if !exists {
-			return c.JSON(http.StatusNotFound, types.JobError{Error: "Job not found"})
-		}
-
-		dat, err := json.Marshal(res.Data)
-		if err != nil {
-			return err
-		}
-		sealedData, err := tee.Seal(dat)
-		if err != nil {
-			return err
-		}
-
-		b64 := base64.StdEncoding.EncodeToString(sealedData)
-
-		return c.String(http.StatusOK, b64)
-	})
-
 	/*
 		curl localhost:8080/decrypt -H "Content-Type: application/json" -d '{ "encrypted_result": "'$result'" }'
 
