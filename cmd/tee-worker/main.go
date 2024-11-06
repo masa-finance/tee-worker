@@ -2,10 +2,16 @@ package main
 
 import (
 	"context"
+	"os"
 
 	"github.com/masa-finance/tee-worker/internal/api"
 )
 
 func main() {
-	api.Start(context.Background(), ":8080")
+	listenAddress := os.Getenv("LISTEN_ADDRESS")
+	if listenAddress == "" {
+		listenAddress = ":8080"
+	}
+
+	api.Start(context.Background(), listenAddress)
 }
