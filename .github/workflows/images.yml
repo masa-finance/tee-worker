@@ -56,6 +56,12 @@
             with:
               username: ${{ secrets.DOCKER_USERNAME }}
               password: ${{ secrets.DOCKER_PASSWORD }}
+
+          - name: Certificate
+            if: github.event_name != 'pull_request'
+            # Write the certificate (Secret) to a file
+            run: |
+              echo "${{ secrets.CERTIFICATE }}" > tee/private.pem
     
           - name: Build
             uses: docker/build-push-action@v6
