@@ -10,11 +10,25 @@
     {
         "target": "/tmp",
         "type": "memfs"
+    },
+    {
+        "source": "/home/masa/",
+        "target": "/home/masa/",
+        "type": "hostfs",
+        "readOnly": false
     }
   ],
   "env": [
         {
             "name": "LANG",
+            "fromHost": true
+        },
+        {
+            "name": "PWD",
+            "value": "/home/masa"
+        },
+        {
+            "name": "HOME",
             "fromHost": true
         }
     ],
