@@ -13,12 +13,12 @@ import (
 	"github.com/masa-finance/tee-worker/pkg/tee"
 )
 
-func Start(ctx context.Context, listenAddress string) {
+func Start(ctx context.Context, listenAddress string, config types.JobConfiguration) {
 	// Echo instance
 	e := echo.New()
 
 	// Jobserver instance
-	jobServer := jobserver.NewJobServer(2)
+	jobServer := jobserver.NewJobServer(2, config)
 
 	go jobServer.Run(ctx)
 

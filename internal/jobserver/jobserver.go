@@ -14,18 +14,20 @@ type JobServer struct {
 	jobChan chan types.Job
 	workers int
 
-	results map[string]types.JobResult
+	results          map[string]types.JobResult
+	jobConfiguration types.JobConfiguration
 }
 
-func NewJobServer(workers int) *JobServer {
+func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 	if workers == 0 {
 		workers++
 	}
 
 	return &JobServer{
-		jobChan: make(chan types.Job),
-		results: make(map[string]types.JobResult),
-		workers: workers,
+		jobChan:          make(chan types.Job),
+		results:          make(map[string]types.JobResult),
+		workers:          workers,
+		jobConfiguration: jc,
 	}
 }
 
