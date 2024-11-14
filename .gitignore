@@ -74,6 +74,6 @@ snippets.txt
 dist/
 bp-todo.md
 
-.masa/
+.masa/.env
 # TEE
 tee/private.pem
