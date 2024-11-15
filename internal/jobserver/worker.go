@@ -30,7 +30,7 @@ func (js *JobServer) doWork(j types.Job) error {
 	var w worker
 	switch j.Type {
 	case jobs.WebScraperType:
-		w = jobs.NewWebScraper()
+		w = jobs.NewWebScraper(js.jobConfiguration)
 	default:
 		js.Lock()
 		js.results[j.UUID] = types.JobResult{

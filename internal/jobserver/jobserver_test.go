@@ -12,7 +12,7 @@ import (
 
 var _ = Describe("Jobserver", func() {
 	It("runs jobs", func() {
-		jobserver := NewJobServer(2)
+		jobserver := NewJobServer(2, types.JobConfiguration{})
 
 		uuid := jobserver.AddJob(types.Job{
 			Type: "web-scraper",
