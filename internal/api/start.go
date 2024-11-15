@@ -13,12 +13,12 @@ import (
 	"github.com/masa-finance/tee-worker/pkg/tee"
 )
 
-func Start(ctx context.Context, listenAddress string) {
+func Start(ctx context.Context, listenAddress string, config types.JobConfiguration) {
 	// Echo instance
 	e := echo.New()
 
 	// Jobserver instance
-	jobServer := jobserver.NewJobServer(2)
+	jobServer := jobserver.NewJobServer(2, config)
 
 	go jobServer.Run(ctx)
 
@@ -31,8 +31,6 @@ func Start(ctx context.Context, listenAddress string) {
 		- /job - POST - to send a job request
 		  A job request has a type (string) and a map[string]interface{} as parameter.
 		- /job/{job_id} - GET - to get the status of a job
-		- /job/{job_id}/result - GET - to get the result of a job (encrypted)
-		- /job/{job_id}/status - GET - to get the status of a job (not encrypted)
 		- /decrypt - POST - to decrypt a message
 		  Decripts a message. Takes two parameters: the encrypted result and the encrypted request (both strings)
 

@@ -24,7 +24,7 @@ var _ = Describe("API", func() {
 		// Start the server
 		ctx, cancel = context.WithCancel(context.Background())
 
-		go Start(ctx, "127.0.0.1:40912")
+		go Start(ctx, "127.0.0.1:40912", types.JobConfiguration{})
 
 		// Wait for the server to start
 		time.Sleep(2 * time.Second)

@@ -1,6 +1,9 @@
 package types
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"fmt"
+)
 
 type JobResponse struct {
 	UID string `json:"uid"`
@@ -29,4 +32,18 @@ func (ja JobArguments) Unmarshal(i interface{}) error {
 		return err
 	}
 	return json.Unmarshal(dat, i)
+}
+
+type JobConfiguration map[string]interface{}
+
+func (jc JobConfiguration) Unmarshal(v interface{}) error {
+	data, err := json.Marshal(jc)
+	if err != nil {
+		return fmt.Errorf("error marshalling job configuration: %w", err)
+	}
+	if err := json.Unmarshal(data, v); err != nil {
+		return fmt.Errorf("error unmarshalling job configuration: %w", err)
+	}
+
+	return nil
 }
