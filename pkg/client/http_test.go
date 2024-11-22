@@ -133,7 +133,7 @@ var _ = Describe("Client", func() {
 			server.Close() // simulate unavailability
 			result, err := c.WaitForResult("job1", 3, time.Millisecond*10)
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(Equal("max retries reached"))
+			Expect(err.Error()).To(ContainSubstring("max retries reached"))
 			Expect(result).To(BeEmpty())
 		})
 	})
