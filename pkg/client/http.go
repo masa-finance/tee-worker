@@ -3,7 +3,6 @@ package client
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -25,6 +24,10 @@ func NewClient(baseURL string) *Client {
 		HTTPClient: &http.Client{},
 	}
 }
+
+// TODO: When submitting a job return a Job result
+// JobResult represents a client to interact with the job server and get the result asyncronously
+// The job result should be capable of waiting of the result, decrypting it and unmarshalling to a struct which is passed by (expected JSON response from the jobs)
 
 // SubmitJob submits a new job to the server and returns the job UID.
 func (c *Client) SubmitJob(job types.Job) (string, error) {
@@ -118,7 +121,7 @@ func (c *Client) WaitForResult(jobID string, maxRetries int, delay time.Duration
 
 	for {
 		if retries >= maxRetries {
-			return "", errors.New("max retries reached")
+			return "", fmt.Errorf("max retries reached: %w", err)
 		}
 		retries++
 
@@ -126,6 +129,7 @@ func (c *Client) WaitForResult(jobID string, maxRetries int, delay time.Duration
 		if err == nil {
 			break
 		}
+		time.Sleep(1 * time.Second)
 	}
 
 	return
