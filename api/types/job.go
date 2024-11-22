@@ -12,8 +12,8 @@ type JobResponse struct {
 type JobArguments map[string]interface{}
 
 type JobResult struct {
-	Error string      `json:"error"`
-	Data  interface{} `json:"data"`
+	Error string `json:"error"`
+	Data  []byte `json:"data"`
 }
 
 func (jr JobResult) Success() bool {
@@ -24,6 +24,10 @@ type Job struct {
 	Type      string       `json:"type"`
 	Arguments JobArguments `json:"arguments"`
 	UUID      string       `json:"-"`
+}
+
+func (jr JobResult) Unmarshal(i interface{}) error {
+	return json.Unmarshal(jr.Data, i)
 }
 
 func (ja JobArguments) Unmarshal(i interface{}) error {

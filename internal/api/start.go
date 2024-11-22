@@ -68,11 +68,7 @@ func Start(ctx context.Context, listenAddress string, config types.JobConfigurat
 			return c.JSON(http.StatusInternalServerError, types.JobError{Error: res.Error})
 		}
 
-		dat, err := json.Marshal(res.Data)
-		if err != nil {
-			return err
-		}
-		sealedData, err := tee.Seal(dat)
+		sealedData, err := tee.Seal(res.Data)
 		if err != nil {
 			return err
 		}
