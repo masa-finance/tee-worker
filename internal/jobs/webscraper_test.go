@@ -9,18 +9,42 @@ import (
 )
 
 var _ = Describe("Webscraper", func() {
-	It("should fake scraping for now", func() {
+	It("should scrape now", func() {
 		webScraper := NewWebScraper(types.JobConfiguration{})
 
 		res, err := webScraper.ExecuteJob(types.Job{
-			Type: "web-scraper",
+			Type: WebScraperType,
+			Arguments: map[string]interface{}{
+				"url": "https://www.google.com",
+			},
+		})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(res.Error).To(BeEmpty())
+
+		var scrapedData CollectedData
+		res.Unmarshal(&scrapedData)
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(len(scrapedData.Pages)).ToNot(BeZero())
+	})
+
+	It("does not return data with invalid hosts", func() {
+		webScraper := NewWebScraper(types.JobConfiguration{})
+
+		res, err := webScraper.ExecuteJob(types.Job{
+			Type: WebScraperType,
 			Arguments: map[string]interface{}{
 				"url": "google",
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(res.Error).To(BeEmpty())
-		Expect(res.Data.(string)).To(Equal("google"))
+
+		var scrapedData CollectedData
+		res.Unmarshal(&scrapedData)
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(len(scrapedData.Pages)).To(BeZero())
 	})
 
 	It("should allow to blacklist urls", func() {
@@ -29,7 +53,7 @@ var _ = Describe("Webscraper", func() {
 		})
 
 		res, err := webScraper.ExecuteJob(types.Job{
-			Type: "web-scraper",
+			Type: WebScraperType,
 			Arguments: map[string]interface{}{
 				"url": "google",
 			},

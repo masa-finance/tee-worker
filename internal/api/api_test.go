@@ -9,6 +9,7 @@ import (
 
 	"github.com/masa-finance/tee-worker/api/types"
 	. "github.com/masa-finance/tee-worker/internal/api"
+	"github.com/masa-finance/tee-worker/internal/jobs"
 	"github.com/masa-finance/tee-worker/pkg/client"
 )
 
@@ -38,30 +39,64 @@ var _ = Describe("API", func() {
 		cancel()
 	})
 
-	It("should submit a job and get the correct result", func() {
+	It("should submit an invalid job, and fail because of the malformed URL. no results containing google", func() {
 		// Step 1: Create the job request
 		job := types.Job{
-			Type: "web-scraper",
+			Type: jobs.WebScraperType,
 			Arguments: map[string]interface{}{
 				"url": "google",
 			},
 		}
 
 		// Step 2: Submit the job
-		jobID, err := clientInstance.SubmitJob(job)
+		jobResult, err := clientInstance.SubmitJob(job)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(jobID).NotTo(BeEmpty())
+		Expect(jobResult.UUID).NotTo(BeEmpty())
 
 		// Step 3: Wait for the job result
-		encryptedResult, err := clientInstance.WaitForResult(jobID, 10, time.Second)
+		encryptedResult, err := jobResult.Get()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(encryptedResult).NotTo(BeEmpty())
 
 		// Step 4: Decrypt the result
-		decryptedResult, err := clientInstance.DecryptResult(encryptedResult)
+		decryptedResult, err := clientInstance.Decrypt(encryptedResult)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(decryptedResult).NotTo(BeEmpty())
+		Expect(decryptedResult).NotTo(ContainSubstring("google"))
+		Expect(decryptedResult).To(ContainSubstring(`"pages":null`))
+	})
+
+	It("should submit a job and get the correct result", func() {
+		// Step 1: Create the job request
+		job := types.Job{
+			Type: jobs.WebScraperType,
+			Arguments: map[string]interface{}{
+				"url":   "https://google.com",
+				"depth": 1,
+			},
+		}
+
+		// Step 2: Submit the job
+		jobResult, err := clientInstance.SubmitJob(job)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(jobResult).NotTo(BeNil())
+
+		// Step 3: Wait for the job result
+		encryptedResult, err := jobResult.Get()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(encryptedResult).NotTo(BeEmpty())
+
+		// Step 4: Decrypt the result
+		decryptedResult, err := clientInstance.Decrypt(encryptedResult)
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(decryptedResult).NotTo(BeEmpty())
 		Expect(decryptedResult).To(ContainSubstring("google"))
+
+		result, err := jobResult.GetDecrypted()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(result).NotTo(BeEmpty())
+		Expect(result).To(ContainSubstring("google"))
 	})
 
 	It("bubble up errors", func() {
@@ -74,12 +109,15 @@ var _ = Describe("API", func() {
 		}
 
 		// Step 2: Submit the job
-		jobID, err := clientInstance.SubmitJob(job)
+		jobResult, err := clientInstance.SubmitJob(job)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(jobID).NotTo(BeEmpty())
+		Expect(jobResult).NotTo(BeNil())
+		Expect(jobResult.UUID).NotTo(BeEmpty())
+
+		jobResult.SetMaxRetries(10)
 
 		// Step 3: Wait for the job result (should fail)
-		encryptedResult, err := clientInstance.WaitForResult(jobID, 10, time.Second)
+		encryptedResult, err := jobResult.Get()
 		Expect(err).To(HaveOccurred())
 		Expect(encryptedResult).To(BeEmpty())
 	})
