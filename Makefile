@@ -34,5 +34,5 @@ docker-build: tee/private.pem
 	@docker build --secret id=private_key,src=./tee/private.pem  -t $(IMAGE) -f Dockerfile .
 
 test: tee/private.pem
-	@docker build --build-arg baseimage=builder --secret id=private_key,src=./tee/private.pem -t $(IMAGE) -f Dockerfile .
+	@docker build --target=dependencies --build-arg baseimage=builder --secret id=private_key,src=./tee/private.pem -t $(IMAGE) -f Dockerfile .
 	@docker run --user root -v $(PWD)/coverage:/app/coverage --rm --workdir /app $(IMAGE) go test -coverprofile=coverage/coverage.txt -covermode=atomic -v ./...

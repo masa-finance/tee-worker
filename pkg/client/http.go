@@ -3,7 +3,6 @@ package client
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -26,65 +25,39 @@ func NewClient(baseURL string) *Client {
 	}
 }
 
-// SubmitJob submits a new job to the server and returns the job UID.
-func (c *Client) SubmitJob(job types.Job) (string, error) {
+// SubmitJob submits a new job to the server and returns the job result.
+func (c *Client) SubmitJob(job types.Job) (*JobResult, error) {
 	jobJSON, err := json.Marshal(job)
 	if err != nil {
-		return "", fmt.Errorf("error marshaling job: %w", err)
+		return nil, fmt.Errorf("error marshaling job: %w", err)
 	}
 
 	resp, err := c.HTTPClient.Post(c.BaseURL+"/job", "application/json", bytes.NewBuffer(jobJSON))
 	if err != nil {
-		return "", fmt.Errorf("error sending POST request: %w", err)
+		return nil, fmt.Errorf("error sending POST request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("error: received status code %d", resp.StatusCode)
+		return nil, fmt.Errorf("error: received status code %d", resp.StatusCode)
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", fmt.Errorf("error reading response body: %w", err)
+		return nil, fmt.Errorf("error reading response body: %w", err)
 	}
 
 	var jobResp types.JobResponse
 	err = json.Unmarshal(body, &jobResp)
 	if err != nil {
-		return "", fmt.Errorf("error unmarshaling response: %w", err)
+		return nil, fmt.Errorf("error unmarshaling response: %w", err)
 	}
 
-	return jobResp.UID, nil
+	return &JobResult{UUID: jobResp.UID, client: c, maxRetries: 60, delay: 1 * time.Second}, nil
 }
 
-// GetJobResult retrieves the encrypted result of a job.
-func (c *Client) GetJobResult(jobID string) (string, error) {
-	resp, err := c.HTTPClient.Get(c.BaseURL + "/job/" + jobID)
-	if err != nil {
-		return "", fmt.Errorf("error sending GET request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", fmt.Errorf("error reading response body: %w", err)
-	}
-
-	if resp.StatusCode == http.StatusNotFound {
-		err = fmt.Errorf("job not found or not ready")
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		respErr := types.JobError{}
-		json.Unmarshal(body, &respErr)
-		err = fmt.Errorf("error: %s", respErr.Error)
-	}
-
-	return string(body), err
-}
-
-// DecryptResult sends the encrypted result to the server to decrypt it.
-func (c *Client) DecryptResult(encryptedResult string) (string, error) {
+// Decrypt sends the encrypted result to the server to decrypt it.
+func (c *Client) Decrypt(encryptedResult string) (string, error) {
 	decryptReq := types.EncryptedRequest{
 		EncryptedResult: encryptedResult,
 	}
@@ -112,21 +85,28 @@ func (c *Client) DecryptResult(encryptedResult string) (string, error) {
 	return string(body), nil
 }
 
-// WaitForResult polls the server until the job result is ready or a timeout occurs.
-func (c *Client) WaitForResult(jobID string, maxRetries int, delay time.Duration) (result string, err error) {
-	retries := 0
+// GetJobResult retrieves the encrypted result of a job.
+func (c *Client) GetResult(jobUUID string) (string, error) {
+	resp, err := c.HTTPClient.Get(c.BaseURL + "/job/" + jobUUID)
+	if err != nil {
+		return "", fmt.Errorf("error sending GET request: %w", err)
+	}
+	defer resp.Body.Close()
 
-	for {
-		if retries >= maxRetries {
-			return "", errors.New("max retries reached")
-		}
-		retries++
-
-		result, err = c.GetJobResult(jobID)
-		if err == nil {
-			break
-		}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("error reading response body: %w", err)
 	}
 
-	return
+	if resp.StatusCode == http.StatusNotFound {
+		err = fmt.Errorf("job not found or not ready")
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		respErr := types.JobError{}
+		json.Unmarshal(body, &respErr)
+		err = fmt.Errorf("error: %s", respErr.Error)
+	}
+
+	return string(body), err
 }

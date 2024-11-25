@@ -33,7 +33,7 @@ var _ = Describe("Jobserver", func() {
 
 		Eventually(func() bool {
 			result, exists := jobserver.GetJobResult(uuid)
-			return exists && result.Error == "" && result.Data.(string) == "google"
+			return exists && result.Error == "" && string(result.Data) == "google"
 		}, "5s").Should(Not(BeNil()))
 	})
 })

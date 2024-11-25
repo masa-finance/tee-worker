@@ -1,13 +1,17 @@
-ARG egover=1.5.4
+ARG egover=1.6.0
 ARG baseimage=ghcr.io/edgelesssys/ego-deploy:v${egover}
 ARG VERSION
+
 # Build the Go binary in a separate stage utilizing Makefile
-FROM ghcr.io/edgelesssys/ego-dev:v${egover} AS builder
+FROM ghcr.io/edgelesssys/ego-dev:v${egover} AS dependencies
 
 WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
+
+# Build the Go binary in a separate stage utilizing Makefile
+FROM dependencies AS builder
 
 ENV VERSION=${VERSION}
 

@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -68,11 +67,7 @@ func Start(ctx context.Context, listenAddress string, config types.JobConfigurat
 			return c.JSON(http.StatusInternalServerError, types.JobError{Error: res.Error})
 		}
 
-		dat, err := json.Marshal(res.Data)
-		if err != nil {
-			return err
-		}
-		sealedData, err := tee.Seal(dat)
+		sealedData, err := tee.Seal(res.Data)
 		if err != nil {
 			return err
 		}
