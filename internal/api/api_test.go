@@ -49,17 +49,17 @@ var _ = Describe("API", func() {
 		}
 
 		// Step 2: Submit the job
-		jobID, err := clientInstance.SubmitJob(job)
+		jobResult, err := clientInstance.SubmitJob(job)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(jobID).NotTo(BeEmpty())
+		Expect(jobResult.UUID).NotTo(BeEmpty())
 
 		// Step 3: Wait for the job result
-		encryptedResult, err := clientInstance.WaitForResult(jobID, 10, time.Second)
+		encryptedResult, err := jobResult.Get()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(encryptedResult).NotTo(BeEmpty())
 
 		// Step 4: Decrypt the result
-		decryptedResult, err := clientInstance.DecryptResult(encryptedResult)
+		decryptedResult, err := clientInstance.Decrypt(encryptedResult)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(decryptedResult).NotTo(BeEmpty())
 		Expect(decryptedResult).NotTo(ContainSubstring("google"))
@@ -77,21 +77,26 @@ var _ = Describe("API", func() {
 		}
 
 		// Step 2: Submit the job
-		jobID, err := clientInstance.SubmitJob(job)
+		jobResult, err := clientInstance.SubmitJob(job)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(jobID).NotTo(BeEmpty())
+		Expect(jobResult).NotTo(BeNil())
 
 		// Step 3: Wait for the job result
-		encryptedResult, err := clientInstance.WaitForResult(jobID, 10, time.Second)
+		encryptedResult, err := jobResult.Get()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(encryptedResult).NotTo(BeEmpty())
 
 		// Step 4: Decrypt the result
-		decryptedResult, err := clientInstance.DecryptResult(encryptedResult)
+		decryptedResult, err := clientInstance.Decrypt(encryptedResult)
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(decryptedResult).NotTo(BeEmpty())
 		Expect(decryptedResult).To(ContainSubstring("google"))
+
+		result, err := jobResult.GetDecrypted()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(result).NotTo(BeEmpty())
+		Expect(result).To(ContainSubstring("google"))
 	})
 
 	It("bubble up errors", func() {
@@ -104,12 +109,15 @@ var _ = Describe("API", func() {
 		}
 
 		// Step 2: Submit the job
-		jobID, err := clientInstance.SubmitJob(job)
+		jobResult, err := clientInstance.SubmitJob(job)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(jobID).NotTo(BeEmpty())
+		Expect(jobResult).NotTo(BeNil())
+		Expect(jobResult.UUID).NotTo(BeEmpty())
+
+		jobResult.SetMaxRetries(10)
 
 		// Step 3: Wait for the job result (should fail)
-		encryptedResult, err := clientInstance.WaitForResult(jobID, 10, time.Second)
+		encryptedResult, err := jobResult.Get()
 		Expect(err).To(HaveOccurred())
 		Expect(encryptedResult).To(BeEmpty())
 	})
