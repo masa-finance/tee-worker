@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/masa-finance/tee-worker/api/types"
-	"github.com/masa-finance/tee-worker/internal/jobs"
 )
 
 func (js *JobServer) worker(c context.Context) {
@@ -27,11 +26,10 @@ type worker interface {
 }
 
 func (js *JobServer) doWork(j types.Job) error {
-	var w worker
-	switch j.Type {
-	case jobs.WebScraperType:
-		w = jobs.NewWebScraper(js.jobConfiguration)
-	default:
+	// TODO: add sync.Mutex for accessing jobWorkers
+	w, exists := js.jobWorkers[j.Type]
+
+	if !exists {
 		js.Lock()
 		js.results[j.UUID] = types.JobResult{
 			Error: fmt.Sprintf("unknown job type: %s", j.Type),
@@ -40,7 +38,13 @@ func (js *JobServer) doWork(j types.Job) error {
 		return fmt.Errorf("unknown job type: %s", j.Type)
 	}
 
-	result, err := w.ExecuteJob(j)
+	// XXX: Shall we lock the resource or create a new instance each time?
+	// Behavior is not defined yet as the only requirements we have is that
+	// some scrapers might have rate limits, so we don't want to create a new clients
+	// every time (?)
+	w.Lock()
+	defer w.Unlock()
+	result, err := w.w.ExecuteJob(j)
 	if err != nil {
 		result.Error = err.Error()
 	}
