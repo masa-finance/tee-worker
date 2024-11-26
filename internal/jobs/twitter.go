@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	twitterscraper "github.com/masa-finance/masa-twitter-scraper"
+	twitterscraper "github.com/imperatrona/twitter-scraper"
 	"github.com/masa-finance/tee-worker/api/types"
 	"github.com/masa-finance/tee-worker/internal/jobs/twitter"
 
@@ -64,7 +64,7 @@ func filterMap[T any, R any](slice []T, f func(T) (R, bool)) []R {
 	return result
 }
 
-func (ts *TwitterScraper) ScrapeFollowersForProfile(baseDir string, username string, count int) ([]twitterscraper.Legacy, error) {
+func (ts *TwitterScraper) ScrapeFollowersForProfile(baseDir string, username string, count int) ([]*twitterscraper.Profile, error) {
 	scraper, account, err := ts.getAuthenticatedScraper(baseDir)
 	if err != nil {
 		return nil, err
