@@ -51,6 +51,7 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 		results:          make(map[string]types.JobResult),
 		workers:          workers,
 		jobConfiguration: jc,
+		jobWorkers:       jobworkers,
 	}
 }
 
