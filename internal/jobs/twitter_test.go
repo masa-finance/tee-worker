@@ -18,8 +18,13 @@ var _ = Describe("Twitter Scraper", func() {
 	var err error
 
 	BeforeEach(func() {
-		tempDir, err = os.MkdirTemp("", "twitter")
-		Expect(err).NotTo(HaveOccurred())
+		CIDir := os.Getenv("CI_DIR")
+		if CIDir != "" {
+			tempDir = CIDir
+		} else {
+			tempDir, err = os.MkdirTemp("", "twitter")
+			Expect(err).NotTo(HaveOccurred())
+		}
 
 		twitterScraper = NewTwitterScraper(types.JobConfiguration{
 			"twitter_accounts": []string{os.Getenv("TWITTER_TEST_ACCOUNT")},
