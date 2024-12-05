@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/masa-finance/tee-worker/api/types"
+	"github.com/masa-finance/tee-worker/internal/jobs"
 )
 
 type JobServer struct {
@@ -16,6 +17,13 @@ type JobServer struct {
 
 	results          map[string]types.JobResult
 	jobConfiguration types.JobConfiguration
+
+	jobWorkers map[string]*jobWorkerEntry
+}
+
+type jobWorkerEntry struct {
+	w worker
+	sync.Mutex
 }
 
 func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
@@ -23,11 +31,27 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 		workers++
 	}
 
+	jobworkers := make(map[string]*jobWorkerEntry)
+
+	for _, t := range []string{jobs.WebScraperType, jobs.TwitterScraperType} {
+		switch t {
+		case jobs.WebScraperType:
+			jobworkers[jobs.WebScraperType] = &jobWorkerEntry{
+				w: jobs.NewWebScraper(jc),
+			}
+		case jobs.TwitterScraperType:
+			jobworkers[jobs.TwitterScraperType] = &jobWorkerEntry{
+				w: jobs.NewTwitterScraper(jc),
+			}
+		}
+	}
+
 	return &JobServer{
 		jobChan:          make(chan types.Job),
 		results:          make(map[string]types.JobResult),
 		workers:          workers,
 		jobConfiguration: jc,
+		jobWorkers:       jobworkers,
 	}
 }
 
