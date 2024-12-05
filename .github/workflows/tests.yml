@@ -13,11 +13,28 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v2
+    - name: Restore cached cookies
+      id: cache-cookies-restore
+      uses: actions/cache/restore@v4
+      with:
+        path: |
+          cookies
+        key: ${{ runner.os }}-cookies
     - name: Run tests
+      #env:
+      #  TWITTER_TEST_ACCOUNT: ${{ secrets.TWITTER_TEST_ACCOUNT }}
       run: |
-        make test
+        CI_DIR=$PWD/cookies make test
         sudo mv coverage/coverage.txt coverage.txt
         sudo chmod 777 coverage.txt
+
+    - name: Save cookies
+      id: cache-cookies-save
+      uses: actions/cache/save@v4
+      with:
+        path: |
+         cookies
+        key: ${{ steps.cache-cookies-restore.outputs.cache-primary-key }}
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4
       with:

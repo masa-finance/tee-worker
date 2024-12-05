@@ -30,11 +30,20 @@ func readConfig() types.JobConfiguration {
 		blacklistURLs[i] = strings.TrimSpace(u)
 	}
 
+	twitterAccount := os.Getenv("TWITTER_ACCOUNTS")
+
+	twitterAccounts := strings.Split(twitterAccount, ",")
+	for i, u := range twitterAccounts {
+		twitterAccounts[i] = strings.TrimSpace(u)
+	}
+
 	// Read the .env file and set the global configuration for all the jobs
 	// The jobs will then unmarshal from this configuration to the specific configuration
 	// that is needed for the job
 	jc := types.JobConfiguration{}
 	jc["webscraper_blacklist"] = blacklistURLs
+	jc["twitter_accounts"] = twitterAccounts
+	jc["data_dir"] = dataDir
 
 	return jc
 }
