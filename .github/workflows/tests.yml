@@ -21,8 +21,8 @@ jobs:
           cookies
         key: ${{ runner.os }}-cookies
     - name: Run tests
-      env:
-        TWITTER_TEST_ACCOUNT: ${{ secrets.TWITTER_TEST_ACCOUNT }}
+      #env:
+      #  TWITTER_TEST_ACCOUNT: ${{ secrets.TWITTER_TEST_ACCOUNT }}
       run: |
         CI_DIR=$PWD/cookies make test
         sudo mv coverage/coverage.txt coverage.txt

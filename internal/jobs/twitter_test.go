@@ -26,8 +26,14 @@ var _ = Describe("Twitter Scraper", func() {
 			Expect(err).NotTo(HaveOccurred())
 		}
 
+		account := os.Getenv("TWITTER_TEST_ACCOUNT")
+
+		if account == "" {
+			Skip("TWITTER_TEST_ACCOUNT is not set")
+		}
+
 		twitterScraper = NewTwitterScraper(types.JobConfiguration{
-			"twitter_accounts": []string{os.Getenv("TWITTER_TEST_ACCOUNT")},
+			"twitter_accounts": []string{account},
 			"data_dir":         tempDir,
 		})
 	})
