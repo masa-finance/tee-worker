@@ -18,7 +18,7 @@ var _ = Describe("Twitter Scraper", func() {
 	var err error
 
 	BeforeEach(func() {
-		CIDir := os.Getenv("CI_DIR")
+		CIDir := os.Getenv("TEST_COOKIE_DIR")
 		if CIDir != "" {
 			tempDir = CIDir
 		} else {

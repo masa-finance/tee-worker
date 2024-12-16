@@ -1,6 +1,7 @@
 VERSION?=$(shell git describe --tags --abbrev=0)
 PWD:=$(shell pwd)
 IMAGE?=masa-tee-worker:latest
+TEST_COOKIE_DIR?=$(PWD)/.testdir
 
 print-version:
 	@echo "Version: ${VERSION}"
@@ -33,6 +34,9 @@ tee/private.pem:
 docker-build: tee/private.pem
 	@docker build --secret id=private_key,src=./tee/private.pem  -t $(IMAGE) -f Dockerfile .
 
-test: tee/private.pem
+$(TEST_COOKIE_DIR):
+	@mkdir -p $(TEST_COOKIE_DIR)
+
+test: tee/private.pem $(TEST_COOKIE_DIR)
 	@docker build --target=dependencies --build-arg baseimage=builder --secret id=private_key,src=./tee/private.pem -t $(IMAGE) -f Dockerfile .
-	@docker run --user root -e TWITTER_TEST_ACCOUNT -v $(CI_DIR):/cookies -e CI_DIR=/cookies -v $(PWD)/coverage:/app/coverage --rm --workdir /app $(IMAGE) go test -coverprofile=coverage/coverage.txt -covermode=atomic -v ./...
+	@docker run --user root -e TWITTER_TEST_ACCOUNT -v $(TEST_COOKIE_DIR):/cookies -e TEST_COOKIE_DIR=/cookies -v $(PWD)/coverage:/app/coverage --rm --workdir /app $(IMAGE) go test -coverprofile=coverage/coverage.txt -covermode=atomic -v ./...
