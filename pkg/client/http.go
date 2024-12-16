@@ -86,27 +86,27 @@ func (c *Client) Decrypt(encryptedResult string) (string, error) {
 }
 
 // GetJobResult retrieves the encrypted result of a job.
-func (c *Client) GetResult(jobUUID string) (string, error) {
+func (c *Client) GetResult(jobUUID string) (string, bool, error) {
 	resp, err := c.HTTPClient.Get(c.BaseURL + "/job/" + jobUUID)
 	if err != nil {
-		return "", fmt.Errorf("error sending GET request: %w", err)
+		return "", false, fmt.Errorf("error sending GET request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", fmt.Errorf("error reading response body: %w", err)
+		return "", false, fmt.Errorf("error reading response body: %w", err)
 	}
 
 	if resp.StatusCode == http.StatusNotFound {
-		err = fmt.Errorf("job not found or not ready")
+		return "", false, fmt.Errorf("job not found")
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		respErr := types.JobError{}
-		json.Unmarshal(body, &respErr)
+	respErr := types.JobError{}
+	json.Unmarshal(body, &respErr)
+	if respErr.Error != "" {
 		err = fmt.Errorf("error: %s", respErr.Error)
 	}
 
-	return string(body), err
+	return string(body), true, err
 }

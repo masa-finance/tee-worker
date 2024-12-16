@@ -21,13 +21,14 @@ func (jr *JobResult) SetDelay(delay time.Duration) {
 }
 
 // GetJobResult retrieves the encrypted result of a job.
-func (jr *JobResult) getResult() (string, error) {
+func (jr *JobResult) getResult() (string, bool, error) {
 	return jr.client.GetResult(jr.UUID)
 }
 
 // Get polls the server until the job result is ready or a timeout occurs.
 func (jr *JobResult) Get() (result string, err error) {
 	retries := 0
+	var resultIsAvailable bool
 
 	for {
 		if retries >= jr.maxRetries {
@@ -35,8 +36,8 @@ func (jr *JobResult) Get() (result string, err error) {
 		}
 		retries++
 
-		result, err = jr.getResult()
-		if err == nil {
+		result, resultIsAvailable, err = jr.getResult()
+		if err == nil || resultIsAvailable {
 			break
 		}
 		time.Sleep(jr.delay)
