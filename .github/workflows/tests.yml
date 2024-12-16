@@ -24,7 +24,7 @@ jobs:
       #env:
       #  TWITTER_TEST_ACCOUNT: ${{ secrets.TWITTER_TEST_ACCOUNT }}
       run: |
-        CI_DIR=$PWD/cookies make test
+        TEST_COOKIE_DIR=$PWD/cookies make test
         sudo mv coverage/coverage.txt coverage.txt
         sudo chmod 777 coverage.txt
 
