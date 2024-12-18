@@ -10,8 +10,9 @@ import (
 
 	"github.com/cenkalti/backoff"
 	"github.com/gocolly/colly"
-	"github.com/masa-finance/tee-worker/api/types"
 	"github.com/sirupsen/logrus"
+
+	"github.com/masa-finance/tee-worker/api/types"
 )
 
 const WebScraperType = "web-scraper"
@@ -31,13 +32,20 @@ type WebScraperArgs struct {
 
 func NewWebScraper(jc types.JobConfiguration) *WebScraper {
 	config := WebScraperConfiguration{}
-	jc.Unmarshal(&config)
+	err := jc.Unmarshal(&config)
+	if err != nil {
+		logrus.Errorf("error unmarshalling configuration: %v", err)
+	}
 	return &WebScraper{configuration: config}
 }
 
 func (ws *WebScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 	args := &WebScraperArgs{}
-	j.Arguments.Unmarshal(args)
+	err := j.Arguments.Unmarshal(args)
+	if err != nil {
+		logrus.Errorf("error unmarshalling job arguments: %v", err)
+		return types.JobResult{Error: err.Error()}, err
+	}
 
 	for _, u := range ws.configuration.Blacklist {
 		if strings.Contains(args.URL, u) {
@@ -57,6 +65,10 @@ func (ws *WebScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 	return types.JobResult{
 		Data: result,
 	}, nil
+}
+
+func (ws *WebScraper) Status() string {
+	return "no status object implemented for web scraper"
 }
 
 // Section represents a distinct part of a scraped webpage, typically defined by a heading.

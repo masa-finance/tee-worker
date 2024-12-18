@@ -20,9 +20,11 @@ func NewScraper(account *TwitterAccount, cookieDir string) *Scraper {
 	RandomSleep()
 
 	if err := scraper.Login(account.Username, account.Password, account.TwoFACode); err != nil {
+		account.LoginStatus = fmt.Sprintf("Failed - %v", err)
 		logrus.WithError(err).Warnf("Login failed for %s", account.Username)
 		return nil
 	}
+	account.LoginStatus = "Successful"
 
 	RandomSleep()
 

@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	twitterscraper "github.com/imperatrona/twitter-scraper"
+
 	"github.com/masa-finance/tee-worker/api/types"
 	"github.com/masa-finance/tee-worker/internal/jobs/twitter"
 
@@ -80,7 +82,7 @@ func (ts *TwitterScraper) ScrapeFollowersForProfile(baseDir string, username str
 		logrus.Errorf("[-] Error fetching followers: %s", errString)
 		return nil, fmt.Errorf("error fetching followers: %s", errString)
 	}
-
+	account.LastScraped = time.Now()
 	return followingResponse, nil
 }
 
@@ -97,6 +99,7 @@ func (ts *TwitterScraper) ScrapeTweetsProfile(baseDir string, username string) (
 		}
 		return twitterscraper.Profile{}, err
 	}
+	account.LastScraped = time.Now()
 	return profile, nil
 }
 
@@ -118,6 +121,7 @@ func (ts *TwitterScraper) ScrapeTweetsByQuery(baseDir string, query string, coun
 		}
 		tweets = append(tweets, &TweetResult{Tweet: &tweet.Tweet})
 	}
+	account.LastScraped = time.Now()
 	return tweets, nil
 }
 
@@ -143,7 +147,11 @@ type TwitterScraperArgs struct {
 
 func NewTwitterScraper(jc types.JobConfiguration) *TwitterScraper {
 	config := TwitterScraperConfiguration{}
-	jc.Unmarshal(&config)
+	err := jc.Unmarshal(&config)
+	if err != nil {
+		logrus.Errorf("error unmarshalling twitter configuration: %v", err)
+		return nil
+	}
 
 	accounts := parseAccounts(config.Accounts)
 	accountManager := twitter.NewTwitterAccountManager(accounts)
@@ -151,13 +159,16 @@ func NewTwitterScraper(jc types.JobConfiguration) *TwitterScraper {
 	return &TwitterScraper{configuration: config, accountManager: accountManager}
 }
 
-func (ws *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
+func (ts *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 	args := &TwitterScraperArgs{}
-	j.Arguments.Unmarshal(args)
+	err := j.Arguments.Unmarshal(args)
+	if err != nil {
+		logrus.Errorf("error unmarshalling twitter job arguments: %v", err)
+	}
 
 	switch strings.ToLower(args.SearchType) {
 	case "searchbyquery":
-		tweets, err := ws.ScrapeTweetsByQuery(ws.configuration.DataDir, args.Query, args.Count)
+		tweets, err := ts.ScrapeTweetsByQuery(ts.configuration.DataDir, args.Query, args.Count)
 		if err != nil {
 			return types.JobResult{Error: err.Error()}, err
 		}
@@ -167,7 +178,7 @@ func (ws *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 		}, err
 
 	case "searchbyprofile":
-		profile, err := ws.ScrapeTweetsProfile(ws.configuration.DataDir, args.Query)
+		profile, err := ts.ScrapeTweetsProfile(ts.configuration.DataDir, args.Query)
 		if err != nil {
 			return types.JobResult{Error: err.Error()}, err
 		}
@@ -177,7 +188,7 @@ func (ws *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 		}, err
 
 	case "searchfollowers":
-		followers, err := ws.ScrapeFollowersForProfile(ws.configuration.DataDir, args.Query, args.Count)
+		followers, err := ts.ScrapeFollowersForProfile(ts.configuration.DataDir, args.Query, args.Count)
 		if err != nil {
 			return types.JobResult{Error: err.Error()}, err
 		}
@@ -192,4 +203,13 @@ func (ws *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 	return types.JobResult{
 		Error: "invalid search type",
 	}, fmt.Errorf("invalid search type")
+}
+
+func (ts *TwitterScraper) Status() string {
+	states := ts.accountManager.GetAccountStates()
+	jsn, err := json.Marshal(states)
+	if err != nil {
+		return fmt.Sprintf("error marshalling account states: %v", err)
+	}
+	return string(jsn)
 }

@@ -7,7 +7,9 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+
 	"github.com/masa-finance/tee-worker/api/types"
+	"github.com/masa-finance/tee-worker/internal/jobs"
 	"github.com/masa-finance/tee-worker/internal/jobserver"
 	"github.com/masa-finance/tee-worker/pkg/tee"
 )
@@ -106,8 +108,21 @@ func Start(ctx context.Context, listenAddress string, config types.JobConfigurat
 
 	go func() {
 		<-ctx.Done()
-		e.Close()
+		err := e.Close()
+		if err != nil {
+			e.Logger.Errorf("error closing server: %v", err)
+		}
 	}()
+
+	e.GET("/twitter/status", func(c echo.Context) error {
+		worker, exists := jobServer.GetWorker(jobs.TwitterScraperType)
+		if !exists {
+			return c.JSON(http.StatusNotFound, types.JobError{Error: "Twitter worker not found"})
+		}
+
+		status := worker.Status()
+		return c.String(http.StatusOK, status)
+	})
 
 	// Start server
 	e.Logger.Error(e.Start(listenAddress))

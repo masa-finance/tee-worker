@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/masa-finance/tee-worker/api/types"
 )
 
@@ -16,13 +18,18 @@ func (js *JobServer) worker(c context.Context) {
 
 		case j := <-js.jobChan:
 			fmt.Println("Job received: ", j)
-			js.doWork(j)
+			err := js.doWork(j)
+			if err != nil {
+				logrus.Errorf("error processing job: %v", err)
+				return
+			}
 		}
 	}
 }
 
-type worker interface {
+type Worker interface {
 	ExecuteJob(j types.Job) (types.JobResult, error)
+	Status() string
 }
 
 func (js *JobServer) doWork(j types.Job) error {

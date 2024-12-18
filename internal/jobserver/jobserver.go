@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/google/uuid"
+
 	"github.com/masa-finance/tee-worker/api/types"
 	"github.com/masa-finance/tee-worker/internal/jobs"
 )
@@ -22,7 +23,7 @@ type JobServer struct {
 }
 
 type jobWorkerEntry struct {
-	w worker
+	w Worker
 	sync.Mutex
 }
 
@@ -79,4 +80,18 @@ func (js *JobServer) GetJobResult(uuid string) (types.JobResult, bool) {
 
 	result, ok := js.results[uuid]
 	return result, ok
+}
+
+// GetWorker allows retrieval of a worker by its type from outside the package.
+// It is necessary because the jobWorkers map is not exported, but we need to
+// access the Status() method of a worker, such as the Twitter worker, externally.
+func (js *JobServer) GetWorker(workerType string) (Worker, bool) {
+	js.Lock()
+	defer js.Unlock()
+
+	entry, exists := js.jobWorkers[workerType]
+	if !exists {
+		return nil, false
+	}
+	return entry.w, true
 }
