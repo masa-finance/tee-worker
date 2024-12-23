@@ -114,7 +114,7 @@ func Start(ctx context.Context, listenAddress string, config types.JobConfigurat
 		}
 	}()
 
-	e.GET("/twitter/status", func(c echo.Context) error {
+	e.GET("/status/twitter", func(c echo.Context) error {
 		worker, exists := jobServer.GetWorker(jobs.TwitterScraperType)
 		if !exists {
 			return c.JSON(http.StatusNotFound, types.JobError{Error: "Twitter worker not found"})
