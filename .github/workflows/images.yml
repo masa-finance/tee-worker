@@ -56,7 +56,19 @@
             with:
               username: ${{ secrets.DOCKER_USERNAME }}
               password: ${{ secrets.DOCKER_PASSWORD }}
-
+          - name: Extract metadata (tags, labels) for Docker
+            id: meta
+            uses: docker/metadata-action@2a4836ac76fe8f5d0ee3a0d89aa12a80cc552ad3
+            with:
+              images: masaengineering/tee-worker
+              tags: |
+                type=ref,event=branch,suffix=-{{date 'YYYYMMDDHHmmss'}}
+                type=semver,pattern={{raw}}
+                type=sha,suffix=-{{date 'YYYYMMDDHHmmss'}}
+              flavor: |
+                latest=auto
+                prefix=
+                suffix=
           - name: Certificate
             if: github.event_name != 'pull_request'
             # Write the certificate (Secret) to a file
@@ -73,4 +85,6 @@
               file: ./Dockerfile
               platforms: linux/amd64,linux/arm64
               push: true
-              tags: ${{ steps.prep.outputs.tags }}
+              #tags: ${{ steps.prep.outputs.tags }}
+              tags: ${{ steps.meta.outputs.tags }}
+              labels: ${{ steps.meta.outputs.labels }}
