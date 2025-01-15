@@ -7,8 +7,8 @@ import (
 )
 
 func main() {
-	listenAddress := listenAddress()
 	jc := readConfig()
+	listenAddress := listenAddress()
 
 	api.Start(context.Background(), listenAddress, jc)
 }
