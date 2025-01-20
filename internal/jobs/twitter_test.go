@@ -110,7 +110,7 @@ var _ = Describe("Twitter Scraper", func() {
 			Type: TwitterScraperType,
 			Arguments: map[string]interface{}{
 				"type":  "getbyid",
-				"query": "1234567890", // Replace with a real tweet ID in actual test
+				"query": "1881258110712492142",
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
