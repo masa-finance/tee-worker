@@ -31,3 +31,20 @@ func ScrapeTweetsByQuery(baseDir string, query string, count int) ([]*TweetResul
 	}
 	return tweets, nil
 }
+
+func ScrapeTweetByID(baseDir string, tweetID string) (*twitterscraper.Tweet, error) {
+	scraper, account, err := getAuthenticatedScraper(baseDir)
+	if err != nil {
+		return nil, err
+	}
+
+	tweet, err := scraper.GetTweet(tweetID)
+	if err != nil {
+		if handleRateLimit(err, account) {
+			return nil, err
+		}
+		return nil, err
+	}
+
+	return tweet, nil
+}

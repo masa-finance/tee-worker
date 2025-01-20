@@ -104,4 +104,23 @@ var _ = Describe("Twitter Scraper", func() {
 
 		Expect(results[0].Username).ToNot(BeEmpty())
 	})
+
+	It("should get tweet by ID", func() {
+		res, err := twitterScraper.ExecuteJob(types.Job{
+			Type: TwitterScraperType,
+			Arguments: map[string]interface{}{
+				"type":  "getbyid",
+				"query": "1234567890", // Replace with a real tweet ID in actual test
+			},
+		})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(res.Error).To(BeEmpty())
+
+		var tweet *twitterscraper.Tweet
+		res.Unmarshal(&tweet)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(tweet).NotTo(BeNil())
+		Expect(tweet.ID).To(Equal("1234567890"))
+		Expect(tweet.Text).NotTo(BeEmpty())
+	})
 })
