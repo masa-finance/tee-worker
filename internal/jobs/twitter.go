@@ -185,6 +185,16 @@ func (ws *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 		return types.JobResult{
 			Data: dat,
 		}, err
+
+	case "getbyid":
+		tweet, err := twitter.ScrapeTweetByID(ws.configuration.DataDir, args.Query)
+		if err != nil {
+			return types.JobResult{Error: err.Error()}, err
+		}
+		dat, err := json.Marshal(tweet)
+		return types.JobResult{
+			Data: dat,
+		}, err
 	}
 
 	// Do the web scraping here
