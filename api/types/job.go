@@ -12,8 +12,9 @@ type JobResponse struct {
 type JobArguments map[string]interface{}
 
 type JobResult struct {
-	Error string `json:"error"`
-	Data  []byte `json:"data"`
+	Error      string `json:"error"`
+	Data       []byte `json:"data"`
+	NextCursor string `json:"next_cursor"`
 }
 
 func (jr JobResult) Success() bool {
