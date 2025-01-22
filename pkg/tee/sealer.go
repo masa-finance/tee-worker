@@ -10,14 +10,47 @@ and provides just syntax sugar.
 
 */
 
-import "github.com/edgelesssys/ego/ecrypto"
+import (
+	"encoding/base64"
+
+	"github.com/edgelesssys/ego/ecrypto"
+)
 
 // Seal uses the TEE Product Key to encrypt the plaintext
 // The Product key is the one bound to the signer pubkey
-func Seal(plaintext []byte) ([]byte, error) {
-	return ecrypto.SealWithProductKey(plaintext, nil)
+func Seal(plaintext []byte) (string, error) {
+	return SealWithKey("", plaintext)
 }
 
-func Unseal(encryptedText []byte) ([]byte, error) {
-	return ecrypto.Unseal(encryptedText, nil)
+func Unseal(encryptedText string) ([]byte, error) {
+	return UnsealWithKey("", encryptedText)
+}
+
+func SealWithKey(key string, plaintext []byte) (string, error) {
+	additionalKey := []byte{}
+	if key != "" {
+		additionalKey = []byte(key)
+	}
+
+	res, err := ecrypto.SealWithProductKey(plaintext, additionalKey)
+	if err != nil {
+		return "", err
+	}
+
+	b64 := base64.StdEncoding.EncodeToString(res)
+	return b64, nil
+}
+
+func UnsealWithKey(key string, encryptedText string) ([]byte, error) {
+	additionalKey := []byte{}
+	if key != "" {
+		additionalKey = []byte(key)
+	}
+
+	b64, err := base64.StdEncoding.DecodeString(encryptedText)
+	if err != nil {
+		return nil, err
+	}
+
+	return ecrypto.Unseal(b64, additionalKey)
 }

@@ -28,7 +28,15 @@ var _ = Describe("API", func() {
 		go Start(ctx, "127.0.0.1:40912", types.JobConfiguration{})
 
 		// Wait for the server to start
-		time.Sleep(2 * time.Second)
+		Eventually(func() error {
+			c := client.NewClient("http://localhost:40912")
+			// Create a job signature for an empty job. Eventually it should succeed
+			_, err := c.CreateJobSignature(types.Job{
+				Type:      jobs.WebScraperType,
+				Arguments: map[string]interface{}{},
+			})
+			return err
+		}, 10*time.Second).Should(Succeed())
 
 		// Initialize the client
 		clientInstance = client.NewClient("http://localhost:40912")
@@ -48,18 +56,23 @@ var _ = Describe("API", func() {
 			},
 		}
 
-		// Step 2: Submit the job
-		jobResult, err := clientInstance.SubmitJob(job)
+		// Step 2: Get a Job signature
+		jobSignature, err := clientInstance.CreateJobSignature(job)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(jobSignature).NotTo(BeEmpty())
+
+		// Step 3: Submit the job
+		jobResult, err := clientInstance.SubmitJob(jobSignature)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(jobResult.UUID).NotTo(BeEmpty())
 
-		// Step 3: Wait for the job result
+		// Step 4: Wait for the job result
 		encryptedResult, err := jobResult.Get()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(encryptedResult).NotTo(BeEmpty())
 
-		// Step 4: Decrypt the result
-		decryptedResult, err := clientInstance.Decrypt(encryptedResult)
+		// Step 5: Decrypt the result
+		decryptedResult, err := clientInstance.Decrypt(jobSignature, encryptedResult)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(decryptedResult).NotTo(BeEmpty())
 		Expect(decryptedResult).NotTo(ContainSubstring("google"))
@@ -75,25 +88,29 @@ var _ = Describe("API", func() {
 				"depth": 1,
 			},
 		}
+		// Step 2: Get a Job signature
+		jobSignature, err := clientInstance.CreateJobSignature(job)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(jobSignature).NotTo(BeEmpty())
 
-		// Step 2: Submit the job
-		jobResult, err := clientInstance.SubmitJob(job)
+		// Step 3: Submit the job
+		jobResult, err := clientInstance.SubmitJob(jobSignature)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(jobResult).NotTo(BeNil())
 
-		// Step 3: Wait for the job result
+		// Step 4: Wait for the job result
 		encryptedResult, err := jobResult.Get()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(encryptedResult).NotTo(BeEmpty())
 
-		// Step 4: Decrypt the result
-		decryptedResult, err := clientInstance.Decrypt(encryptedResult)
+		// Step 5: Decrypt the result
+		decryptedResult, err := clientInstance.Decrypt(jobSignature, encryptedResult)
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(decryptedResult).NotTo(BeEmpty())
 		Expect(decryptedResult).To(ContainSubstring("google"))
 
-		result, err := jobResult.GetDecrypted()
+		result, err := jobResult.GetDecrypted(jobSignature)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result).NotTo(BeEmpty())
 		Expect(result).To(ContainSubstring("google"))
@@ -108,15 +125,20 @@ var _ = Describe("API", func() {
 			},
 		}
 
-		// Step 2: Submit the job
-		jobResult, err := clientInstance.SubmitJob(job)
+		// Step 2: Get a Job signature
+		jobSignature, err := clientInstance.CreateJobSignature(job)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(jobSignature).NotTo(BeEmpty())
+
+		// Step 3: Submit the job
+		jobResult, err := clientInstance.SubmitJob(jobSignature)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(jobResult).NotTo(BeNil())
 		Expect(jobResult.UUID).NotTo(BeEmpty())
 
 		jobResult.SetMaxRetries(10)
 
-		// Step 3: Wait for the job result (should fail)
+		// Step 4: Wait for the job result (should fail)
 		encryptedResult, err := jobResult.Get()
 		Expect(err).To(HaveOccurred())
 		Expect(encryptedResult).To(BeEmpty())

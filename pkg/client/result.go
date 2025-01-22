@@ -5,6 +5,8 @@ import (
 	"time"
 )
 
+type JobSignature string
+
 type JobResult struct {
 	UUID       string
 	maxRetries int
@@ -47,10 +49,10 @@ func (jr *JobResult) Get() (result string, err error) {
 }
 
 // Get polls the server until the job result is ready or a timeout occurs.
-func (jr *JobResult) GetDecrypted() (result string, err error) {
+func (jr *JobResult) GetDecrypted(js JobSignature) (result string, err error) {
 	result, err = jr.Get()
 	if err == nil {
-		result, err = jr.client.Decrypt(result)
+		result, err = jr.client.Decrypt(js, result)
 	}
 
 	return
