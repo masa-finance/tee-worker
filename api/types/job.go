@@ -61,10 +61,10 @@ type JobResponse struct {
 }
 
 type JobResult struct {
-	Error string `json:"error"`
-	Data  []byte `json:"data"`
-	Job   Job    `json:"job"`
-  NextCursor string `json:"next_cursor"`
+	Error      string `json:"error"`
+	Data       []byte `json:"data"`
+	Job        Job    `json:"job"`
+	NextCursor string `json:"next_cursor"`
 }
 
 // Success returns true if the job was successful.
