@@ -5,84 +5,88 @@ import (
 	"net/http"
 	"net/http/httptest"
 
-	"github.com/masa-finance/tee-worker/pkg/client"
-	. "github.com/masa-finance/tee-worker/pkg/client"
-
 	"github.com/masa-finance/tee-worker/api/types"
-
+	. "github.com/masa-finance/tee-worker/pkg/client"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Client", func() {
 	var (
-		c          *Client
-		server     *httptest.Server
-		mockJobUID string
+		mockServer *httptest.Server
+		client     *Client
 	)
 
-	// Define a helper function to create a new test server
-	setupServer := func(statusCode int, responseBody interface{}) *httptest.Server {
-		return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.WriteHeader(statusCode)
-			if responseBody != nil {
-				json.NewEncoder(w).Encode(responseBody)
+	BeforeEach(func() {
+		mockServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			switch r.URL.Path {
+			case "/job/generate":
+				if r.Method == http.MethodPost {
+					w.WriteHeader(http.StatusOK)
+					w.Write([]byte(`mock-signature`))
+				}
+			case "/job/add":
+				if r.Method == http.MethodPost {
+					response := types.JobResponse{UID: "mock-job-id"}
+					respJSON, _ := json.Marshal(response)
+					w.WriteHeader(http.StatusOK)
+					w.Write(respJSON)
+				}
+			case "/job/result":
+				if r.Method == http.MethodPost {
+					w.WriteHeader(http.StatusOK)
+					w.Write([]byte(`decrypted-result`))
+				}
+			case "/job/status/mock-job-id":
+				if r.Method == http.MethodGet {
+					w.WriteHeader(http.StatusOK)
+					w.Write([]byte(`encrypted-result`))
+				}
+			default:
+				w.WriteHeader(http.StatusNotFound)
 			}
 		}))
-	}
 
-	BeforeEach(func() {
-		mockJobUID = "mock-job-uid"
+		client = NewClient(mockServer.URL)
 	})
 
-	Context("SubmitJob", func() {
-		var mockJob types.Job
+	AfterEach(func() {
+		mockServer.Close()
+	})
 
-		BeforeEach(func() {
-			mockJob = types.Job{UUID: "job1"}
-			server = setupServer(http.StatusOK, types.JobResponse{UID: mockJobUID})
-			c = client.NewClient(server.URL)
+	Describe("CreateJobSignature", func() {
+		It("should create a job signature successfully", func() {
+			job := types.Job{Type: "test-job"}
+			signature, err := client.CreateJobSignature(job)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(signature).To(Equal(JobSignature("mock-signature")))
 		})
+	})
 
-		AfterEach(func() {
-			server.Close()
-		})
-
+	Describe("SubmitJob", func() {
 		It("should submit a job successfully", func() {
-			jobResult, err := c.SubmitJob(mockJob)
+			signature := JobSignature("mock-signature")
+			jobResult, err := client.SubmitJob(signature)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(jobResult.UUID).To(Equal(mockJobUID))
-		})
-
-		It("should return an error on HTTP failure", func() {
-			server.Close() // close the server to simulate network error
-			_, err := c.SubmitJob(mockJob)
-			Expect(err).To(HaveOccurred())
+			Expect(jobResult.UUID).To(Equal("mock-job-id"))
 		})
 	})
 
-	Context("DecryptResult", func() {
-		BeforeEach(func() {
-			server = setupServer(http.StatusOK, "decrypted-result")
-			c = client.NewClient(server.URL)
-		})
-
-		AfterEach(func() {
-			server.Close()
-		})
-
-		It("should decrypt result successfully", func() {
-			result, err := c.Decrypt("encrypted-result")
+	Describe("Decrypt", func() {
+		It("should decrypt the encrypted result successfully", func() {
+			signature := JobSignature("mock-signature")
+			decryptedResult, err := client.Decrypt(signature, "mock-encrypted-result")
 			Expect(err).NotTo(HaveOccurred())
-			Expect(result).To(Equal("\"decrypted-result\"\n"))
+			Expect(decryptedResult).To(Equal("decrypted-result"))
 		})
+	})
 
-		It("should return an error on decryption failure", func() {
-			server.Close()
-			server = setupServer(http.StatusInternalServerError, nil)
-			c = client.NewClient(server.URL)
-			_, err := c.Decrypt("encrypted-result")
-			Expect(err).To(HaveOccurred())
+	Describe("GetResult", func() {
+		It("should get the job result successfully", func() {
+			result, found, err := client.GetResult("mock-job-id")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(result).To(Equal("encrypted-result"))
 		})
 	})
 })
