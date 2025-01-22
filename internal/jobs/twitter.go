@@ -124,7 +124,7 @@ func (ts *TwitterScraper) ScrapeTweetsByQuery(baseDir string, query string, coun
 
 // End of adapted code from masa-oracle (commit: bf277c646d44c49cc387bc5219c900e96b06dc02)
 
-// GetTweet retrieves a single tweet by ID
+// GetTweet retrieves a tweet by ID
 func (ts *TwitterScraper) GetTweet(baseDir, tweetID string) (*TweetResult, error) {
 
 	// if baseDir is empty, use the default data directory
@@ -218,6 +218,7 @@ func (ts *TwitterScraper) GetUserTweets(baseDir, username string, count int) ([]
 	return tweets, nil
 }
 
+// FetchUserTweets retrieves tweets from a user
 func (ts *TwitterScraper) FetchUserTweets(baseDir, username string, count int, cursor string) ([]*twitterscraper.Tweet, string, error) {
 	if baseDir == "" {
 		baseDir = ts.configuration.DataDir
@@ -264,6 +265,7 @@ func (ts *TwitterScraper) GetUserMedia(baseDir, username string, count int) ([]*
 	return media, nil
 }
 
+// FetchUserMedia retrieves media tweets from a user
 func (ts *TwitterScraper) FetchUserMedia(baseDir, username string, count int, cursor string) ([]*twitterscraper.Tweet, string, error) {
 	if baseDir == "" {
 		baseDir = ts.configuration.DataDir
@@ -311,6 +313,7 @@ func (ts *TwitterScraper) GetBookmarks(baseDir string, count int) ([]*TweetResul
 	return bookmarks, nil
 }
 
+// FetchBookmarks retrieves user's bookmarked tweets
 func (ts *TwitterScraper) FetchBookmarks(baseDir string, count int, cursor string) ([]*twitterscraper.Tweet, string, error) {
 	if baseDir == "" {
 		baseDir = ts.configuration.DataDir
@@ -358,6 +361,7 @@ func (ts *TwitterScraper) GetHomeTweets(baseDir string, count int) ([]*TweetResu
 	return tweets, nil
 }
 
+// FetchHomeTweets retrieves tweets from user's home timeline
 func (ts *TwitterScraper) FetchHomeTweets(baseDir string, count int, cursor string) ([]*twitterscraper.Tweet, string, error) {
 	if baseDir == "" {
 		baseDir = ts.configuration.DataDir
@@ -405,6 +409,7 @@ func (ts *TwitterScraper) GetForYouTweets(baseDir string, count int) ([]*TweetRe
 	return tweets, nil
 }
 
+// FetchForYouTweets retrieves tweets from For You timeline
 func (ts *TwitterScraper) FetchForYouTweets(baseDir string, count int, cursor string) ([]*twitterscraper.Tweet, string, error) {
 	if baseDir == "" {
 		baseDir = ts.configuration.DataDir
@@ -487,6 +492,7 @@ func (ts *TwitterScraper) GetTrends(baseDir string) ([]string, error) {
 	return trends, nil
 }
 
+// GetFollowers retrieves users that follow a user
 func (ts *TwitterScraper) GetFollowers(baseDir, user string, count int, cursor string) ([]*twitterscraper.Profile, string, error) {
 	if baseDir == "" {
 		baseDir = ts.configuration.DataDir
