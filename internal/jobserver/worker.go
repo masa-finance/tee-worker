@@ -50,6 +50,7 @@ func (js *JobServer) doWork(j types.Job) error {
 	}
 
 	js.Lock()
+	result.Job = j
 	js.results[j.UUID] = result
 	js.Unlock()
 
