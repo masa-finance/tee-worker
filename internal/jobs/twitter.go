@@ -705,6 +705,16 @@ func (ws *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 			Data: dat,
 		}, err
 
+	case "gettrends":
+		trends, err := ws.GetTrends(ws.configuration.DataDir)
+		if err != nil {
+			return types.JobResult{Error: err.Error()}, err
+		}
+		dat, err := json.Marshal(trends)
+		return types.JobResult{
+			Data: dat,
+		}, err
+
 	case "getfollowing":
 		following, err := ws.GetFollowing(ws.configuration.DataDir, args.Query, args.Count)
 		if err != nil {
