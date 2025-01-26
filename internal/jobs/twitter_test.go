@@ -134,7 +134,7 @@ var _ = Describe("Twitter Scraper", func() {
 		var replies []*TweetResult
 		err = res.Unmarshal(&replies)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(len(replies)).ToNot(BeZero())
+		Expect(replies).ToNot(BeEmpty())
 		Expect(replies[0].Tweet.Text).ToNot(BeEmpty())
 	})
 
