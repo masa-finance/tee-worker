@@ -55,9 +55,8 @@ var _ = Describe("Twitter Scraper", func() {
 		Expect(res.Error).To(BeEmpty())
 
 		var results []*TweetResult
-		res.Unmarshal(&results)
+		err = res.Unmarshal(&results)
 		Expect(err).NotTo(HaveOccurred())
-
 		Expect(len(results)).ToNot(BeZero())
 
 		Expect(results[0].Tweet.Text).ToNot(BeEmpty())
@@ -76,9 +75,8 @@ var _ = Describe("Twitter Scraper", func() {
 		Expect(res.Error).To(BeEmpty())
 
 		var results []*twitterscraper.Profile
-		res.Unmarshal(&results)
+		err = res.Unmarshal(&results)
 		Expect(err).NotTo(HaveOccurred())
-
 		Expect(len(results)).ToNot(BeZero())
 
 		Expect(results[0].Website).To(ContainSubstring("nasa.gov"))
@@ -97,11 +95,9 @@ var _ = Describe("Twitter Scraper", func() {
 		Expect(res.Error).To(BeEmpty())
 
 		var results []*twitterscraper.Profile
-		res.Unmarshal(&results)
+		err = res.Unmarshal(&results)
 		Expect(err).NotTo(HaveOccurred())
-
 		Expect(len(results)).ToNot(BeZero())
-
 		Expect(results[0].Username).ToNot(BeEmpty())
 	})
 
@@ -117,7 +113,7 @@ var _ = Describe("Twitter Scraper", func() {
 		Expect(res.Error).To(BeEmpty())
 
 		var tweet *twitterscraper.Tweet
-		res.Unmarshal(&tweet)
+		err = res.Unmarshal(&tweet)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(tweet).NotTo(BeNil())
 		Expect(tweet.ID).To(Equal("1234567890"))
@@ -136,7 +132,8 @@ var _ = Describe("Twitter Scraper", func() {
 		Expect(res.Error).To(BeEmpty())
 
 		var replies []*TweetResult
-		res.Unmarshal(&replies)
+		err = res.Unmarshal(&replies)
+		Expect(err).NotTo(HaveOccurred())
 		Expect(len(replies)).ToNot(BeZero())
 		Expect(replies[0].Tweet.Text).ToNot(BeEmpty())
 	})
@@ -154,7 +151,8 @@ var _ = Describe("Twitter Scraper", func() {
 		Expect(res.Error).To(BeEmpty())
 
 		var retweeters []*twitterscraper.Profile
-		res.Unmarshal(&retweeters)
+		err = res.Unmarshal(&retweeters)
+		Expect(err).NotTo(HaveOccurred())
 		Expect(len(retweeters)).ToNot(BeZero())
 		Expect(retweeters[0].Username).ToNot(BeEmpty())
 	})
@@ -172,7 +170,8 @@ var _ = Describe("Twitter Scraper", func() {
 		Expect(res.Error).To(BeEmpty())
 
 		var tweets []*TweetResult
-		res.Unmarshal(&tweets)
+		err = res.Unmarshal(&tweets)
+		Expect(err).NotTo(HaveOccurred())
 		Expect(len(tweets)).ToNot(BeZero())
 		Expect(tweets[0].Tweet.Text).ToNot(BeEmpty())
 	})
@@ -190,9 +189,10 @@ var _ = Describe("Twitter Scraper", func() {
 		Expect(res.Error).To(BeEmpty())
 
 		var media []*TweetResult
-		res.Unmarshal(&media)
-		Expect(len(media)).ToNot(BeZero())
-		Expect(len(media[0].Tweet.Photos) > 0 || len(media[0].Tweet.Videos) > 0).To(BeTrue())
+		err = res.Unmarshal(&media)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(media).ToNot(BeEmpty())
+		Expect(len(media[0].Tweet.Photos) + len(media[0].Tweet.Videos)).ToNot(BeZero())
 	})
 
 	It("should fetch bookmarks", func() {
@@ -207,7 +207,8 @@ var _ = Describe("Twitter Scraper", func() {
 		Expect(res.Error).To(BeEmpty())
 
 		var bookmarks []*TweetResult
-		res.Unmarshal(&bookmarks)
+		err = res.Unmarshal(&bookmarks)
+		Expect(err).NotTo(HaveOccurred())
 		Expect(len(bookmarks)).ToNot(BeZero())
 		Expect(bookmarks[0].Tweet.Text).ToNot(BeEmpty())
 	})
@@ -224,7 +225,8 @@ var _ = Describe("Twitter Scraper", func() {
 		Expect(res.Error).To(BeEmpty())
 
 		var tweets []*TweetResult
-		res.Unmarshal(&tweets)
+		err = res.Unmarshal(&tweets)
+		Expect(err).NotTo(HaveOccurred())
 		Expect(len(tweets)).ToNot(BeZero())
 		Expect(tweets[0].Tweet.Text).ToNot(BeEmpty())
 	})
@@ -241,8 +243,10 @@ var _ = Describe("Twitter Scraper", func() {
 		Expect(res.Error).To(BeEmpty())
 
 		var tweets []*TweetResult
-		res.Unmarshal(&tweets)
+		err = res.Unmarshal(&tweets)
+		Expect(err).NotTo(HaveOccurred())
 		Expect(len(tweets)).ToNot(BeZero())
+		Expect(tweets).ToNot(BeEmpty())
 		Expect(tweets[0].Tweet.Text).ToNot(BeEmpty())
 	})
 
@@ -258,7 +262,8 @@ var _ = Describe("Twitter Scraper", func() {
 		Expect(res.Error).To(BeEmpty())
 
 		var profile *twitterscraper.Profile
-		res.Unmarshal(&profile)
+		err = res.Unmarshal(&profile)
+		Expect(err).NotTo(HaveOccurred())
 		Expect(profile.Username).To(Equal("NASA"))
 	})
 
@@ -274,7 +279,8 @@ var _ = Describe("Twitter Scraper", func() {
 		Expect(res.Error).To(BeEmpty())
 
 		var space *twitterscraper.Space
-		res.Unmarshal(&space)
+		err = res.Unmarshal(&space)
+		Expect(err).NotTo(HaveOccurred())
 		Expect(space.ID).ToNot(BeEmpty())
 	})
 
@@ -291,7 +297,8 @@ var _ = Describe("Twitter Scraper", func() {
 		Expect(res.Error).To(BeEmpty())
 
 		var following []*twitterscraper.Profile
-		res.Unmarshal(&following)
+		err = res.Unmarshal(&following)
+		Expect(err).NotTo(HaveOccurred())
 		Expect(len(following)).ToNot(BeZero())
 		Expect(following[0].Username).ToNot(BeEmpty())
 	})
@@ -311,7 +318,8 @@ var _ = Describe("Twitter Scraper", func() {
 		Expect(res.NextCursor).ToNot(BeEmpty())
 
 		var tweets []*twitterscraper.Tweet
-		res.Unmarshal(&tweets)
+		err = res.Unmarshal(&tweets)
+		Expect(err).NotTo(HaveOccurred())
 		Expect(len(tweets)).ToNot(BeZero())
 		Expect(tweets[0].Text).ToNot(BeEmpty())
 	})
@@ -331,7 +339,8 @@ var _ = Describe("Twitter Scraper", func() {
 		Expect(res.NextCursor).ToNot(BeEmpty())
 
 		var tweets []*twitterscraper.Tweet
-		res.Unmarshal(&tweets)
+		err = res.Unmarshal(&tweets)
+		Expect(err).NotTo(HaveOccurred())
 		Expect(len(tweets)).ToNot(BeZero())
 		Expect(tweets[0].Text).ToNot(BeEmpty())
 	})

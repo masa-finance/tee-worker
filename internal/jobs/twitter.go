@@ -158,13 +158,15 @@ func (ts *TwitterScraper) GetTweetReplies(baseDir, tweetID string, cursor string
 		return nil, err
 	}
 
+	// handle rate limit
+	if ts.handleRateLimit(err, account) {
+		return nil, err
+	}
+
 	var replies []*TweetResult
 	tweets, threadCursor, err := scraper.GetTweetReplies(tweetID, cursor)
 	for i, tweet := range tweets {
 		if err != nil {
-			if ts.handleRateLimit(err, account) {
-				return nil, err
-			}
 
 			replies = append(replies, &TweetResult{Tweet: tweet, ThreadCursor: threadCursor[i], Error: err})
 		}
@@ -453,14 +455,10 @@ func (ts *TwitterScraper) GetProfileByID(baseDir, userID string) (*twitterscrape
 
 // SearchProfile searches for user profiles
 func (ts *TwitterScraper) SearchProfile(query string, count int) ([]*twitterscraper.ProfileResult, error) {
-	scraper, account, err := ts.getAuthenticatedScraper(ts.configuration.DataDir)
+	scraper, _, err := ts.getAuthenticatedScraper(ts.configuration.DataDir)
 	if err != nil {
 		return nil, err
 	}
-
-	fmt.Sprintf("Account: %s", account.Username)
-
-	fmt.Sprintf("Searching for profiles with query: %s", query)
 
 	var profiles []*twitterscraper.ProfileResult
 	for profile := range scraper.SearchProfiles(context.Background(), query, count) {
