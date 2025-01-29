@@ -17,7 +17,7 @@ func ScrapeFollowersForProfile(baseDir string, username string, count int) ([]*t
 	followingResponse, errString, _ := scraper.FetchFollowers(username, count, "")
 	if errString != "" {
 		err := fmt.Errorf("rate limited: %s", errString)
-		if handleRateLimit(err, account) {
+		if handleError(err, account) {
 			return nil, err
 		}
 

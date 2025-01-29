@@ -1,16 +1,25 @@
 package jobs_test
 
 import (
+	"time"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/masa-finance/tee-worker/api/types"
 	. "github.com/masa-finance/tee-worker/internal/jobs"
+	"github.com/masa-finance/tee-worker/internal/jobs/stats"
 )
 
+var statsCollector *stats.StatsCollector
+
 var _ = Describe("Webscraper", func() {
+	BeforeEach(func() {
+		statsCollector = stats.StartCollector(128)
+	})
+
 	It("should scrape now", func() {
-		webScraper := NewWebScraper(types.JobConfiguration{})
+		webScraper := NewWebScraper(types.JobConfiguration{}, statsCollector)
 
 		res, err := webScraper.ExecuteJob(types.Job{
 			Type: WebScraperType,
@@ -25,11 +34,18 @@ var _ = Describe("Webscraper", func() {
 		res.Unmarshal(&scrapedData)
 		Expect(err).NotTo(HaveOccurred())
 
-		Expect(len(scrapedData.Pages)).ToNot(BeZero())
+		Expect(scrapedData.Pages).ToNot(BeEmpty())
+
+		Eventually(func() uint {
+			return statsCollector.Stats.Stats[stats.WebSuccess]
+		}, 5*time.Second, 10*time.Millisecond).Should(BeNumerically("==", 1))
+		Eventually(func() uint {
+			return statsCollector.Stats.Stats[stats.WebErrors]
+		}, 5*time.Second, 10*time.Millisecond).Should(BeNumerically("==", 0))
 	})
 
 	It("does not return data with invalid hosts", func() {
-		webScraper := NewWebScraper(types.JobConfiguration{})
+		webScraper := NewWebScraper(types.JobConfiguration{}, statsCollector)
 
 		res, err := webScraper.ExecuteJob(types.Job{
 			Type: WebScraperType,
@@ -44,13 +60,22 @@ var _ = Describe("Webscraper", func() {
 		res.Unmarshal(&scrapedData)
 		Expect(err).NotTo(HaveOccurred())
 
-		Expect(len(scrapedData.Pages)).To(BeZero())
+		Expect(scrapedData.Pages).To(BeEmpty())
+		Eventually(func() uint {
+			return statsCollector.Stats.Stats[stats.WebSuccess]
+		}, 5*time.Second, 10*time.Millisecond).Should(BeNumerically("==", 1))
+		Eventually(func() uint {
+			return statsCollector.Stats.Stats[stats.WebErrors]
+		}, 5*time.Second, 10*time.Millisecond).Should(BeNumerically("==", 0))
+		Eventually(func() uint {
+			return statsCollector.Stats.Stats[stats.WebInvalid]
+		}, 5*time.Second, 10*time.Millisecond).Should(BeNumerically("==", 0))
 	})
 
 	It("should allow to blacklist urls", func() {
 		webScraper := NewWebScraper(types.JobConfiguration{
 			"webscraper_blacklist": []string{"google"},
-		})
+		}, statsCollector)
 
 		res, err := webScraper.ExecuteJob(types.Job{
 			Type: WebScraperType,
@@ -60,5 +85,14 @@ var _ = Describe("Webscraper", func() {
 		})
 		Expect(err).ToNot(HaveOccurred())
 		Expect(res.Error).To(Equal("URL blacklisted: google"))
+		Eventually(func() uint {
+			return statsCollector.Stats.Stats[stats.WebSuccess]
+		}, 5*time.Second, 10*time.Millisecond).Should(BeNumerically("==", 0))
+		Eventually(func() uint {
+			return statsCollector.Stats.Stats[stats.WebErrors]
+		}, 5*time.Second, 10*time.Millisecond).Should(BeNumerically("==", 0))
+		Eventually(func() uint {
+			return statsCollector.Stats.Stats[stats.WebInvalid]
+		}, 5*time.Second, 10*time.Millisecond).Should(BeNumerically("==", 1))
 	})
 })

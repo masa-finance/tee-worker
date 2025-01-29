@@ -12,7 +12,7 @@ func ScrapeTweetsProfile(baseDir string, username string) (twitterscraper.Profil
 
 	profile, err := scraper.GetProfile(username)
 	if err != nil {
-		if handleRateLimit(err, account) {
+		if handleError(err, account) {
 			return twitterscraper.Profile{}, err
 		}
 		return twitterscraper.Profile{}, err

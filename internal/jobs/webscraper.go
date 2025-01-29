@@ -11,6 +11,7 @@ import (
 	"github.com/cenkalti/backoff"
 	"github.com/gocolly/colly"
 	"github.com/masa-finance/tee-worker/api/types"
+	"github.com/masa-finance/tee-worker/internal/jobs/stats"
 	"github.com/sirupsen/logrus"
 )
 
@@ -18,6 +19,7 @@ const WebScraperType = "web-scraper"
 
 type WebScraper struct {
 	configuration WebScraperConfiguration
+	stats         *stats.StatsCollector
 }
 
 type WebScraperConfiguration struct {
@@ -29,10 +31,13 @@ type WebScraperArgs struct {
 	Depth int    `json:"depth"`
 }
 
-func NewWebScraper(jc types.JobConfiguration) *WebScraper {
+func NewWebScraper(jc types.JobConfiguration, statsCollector *stats.StatsCollector) *WebScraper {
 	config := WebScraperConfiguration{}
 	jc.Unmarshal(&config)
-	return &WebScraper{configuration: config}
+	return &WebScraper{
+		configuration: config,
+		stats:         statsCollector,
+	}
 }
 
 func (ws *WebScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
@@ -41,6 +46,8 @@ func (ws *WebScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 
 	for _, u := range ws.configuration.Blacklist {
 		if strings.Contains(args.URL, u) {
+			ws.stats.Add(stats.WebInvalid, 1)
+			logrus.Errorf("Blacklisted URL: %s", args.URL)
 			return types.JobResult{
 				Error: fmt.Sprintf("URL blacklisted: %s", args.URL),
 			}, nil
@@ -49,11 +56,13 @@ func (ws *WebScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 
 	result, err := scrapeWeb([]string{args.URL}, args.Depth)
 	if err != nil {
+		ws.stats.Add(stats.WebErrors, 1)
 		return types.JobResult{Error: err.Error()}, err
 	}
 
 	// Do the web scraping here
 	// For now, just return the URL
+	ws.stats.Add(stats.WebSuccess, 1)
 	return types.JobResult{
 		Data: result,
 	}, nil
