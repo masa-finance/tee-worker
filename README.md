@@ -36,13 +36,13 @@ docker-compose up
 The tee-worker exposes a simple http API to submit jobs, retrieve results, and decrypt the results.
 
 ```bash
-SIG=$(curl localhost:8080/job/generate -H "Content-Type: application/json" -d '{ "type": "webscraper", "arguments": { "url": "google" } }')
+SIG=$(curl localhost:8080/job/generate -H "Content-Type: application/json" -d '{ "type": "web-scraper", "arguments": { "url": "google" } }')
 
 ### Submitting jobs
-curl localhost:8080/job/add -H "Content-Type: application/json" -d '{ "encrypted_job": "'$SIG'" }'
+uuid=$(curl localhost:8080/job/add -H "Content-Type: application/json" -d '{ "encrypted_job": "'$SIG'" }' | jq -r .uid)
 
 ### Jobs results
-result=$(curl localhost:8080/job/status/b678ff77-118d-4a7a-a6ea-190eb850c28a)
+result=$(curl localhost:8080/job/status/$uuid)
 
 ### Decrypt job results
 curl localhost:8080/job/result -H "Content-Type: application/json" -d '{ "encrypted_result": "'$result'", "encrypted_request": "'$SIG'" }'
@@ -51,7 +51,7 @@ curl localhost:8080/job/result -H "Content-Type: application/json" -d '{ "encryp
 ### Golang client
 
 It is available a simple golang client to interact with the API:
-
+ 
 ```golang
 import(
     . "github.com/masa-finance/tee-worker/pkg/client"
@@ -90,3 +90,78 @@ func main() {
     decryptedResult, err := clientInstance.Decrypt(jobSignature, encryptedResult)
 }
 ```
+
+### Job types
+
+The tee-worker currently supports 3 job types:
+
+**TODO:** Add descriptions of the return values.
+
+#### `web-scraper`
+
+Scrapes a URL down to some depth.
+
+**Arguments**
+
+* `url` (string): The URL to scrape.
+* `depth` (int): How deep to go (if unset or less than 0, will be set to 1).
+
+#### `twitter-scraper`
+
+Performs different types of Twitter searches.
+
+**Arguments**
+
+* `type` (string): Type of query (see below).
+* `query` (string): The query to execute. Its meaning depends on the type of query (see below)
+* `count` (int): How many results to return.
+* `next_cursor` (int): Cursor returned from the previous query, for pagination (for those job types that support it).
+
+**Job types**
+
+Some jobs types have both `get` and `fetch` variants. The `get` variants ignore the `next_cursor` parameter and are meant for quick retrieval of the first `count` records. If you need to get more records (paginate) you should use the `fetch` job types which give you access to a cursor.
+
+**Jobs that return tweets or lists of tweets**
+
+* `searchbyquery` - Executes a query and returns the tweets that match. The `query` parameter is a query using the [Twitter API query syntax](https://developer.x.com/en/docs/x-api/v1/tweets/search/guides/standard-operators)
+* `getbyid` - Returns a tweet given its ID. The `query` parameter is the tweet ID.
+* `getreplies` - Returns a list of all the replies to a given tweet. The `query` parameter is the tweet ID.
+* `gettweets` / `fetchusertweets` - Returns all the tweets for a given profile. The `query` parameter is the profile to search.
+* `gethometweets` / `fetchhometweets` - Returns all the tweets from a profile's home timeline. The `query` parameter is the profile to search.
+* `getforyoutweets` / `fetchforyoutweets` - Returns all the tweets from a profile's "For You" timeline. The `query` parameter is the profile to search.
+* `getbookmarks` / `fetchbookmarks` - Returns all of a profile's bookmarked tweets. The `query` parameter is the profile to search.
+
+**Jobs that return profiles or lists of profiles**
+
+* `getprofilebyid` / `searchbyprofile` - Returns a given user profile. The `query` parameter is the profile to search for.
+* `getfollowers` / `searchfollowers`  - Returns a list of profiles of the followers of a given profile. The `query` parameter is the profile to search.
+* `getfollowing` - Returns all of the profiles a profile is following. The `query` parameter is the profile to search.
+* `getretweeters` - Returns a list of profiles that have retweeted a given tweet. The `query` parameter is the tweet ID.
+
+**Jobs that return other types of data**
+
+* `getmedia` / `fetchusermedia` - Returns info about all the photos and videos for a given user. The `query` parameter is the profile to search.
+* `gettrends`- Returns a list of all the trending topics. The `query` parameter is ignored.
+* `getspace`- Returns info regarding a Twitter Space given its ID. The `query` parameter is the space ID.
+
+#### `telemetry`
+
+This job type has no parameters, and returns the current state of the worker. It returns an object with the following fields. All timestamps are given in local time, in seconds since the Unix epoch (1/1/1970 00:00:00 UTC). The counts represent the interval between the `boot_time` and the `current_time`. All the fields in the `stats` object are optional (if they are missing it means that its value is 0).
+
+Note that the stats are reset whenever the node is rebooted (therefore we need the `boot_time` to properly account for the stats)
+
+These are the fields in the response:
+
+* `boot_time` - Timestamp when the process started up.
+* `last_operation_time` - Timestamp when the last operation happened.
+* `current_time` - Current timestamp of the host.
+* `stats.twitter_scrapes` - Total number of Twitter scrapes.
+* `stats.twitter_returned_tweets` - Number of tweets returned to clients (this does not consider other types of data such as profiles or trending topics).
+* `stats.twitter_returned_profiles` - Number of profiles returned to clients.
+* `stats.twitter_returned_other` - Number of other records returned to clients (e.g. media, spaces or trending topics).
+* `stats.twitter_errors` - Number of errors while scraping tweets (excluding authentication and rate-limiting).
+* `stats.twitter_ratelimit_errors` - Number of Twitter rate-limiting errors.
+* `stats.twitter_auth_errors` - Number of Twitter authentication errors.
+* `stats.web_success` - Number of successful web scrapes.
+* `stats.web_errors` - Number of web scrapes that resulted in an error.
+* `stats.web_invalid` - Number of invalid web scrape requests (at the moment, blacklisted domains).

@@ -63,7 +63,7 @@ func getAuthenticatedScraper(baseDir string) (*Scraper, *TwitterAccount, error) 
 	return scraper, account, nil
 }
 
-func handleRateLimit(err error, account *TwitterAccount) bool {
+func handleError(err error, account *TwitterAccount) bool {
 	if strings.Contains(err.Error(), "Rate limit exceeded") {
 		accountManager.MarkAccountRateLimited(account)
 		logrus.Warnf("rate limited: %s", account.Username)

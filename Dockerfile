@@ -33,6 +33,7 @@ RUN useradd -m -s /bin/bash masa && mkdir -p /home/masa && chown -R masa:masa /h
 USER masa
 
 WORKDIR /home/masa
+ENV DATA_DIR=/home/masa
 
 # Expose necessary ports
 EXPOSE 8080
