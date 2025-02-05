@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/masa-finance/tee-worker/api/types"
 	"github.com/masa-finance/tee-worker/internal/jobs"
+	"github.com/masa-finance/tee-worker/internal/jobs/stats"
 )
 
 type JobServer struct {
@@ -27,23 +28,26 @@ type jobWorkerEntry struct {
 }
 
 func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
-	if workers == 0 {
-		workers++
+	if workers <= 0 {
+		workers = 1
 	}
 
-	jobworkers := make(map[string]*jobWorkerEntry)
+	bufSize, ok := jc["stats_buf_size"].(uint)
+	if !ok {
+		bufSize = 128
+	}
+	s := stats.StartCollector(bufSize)
 
-	for _, t := range []string{jobs.WebScraperType, jobs.TwitterScraperType} {
-		switch t {
-		case jobs.WebScraperType:
-			jobworkers[jobs.WebScraperType] = &jobWorkerEntry{
-				w: jobs.NewWebScraper(jc),
-			}
-		case jobs.TwitterScraperType:
-			jobworkers[jobs.TwitterScraperType] = &jobWorkerEntry{
-				w: jobs.NewTwitterScraper(jc),
-			}
-		}
+	jobworkers := map[string]*jobWorkerEntry{
+		jobs.WebScraperType: {
+			w: jobs.NewWebScraper(jc, s),
+		},
+		jobs.TwitterScraperType: {
+			w: jobs.NewTwitterScraper(jc, s),
+		},
+		jobs.TelemetryJobType: {
+			w: jobs.NewTelemetryJob(jc, s),
+		},
 	}
 
 	return &JobServer{

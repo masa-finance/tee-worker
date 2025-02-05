@@ -9,11 +9,13 @@ import (
 	twitterscraper "github.com/imperatrona/twitter-scraper"
 	"github.com/masa-finance/tee-worker/api/types"
 	. "github.com/masa-finance/tee-worker/internal/jobs"
+	"github.com/masa-finance/tee-worker/internal/jobs/stats"
 )
 
 var _ = Describe("Twitter Scraper", func() {
 
 	var twitterScraper *TwitterScraper
+	var statsCollector *stats.StatsCollector
 	var tempDir string
 	var err error
 
@@ -32,10 +34,12 @@ var _ = Describe("Twitter Scraper", func() {
 			Skip("TWITTER_TEST_ACCOUNT is not set")
 		}
 
+		statsCollector = stats.StartCollector(128)
+
 		twitterScraper = NewTwitterScraper(types.JobConfiguration{
 			"twitter_accounts": []string{account},
 			"data_dir":         tempDir,
-		})
+		}, statsCollector)
 	})
 
 	AfterEach(func() {
@@ -57,9 +61,11 @@ var _ = Describe("Twitter Scraper", func() {
 		var results []*TweetResult
 		err = res.Unmarshal(&results)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(len(results)).ToNot(BeZero())
+		Expect(results).ToNot(BeEmpty())
 
 		Expect(results[0].Tweet.Text).ToNot(BeEmpty())
+		Expect(statsCollector.Stats.Stats[stats.TwitterScrapes]).To(BeNumerically("==", 1))
+		Expect(statsCollector.Stats.Stats[stats.TwitterTweets]).To(BeNumerically("==", uint(len(results))))
 	})
 
 	It("should scrape a profile", func() {
@@ -80,6 +86,9 @@ var _ = Describe("Twitter Scraper", func() {
 		Expect(len(results)).ToNot(BeZero())
 
 		Expect(results[0].Website).To(ContainSubstring("nasa.gov"))
+
+		Expect(statsCollector.Stats.Stats[stats.TwitterScrapes]).To(BeNumerically("==", 0))
+		Expect(statsCollector.Stats.Stats[stats.TwitterProfiles]).To(BeNumerically("==", uint(len(results))))
 	})
 
 	It("should scrape tweets with a search query", func() {
@@ -99,6 +108,9 @@ var _ = Describe("Twitter Scraper", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(results)).ToNot(BeZero())
 		Expect(results[0].Username).ToNot(BeEmpty())
+
+		Expect(statsCollector.Stats.Stats[stats.TwitterScrapes]).To(BeNumerically("==", 1))
+		Expect(statsCollector.Stats.Stats[stats.TwitterProfiles]).To(BeNumerically("==", uint(len(results))))
 	})
 
 	It("should get tweet by ID", func() {
