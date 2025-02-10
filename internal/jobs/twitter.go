@@ -221,152 +221,234 @@ func (ts *TwitterScraper) GetTweetRetweeters(baseDir, tweetID string, count int,
 	return retweeters, nil
 }
 
-// GetUserTweets retrieves tweets from a user
-func (ts *TwitterScraper) GetUserTweets(baseDir, username string, count int) ([]*TweetResult, error) {
+func (ts *TwitterScraper) GetUserTweets(baseDir, username string, count int, cursor string) ([]*TweetResult, string, error) {
 	scraper, account, err := ts.getAuthenticatedScraper(baseDir)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	ts.statsCollector.Add(stats.TwitterScrapes, 1)
+
 	var tweets []*TweetResult
-	for tweet := range scraper.GetTweets(context.Background(), username, count) {
-		if tweet.Error != nil {
-			_ = ts.handleError(tweet.Error, account)
-			return nil, tweet.Error
+	var nextCursor string
+
+	if cursor != "" {
+		// Use fetch method with cursor
+		fetchedTweets, fetchCursor, err := scraper.FetchTweets(username, count, cursor)
+		if err != nil {
+			_ = ts.handleError(err, account)
+			return nil, "", err
 		}
-		tweets = append(tweets, &TweetResult{Tweet: &tweet.Tweet})
-	}
 
-	ts.statsCollector.Add(stats.TwitterTweets, uint(len(tweets)))
-	return tweets, nil
-}
+		for _, tweet := range fetchedTweets {
+			tweets = append(tweets, &TweetResult{Tweet: tweet})
+		}
+		nextCursor = fetchCursor
+	} else {
+		// Use streaming method without cursor
+		for tweet := range scraper.GetTweets(context.Background(), username, count) {
+			if tweet.Error != nil {
+				_ = ts.handleError(tweet.Error, account)
+				return nil, "", tweet.Error
+			}
+			tweets = append(tweets, &TweetResult{Tweet: &tweet.Tweet})
+		}
 
-// FetchUserTweets retrieves tweets from a user
-func (ts *TwitterScraper) FetchUserTweets(baseDir, username string, count int, cursor string) ([]*twitterscraper.Tweet, string, error) {
-	scraper, account, err := ts.getAuthenticatedScraper(baseDir)
-	if err != nil {
-		return nil, "", err
-	}
-
-	ts.statsCollector.Add(stats.TwitterScrapes, 1)
-	tweets, nextCursor, err := scraper.FetchTweets(username, count, cursor)
-	if err != nil {
-		_ = ts.handleError(err, account)
-		return nil, "", err
+		// Set next cursor to last tweet's ID if available
+		if len(tweets) > 0 {
+			nextCursor = tweets[len(tweets)-1].Tweet.ID
+		}
 	}
 
 	ts.statsCollector.Add(stats.TwitterTweets, uint(len(tweets)))
 	return tweets, nextCursor, nil
 }
 
-// GetUserMedia retrieves media tweets from a user
-func (ts *TwitterScraper) GetUserMedia(baseDir, username string, count int) ([]*TweetResult, error) {
+func (ts *TwitterScraper) GetUserMedia(baseDir, username string, count int, cursor string) ([]*TweetResult, string, error) {
 	scraper, account, err := ts.getAuthenticatedScraper(baseDir)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	ts.statsCollector.Add(stats.TwitterScrapes, 1)
+
 	var media []*TweetResult
-	for tweet := range scraper.GetTweetsAndReplies(context.Background(), username, count) {
-		if tweet.Error != nil {
-			if ts.handleError(tweet.Error, account) {
-				return nil, tweet.Error
-			}
-			continue
+	var nextCursor string
+
+	if cursor != "" {
+		// Use fetch method with cursor
+		fetchedTweets, fetchCursor, err := scraper.FetchTweetsAndReplies(username, count, cursor)
+		if err != nil {
+			_ = ts.handleError(err, account)
+			return nil, "", err
 		}
-		if len(tweet.Tweet.Photos) > 0 || len(tweet.Tweet.Videos) > 0 {
-			media = append(media, &TweetResult{Tweet: &tweet.Tweet})
+
+		for _, tweet := range fetchedTweets {
+			if len(tweet.Photos) > 0 || len(tweet.Videos) > 0 {
+				media = append(media, &TweetResult{Tweet: tweet})
+			}
+		}
+		nextCursor = fetchCursor
+	} else {
+		// Use streaming method without cursor
+		for tweet := range scraper.GetTweetsAndReplies(context.Background(), username, count) {
+			if tweet.Error != nil {
+				if ts.handleError(tweet.Error, account) {
+					return nil, "", tweet.Error
+				}
+				continue
+			}
+			if len(tweet.Tweet.Photos) > 0 || len(tweet.Tweet.Videos) > 0 {
+				media = append(media, &TweetResult{Tweet: &tweet.Tweet})
+			}
+		}
+
+		// Set next cursor to last tweet's ID if available
+		if len(media) > 0 {
+			nextCursor = media[len(media)-1].Tweet.ID
 		}
 	}
 
 	ts.statsCollector.Add(stats.TwitterOther, uint(len(media)))
-	return media, nil
+	return media, nextCursor, nil
 }
 
-// FetchUserMedia retrieves media tweets from a user
-func (ts *TwitterScraper) FetchUserMedia(baseDir, username string, count int, cursor string) ([]*twitterscraper.Tweet, string, error) {
+func (ts *TwitterScraper) GetHomeTweets(baseDir string, count int, cursor string) ([]*TweetResult, string, error) {
 	scraper, account, err := ts.getAuthenticatedScraper(baseDir)
 	if err != nil {
 		return nil, "", err
 	}
 
 	ts.statsCollector.Add(stats.TwitterScrapes, 1)
-	tweets, nextCursor, err := scraper.FetchTweetsAndReplies(username, count, cursor)
-	if err != nil {
-		_ = ts.handleError(err, account)
-		return nil, "", err
-	}
 
-	ts.statsCollector.Add(stats.TwitterTweets, uint(len(tweets)))
-	return tweets, nextCursor, nil
-}
-
-// GetBookmarks retrieves user's bookmarked tweets
-func (ts *TwitterScraper) GetBookmarks(baseDir string, count int) ([]*TweetResult, error) {
-	scraper, account, err := ts.getAuthenticatedScraper(baseDir)
-	if err != nil {
-		return nil, err
-	}
-
-	ts.statsCollector.Add(stats.TwitterScrapes, 1)
-	var bookmarks []*TweetResult
-	for tweet := range scraper.GetBookmarks(context.Background(), count) {
-		if tweet.Error != nil {
-			_ = ts.handleError(tweet.Error, account)
-			return nil, tweet.Error
-		}
-		bookmarks = append(bookmarks, &TweetResult{Tweet: &tweet.Tweet})
-		if len(bookmarks) >= count {
-			break
-		}
-	}
-
-	ts.statsCollector.Add(stats.TwitterTweets, uint(len(bookmarks)))
-	return bookmarks, nil
-}
-
-// FetchBookmarks retrieves user's bookmarked tweets
-func (ts *TwitterScraper) FetchBookmarks(baseDir string, count int, cursor string) ([]*twitterscraper.Tweet, string, error) {
-	scraper, account, err := ts.getAuthenticatedScraper(baseDir)
-	if err != nil {
-		return nil, "", err
-	}
-
-	ts.statsCollector.Add(stats.TwitterScrapes, 1)
-	tweets, nextCursor, err := scraper.FetchBookmarks(count, cursor)
-	if err != nil {
-		_ = ts.handleError(err, account)
-		return nil, "", err
-	}
-
-	ts.statsCollector.Add(stats.TwitterTweets, uint(len(tweets)))
-	return tweets, nextCursor, nil
-}
-
-// GetHomeTweets retrieves tweets from user's home timeline
-func (ts *TwitterScraper) GetHomeTweets(baseDir string, count int) ([]*TweetResult, error) {
-	scraper, account, err := ts.getAuthenticatedScraper(baseDir)
-	if err != nil {
-		return nil, err
-	}
-
-	ts.statsCollector.Add(stats.TwitterScrapes, 1)
 	var tweets []*TweetResult
-	for tweet := range scraper.GetHomeTweets(context.Background(), count) {
-		if tweet.Error != nil {
-			_ = ts.handleError(tweet.Error, account)
-			return nil, tweet.Error
+	var nextCursor string
+
+	if cursor != "" {
+		// Use fetch method with cursor
+		fetchedTweets, fetchCursor, err := scraper.FetchHomeTweets(count, cursor)
+		if err != nil {
+			_ = ts.handleError(err, account)
+			return nil, "", err
 		}
-		tweets = append(tweets, &TweetResult{Tweet: &tweet.Tweet})
-		if len(tweets) >= count {
-			break
+
+		for _, tweet := range fetchedTweets {
+			tweets = append(tweets, &TweetResult{Tweet: tweet})
+		}
+		nextCursor = fetchCursor
+	} else {
+		// Use streaming method without cursor
+		for tweet := range scraper.GetHomeTweets(context.Background(), count) {
+			if tweet.Error != nil {
+				_ = ts.handleError(tweet.Error, account)
+				return nil, "", tweet.Error
+			}
+			tweets = append(tweets, &TweetResult{Tweet: &tweet.Tweet})
+			if len(tweets) >= count {
+				break
+			}
+		}
+
+		// Set next cursor to last tweet's ID if available
+		if len(tweets) > 0 {
+			nextCursor = tweets[len(tweets)-1].Tweet.ID
 		}
 	}
 
 	ts.statsCollector.Add(stats.TwitterOther, uint(len(tweets)))
-	return tweets, nil
+	return tweets, nextCursor, nil
+}
+
+func (ts *TwitterScraper) GetForYouTweets(baseDir string, count int, cursor string) ([]*TweetResult, string, error) {
+	scraper, account, err := ts.getAuthenticatedScraper(baseDir)
+	if err != nil {
+		return nil, "", err
+	}
+
+	ts.statsCollector.Add(stats.TwitterScrapes, 1)
+
+	var tweets []*TweetResult
+	var nextCursor string
+
+	if cursor != "" {
+		// Use fetch method with cursor
+		fetchedTweets, fetchCursor, err := scraper.FetchForYouTweets(count, cursor)
+		if err != nil {
+			_ = ts.handleError(err, account)
+			return nil, "", err
+		}
+
+		for _, tweet := range fetchedTweets {
+			tweets = append(tweets, &TweetResult{Tweet: tweet})
+		}
+		nextCursor = fetchCursor
+	} else {
+		// Use streaming method without cursor
+		for tweet := range scraper.GetForYouTweets(context.Background(), count) {
+			if tweet.Error != nil {
+				_ = ts.handleError(tweet.Error, account)
+				return nil, "", tweet.Error
+			}
+			tweets = append(tweets, &TweetResult{Tweet: &tweet.Tweet})
+			if len(tweets) >= count {
+				break
+			}
+		}
+
+		// Set next cursor to last tweet's ID if available
+		if len(tweets) > 0 {
+			nextCursor = tweets[len(tweets)-1].Tweet.ID
+		}
+	}
+
+	ts.statsCollector.Add(stats.TwitterTweets, uint(len(tweets)))
+	return tweets, nextCursor, nil
+}
+
+func (ts *TwitterScraper) GetBookmarks(baseDir string, count int, cursor string) ([]*TweetResult, string, error) {
+	scraper, account, err := ts.getAuthenticatedScraper(baseDir)
+	if err != nil {
+		return nil, "", err
+	}
+
+	ts.statsCollector.Add(stats.TwitterScrapes, 1)
+
+	var bookmarks []*TweetResult
+	var nextCursor string
+
+	if cursor != "" {
+		// Use fetch method with cursor
+		fetchedTweets, fetchCursor, err := scraper.FetchBookmarks(count, cursor)
+		if err != nil {
+			_ = ts.handleError(err, account)
+			return nil, "", err
+		}
+
+		for _, tweet := range fetchedTweets {
+			bookmarks = append(bookmarks, &TweetResult{Tweet: tweet})
+		}
+		nextCursor = fetchCursor
+	} else {
+		// Use streaming method without cursor
+		for tweet := range scraper.GetBookmarks(context.Background(), count) {
+			if tweet.Error != nil {
+				_ = ts.handleError(tweet.Error, account)
+				return nil, "", tweet.Error
+			}
+			bookmarks = append(bookmarks, &TweetResult{Tweet: &tweet.Tweet})
+			if len(bookmarks) >= count {
+				break
+			}
+		}
+
+		// Set next cursor to last tweet's ID if available
+		if len(bookmarks) > 0 {
+			nextCursor = bookmarks[len(bookmarks)-1].Tweet.ID
+		}
+	}
+
+	ts.statsCollector.Add(stats.TwitterTweets, uint(len(bookmarks)))
+	return bookmarks, nextCursor, nil
 }
 
 // FetchHomeTweets retrieves tweets from user's home timeline
@@ -385,31 +467,6 @@ func (ts *TwitterScraper) FetchHomeTweets(baseDir string, count int, cursor stri
 
 	ts.statsCollector.Add(stats.TwitterTweets, uint(len(tweets)))
 	return tweets, nextCursor, nil
-}
-
-// GetForYouTweets retrieves tweets from For You timeline
-func (ts *TwitterScraper) GetForYouTweets(baseDir string, count int) ([]*TweetResult, error) {
-	scraper, account, err := ts.getAuthenticatedScraper(baseDir)
-	if err != nil {
-		return nil, err
-	}
-
-	ts.statsCollector.Add(stats.TwitterScrapes, 1)
-	var tweets []*TweetResult
-	for tweet := range scraper.GetForYouTweets(context.Background(), count) {
-		if tweet.Error != nil {
-			_ = ts.handleError(tweet.Error, account)
-			return nil, tweet.Error
-		}
-
-		tweets = append(tweets, &TweetResult{Tweet: &tweet.Tweet})
-		if len(tweets) >= count {
-			break
-		}
-	}
-
-	ts.statsCollector.Add(stats.TwitterTweets, uint(len(tweets)))
-	return tweets, nil
 }
 
 // FetchForYouTweets retrieves tweets from For You timeline
@@ -562,6 +619,7 @@ type TwitterScraperArgs struct {
 	SearchType string `json:"type"`
 	Query      string `json:"query"`
 	Count      int    `json:"count"`
+	WithCursor bool   `json:"with_cursor"`
 	NextCursor string `json:"next_cursor"`
 }
 
@@ -645,54 +703,58 @@ func (ws *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 		}, err
 
 	case "gettweets":
-		tweets, err := ws.GetUserTweets(ws.configuration.DataDir, args.Query, args.Count)
+		tweets, nextCursor, err := ws.GetUserTweets(ws.configuration.DataDir, args.Query, args.Count, args.NextCursor)
 		if err != nil {
 			return types.JobResult{Error: err.Error()}, err
 		}
 		dat, err := json.Marshal(tweets)
 		return types.JobResult{
-			Data: dat,
+			Data:       dat,
+			NextCursor: nextCursor,
 		}, err
 
 	case "getmedia":
-		media, err := ws.GetUserMedia(ws.configuration.DataDir, args.Query, args.Count)
+		media, nextCursor, err := ws.GetUserMedia(ws.configuration.DataDir, args.Query, args.Count, args.NextCursor)
 		if err != nil {
 			return types.JobResult{Error: err.Error()}, err
 		}
 		dat, err := json.Marshal(media)
 		return types.JobResult{
-			Data: dat,
-		}, err
-
-	case "getbookmarks":
-		bookmarks, err := ws.GetBookmarks(ws.configuration.DataDir, args.Count)
-		if err != nil {
-			return types.JobResult{Error: err.Error()}, err
-
-		}
-		dat, err := json.Marshal(bookmarks)
-		return types.JobResult{
-			Data: dat,
+			Data:       dat,
+			NextCursor: nextCursor,
 		}, err
 
 	case "gethometweets":
-		tweets, err := ws.GetHomeTweets(ws.configuration.DataDir, args.Count)
+		tweets, nextCursor, err := ws.GetHomeTweets(ws.configuration.DataDir, args.Count, args.NextCursor)
 		if err != nil {
 			return types.JobResult{Error: err.Error()}, err
 		}
 		dat, err := json.Marshal(tweets)
 		return types.JobResult{
-			Data: dat,
+			Data:       dat,
+			NextCursor: nextCursor,
 		}, err
 
 	case "getforyoutweets":
-		tweets, err := ws.GetForYouTweets(ws.configuration.DataDir, args.Count)
+		tweets, nextCursor, err := ws.GetForYouTweets(ws.configuration.DataDir, args.Count, args.NextCursor)
 		if err != nil {
 			return types.JobResult{Error: err.Error()}, err
 		}
 		dat, err := json.Marshal(tweets)
 		return types.JobResult{
-			Data: dat,
+			Data:       dat,
+			NextCursor: nextCursor,
+		}, err
+
+	case "getbookmarks":
+		bookmarks, nextCursor, err := ws.GetBookmarks(ws.configuration.DataDir, args.Count, args.NextCursor)
+		if err != nil {
+			return types.JobResult{Error: err.Error()}, err
+		}
+		dat, err := json.Marshal(bookmarks)
+		return types.JobResult{
+			Data:       dat,
+			NextCursor: nextCursor,
 		}, err
 
 	case "getprofilebyid":
@@ -747,61 +809,6 @@ func (ws *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 			Data: dat,
 		}, err
 
-	case "fetchusertweets":
-		tweets, nextCursor, err := ws.FetchUserTweets(ws.configuration.DataDir, args.Query, args.Count, args.NextCursor)
-		if err != nil {
-			return types.JobResult{Error: err.Error()}, err
-		}
-		dat, err := json.Marshal(tweets)
-		return types.JobResult{
-			Data:       dat,
-			NextCursor: nextCursor,
-		}, err
-
-	case "fetchusermedia":
-		tweets, nextCursor, err := ws.FetchUserMedia(ws.configuration.DataDir, args.Query, args.Count, args.NextCursor)
-		if err != nil {
-			return types.JobResult{Error: err.Error()}, err
-		}
-		dat, err := json.Marshal(tweets)
-		return types.JobResult{
-			Data:       dat,
-			NextCursor: nextCursor,
-		}, err
-
-	case "fetchbookmarks":
-		tweets, nextCursor, err := ws.FetchBookmarks(ws.configuration.DataDir, args.Count, args.NextCursor)
-		if err != nil {
-			return types.JobResult{Error: err.Error()}, err
-		}
-		dat, err := json.Marshal(tweets)
-		return types.JobResult{
-			Data:       dat,
-			NextCursor: nextCursor,
-		}, err
-
-	case "fetchhometweets":
-		tweets, nextCursor, err := ws.FetchHomeTweets(ws.configuration.DataDir, args.Count, args.NextCursor)
-		if err != nil {
-			return types.JobResult{Error: err.Error()}, err
-		}
-		dat, err := json.Marshal(tweets)
-		return types.JobResult{
-			Data:       dat,
-			NextCursor: nextCursor,
-		}, err
-
-	case "fetchforyoutweets":
-		tweets, nextCursor, err := ws.FetchForYouTweets(ws.configuration.DataDir, args.Count, args.NextCursor)
-		if err != nil {
-			return types.JobResult{Error: err.Error()}, err
-		}
-
-		dat, err := json.Marshal(tweets)
-		return types.JobResult{
-			Data:       dat,
-			NextCursor: nextCursor,
-		}, err
 	}
 
 	return types.JobResult{
