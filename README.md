@@ -119,17 +119,20 @@ Performs different types of Twitter searches.
 
 **Job types**
 
-Some jobs types have both `get` and `fetch` variants. The `get` variants ignore the `next_cursor` parameter and are meant for quick retrieval of the first `count` records. If you need to get more records (paginate) you should use the `fetch` job types which give you access to a cursor.
+Some job types now support cursor-based pagination. For these jobs:
+
+- The get variants ignore the next_cursor parameter and retrieve the first count records quickly
+- To paginate, first use an empty next_cursor to get initial results, then use the returned next_cursor in subsequent calls.
 
 **Jobs that return tweets or lists of tweets**
 
 * `searchbyquery` - Executes a query and returns the tweets that match. The `query` parameter is a query using the [Twitter API query syntax](https://developer.x.com/en/docs/x-api/v1/tweets/search/guides/standard-operators)
 * `getbyid` - Returns a tweet given its ID. The `query` parameter is the tweet ID.
 * `getreplies` - Returns a list of all the replies to a given tweet. The `query` parameter is the tweet ID.
-* `gettweets` / `fetchusertweets` - Returns all the tweets for a given profile. The `query` parameter is the profile to search.
-* `gethometweets` / `fetchhometweets` - Returns all the tweets from a profile's home timeline. The `query` parameter is the profile to search.
-* `getforyoutweets` / `fetchforyoutweets` - Returns all the tweets from a profile's "For You" timeline. The `query` parameter is the profile to search.
-* `getbookmarks` / `fetchbookmarks` - Returns all of a profile's bookmarked tweets. The `query` parameter is the profile to search.
+* `gettweets`  - Returns all the tweets for a given profile. The `query` parameter is the profile to search.
+* `gethometweets`  - Returns all the tweets from a profile's home timeline. The `query` parameter is the profile to search.
+* `getforyoutweets` - Returns all the tweets from a profile's "For You" timeline. The `query` parameter is the profile to search.
+* `getbookmarks`  - Returns all of a profile's bookmarked tweets. The `query` parameter is the profile to search.
 
 **Jobs that return profiles or lists of profiles**
 
@@ -140,7 +143,7 @@ Some jobs types have both `get` and `fetch` variants. The `get` variants ignore 
 
 **Jobs that return other types of data**
 
-* `getmedia` / `fetchusermedia` - Returns info about all the photos and videos for a given user. The `query` parameter is the profile to search.
+* `getmedia` - Returns info about all the photos and videos for a given user. The `query` parameter is the profile to search.
 * `gettrends`- Returns a list of all the trending topics. The `query` parameter is ignored.
 * `getspace`- Returns info regarding a Twitter Space given its ID. The `query` parameter is the space ID.
 

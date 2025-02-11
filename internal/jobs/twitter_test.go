@@ -315,45 +315,4 @@ var _ = Describe("Twitter Scraper", func() {
 		Expect(following[0].Username).ToNot(BeEmpty())
 	})
 
-	It("should fetch tweets with cursor", func() {
-		res, err := twitterScraper.ExecuteJob(types.Job{
-			Type: TwitterScraperType,
-			Arguments: map[string]interface{}{
-				"type":        "fetchusertweets",
-				"query":       "NASA",
-				"count":       5,
-				"next_cursor": "",
-			},
-		})
-		Expect(err).NotTo(HaveOccurred())
-		Expect(res.Error).To(BeEmpty())
-		Expect(res.NextCursor).ToNot(BeEmpty())
-
-		var tweets []*twitterscraper.Tweet
-		err = res.Unmarshal(&tweets)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(len(tweets)).ToNot(BeZero())
-		Expect(tweets[0].Text).ToNot(BeEmpty())
-	})
-
-	It("should fetch media with cursor", func() {
-		res, err := twitterScraper.ExecuteJob(types.Job{
-			Type: TwitterScraperType,
-			Arguments: map[string]interface{}{
-				"type":        "fetchusermedia",
-				"query":       "NASA",
-				"count":       5,
-				"next_cursor": "",
-			},
-		})
-		Expect(err).NotTo(HaveOccurred())
-		Expect(res.Error).To(BeEmpty())
-		Expect(res.NextCursor).ToNot(BeEmpty())
-
-		var tweets []*twitterscraper.Tweet
-		err = res.Unmarshal(&tweets)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(len(tweets)).ToNot(BeZero())
-		Expect(tweets[0].Text).ToNot(BeEmpty())
-	})
 })
