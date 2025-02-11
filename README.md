@@ -119,7 +119,10 @@ Performs different types of Twitter searches.
 
 **Job types**
 
-Some jobs types have both `get` and `fetch` variants. The `get` variants ignore the `next_cursor` parameter and are meant for quick retrieval of the first `count` records. If you need to get more records (paginate) you should use the `fetch` job types which give you access to a cursor.
+Some job types now support cursor-based pagination. For these jobs:
+
+- The get variants ignore the next_cursor parameter and retrieve the first count records quickly
+- To paginate, first use an empty next_cursor to get initial results, then use the returned next_cursor in subsequent calls.
 
 **Jobs that return tweets or lists of tweets**
 

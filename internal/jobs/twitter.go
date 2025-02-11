@@ -221,6 +221,7 @@ func (ts *TwitterScraper) GetTweetRetweeters(baseDir, tweetID string, count int,
 	return retweeters, nil
 }
 
+// GetUserTweets retrieves tweets from a user
 func (ts *TwitterScraper) GetUserTweets(baseDir, username string, count int, cursor string) ([]*TweetResult, string, error) {
 	scraper, account, err := ts.getAuthenticatedScraper(baseDir)
 	if err != nil {
@@ -355,7 +356,7 @@ func (ts *TwitterScraper) GetHomeTweets(baseDir string, count int, cursor string
 		}
 	}
 
-	ts.statsCollector.Add(stats.TwitterOther, uint(len(tweets)))
+	ts.statsCollector.Add(stats.TwitterTweets, uint(len(tweets)))
 	return tweets, nextCursor, nil
 }
 
@@ -619,7 +620,6 @@ type TwitterScraperArgs struct {
 	SearchType string `json:"type"`
 	Query      string `json:"query"`
 	Count      int    `json:"count"`
-	WithCursor bool   `json:"with_cursor"`
 	NextCursor string `json:"next_cursor"`
 }
 
