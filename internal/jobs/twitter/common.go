@@ -55,7 +55,13 @@ func getAuthenticatedScraper(baseDir string) (*Scraper, *TwitterAccount, error) 
 	if account == nil {
 		return nil, nil, fmt.Errorf("all accounts are rate-limited")
 	}
-	scraper := NewScraper(account, baseDir)
+
+	authConfig := AuthConfig{
+		Account: account,
+		BaseDir: baseDir,
+	}
+
+	scraper := NewScraper(authConfig)
 	if scraper == nil {
 		logrus.Errorf("Authentication failed for %s", account.Username)
 		return nil, account, fmt.Errorf("Twitter authentication failed for %s", account.Username)

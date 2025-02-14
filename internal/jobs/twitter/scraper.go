@@ -6,12 +6,9 @@ import (
 
 type Scraper struct {
 	*twitterscraper.Scraper
+	apiClient *Client // Add API client
 }
 
 func newTwitterScraper() *twitterscraper.Scraper {
 	return twitterscraper.New()
-}
-
-func (s *Scraper) IsLoggedIn() bool {
-	return s.Scraper.IsLoggedIn()
 }
