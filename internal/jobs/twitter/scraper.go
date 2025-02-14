@@ -11,3 +11,7 @@ type Scraper struct {
 func newTwitterScraper() *twitterscraper.Scraper {
 	return twitterscraper.New()
 }
+
+func (s *Scraper) IsLoggedIn() bool {
+	return s.Scraper.IsLoggedIn()
+}

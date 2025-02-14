@@ -50,12 +50,12 @@ func NewTwitterXClient(apiKey string) *TwitterXClient {
 	return client
 }
 
-// expose the http client
+// HTTPClient expose the http client
 func (c *TwitterXClient) HTTPClient() *http.Client {
 	return c.httpClient
 }
 
-// execute the GET or POST request
+// Do execute the GET or POST request
 func (c *TwitterXClient) Do(req *http.Request) (*http.Response, error) {
 	return c.httpClient.Do(req)
 }

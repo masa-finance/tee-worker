@@ -61,7 +61,3 @@ func (scraper *Scraper) Login(username, password string, twoFACode ...string) er
 	}
 	return nil
 }
-
-func (scraper *Scraper) IsLoggedIn() bool {
-	return scraper.Scraper.IsLoggedIn()
-}

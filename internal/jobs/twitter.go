@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/masa-finance/tee-worker/internal/jobs/twitterx"
+	"github.com/masa-finance/tee-worker/pkg/client"
 	"strings"
 
 	twitterscraper "github.com/imperatrona/twitter-scraper"
@@ -35,31 +36,44 @@ func parseAccounts(accountPairs []string) []*twitter.TwitterAccount {
 	})
 }
 
-func (ts *TwitterScraper) getAuthenticatedScraper(baseDir string) (*twitter.Scraper, *twitter.TwitterAccount, error) {
+func parseApiKeys(apiKeys []string) []*twitter.TwitterApiKey {
+	return filterMap(apiKeys, func(key string) (*twitter.TwitterApiKey, bool) {
+		return &twitter.TwitterApiKey{
+			Key: strings.TrimSpace(key),
+		}, true
+	})
+}
+
+func (ts *TwitterScraper) getAuthenticatedScraper(baseDir string) (*twitter.Scraper, *twitter.TwitterAccount, *twitter.TwitterApiKey, error) {
 	// if baseDir is empty, use the default data directory
 	if baseDir == "" {
 		baseDir = ts.configuration.DataDir
 	}
 
 	account := ts.accountManager.GetNextAccount()
-	if account == nil {
+	apiKey := ts.accountManager.GetNextApiKey()
+	if account == nil && apiKey == nil {
 		ts.statsCollector.Add(stats.TwitterAuthErrors, 1)
-		return nil, nil, fmt.Errorf("all accounts are rate-limited")
+		return nil, nil, nil, fmt.Errorf("no accounts or API keys available")
 	}
 
-	authConfig := twitter.AuthConfig{
-		Account: account,
-		BaseDir: baseDir,
+	var scraper *twitter.Scraper
+	if account != nil {
+		
+		authConfig := twitter.AuthConfig{
+			Account: account,
+			BaseDir: baseDir,
+		}
+
+		scraper = twitter.NewScraper(authConfig)
+		if scraper == nil {
+			ts.statsCollector.Add(stats.TwitterAuthErrors, 1)
+			logrus.Errorf("Authentication failed for %s", account.Username)
+			return nil, account, nil, fmt.Errorf("twitter authentication failed for %s", account.Username)
+		}
 	}
 
-	scraper := twitter.NewScraper(authConfig)
-	if scraper == nil {
-		ts.statsCollector.Add(stats.TwitterAuthErrors, 1)
-		logrus.Errorf("Authentication failed for %s", account.Username)
-		return nil, account, fmt.Errorf("twitter authentication failed for %s", account.Username)
-	}
-
-	return scraper, account, nil
+	return scraper, account, apiKey, nil
 }
 
 // handleError handles Twitter API errors, detecting rate limits and marking accounts as rate-limited if necessary
@@ -87,7 +101,7 @@ func filterMap[T any, R any](slice []T, f func(T) (R, bool)) []R {
 }
 
 func (ts *TwitterScraper) ScrapeFollowersForProfile(baseDir string, username string, count int) ([]*twitterscraper.Profile, error) {
-	scraper, account, err := ts.getAuthenticatedScraper(baseDir)
+	scraper, account, _, err := ts.getAuthenticatedScraper(baseDir)
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +123,7 @@ func (ts *TwitterScraper) ScrapeFollowersForProfile(baseDir string, username str
 }
 
 func (ts *TwitterScraper) ScrapeTweetsProfile(baseDir string, username string) (twitterscraper.Profile, error) {
-	scraper, account, err := ts.getAuthenticatedScraper(baseDir)
+	scraper, account, _, err := ts.getAuthenticatedScraper(baseDir)
 	if err != nil {
 		return twitterscraper.Profile{}, err
 	}
@@ -125,13 +139,27 @@ func (ts *TwitterScraper) ScrapeTweetsProfile(baseDir string, username string) (
 	return profile, nil
 }
 
-func (ts *TwitterScraper) ScrapeTweetsByQuery(baseDir string, query string, count int) ([]*TweetResult, error) {
-	scraper, account, err := ts.getAuthenticatedScraper(baseDir)
+func (ts *TwitterScraper) ScrapeTweetsByQuery(baseDir string, query string, count int) (interface{}, error) {
+	scraper, account, apiKey, err := ts.getAuthenticatedScraper(baseDir)
 	if err != nil {
 		return nil, err
 	}
 
 	ts.statsCollector.Add(stats.TwitterScrapes, 1)
+
+	// Check if we have a TwitterX API key
+	if apiKey != nil {
+
+		client := client.NewTwitterXClient(apiKey.Key)
+		twitterXScraper := twitterx.NewTwitterXScraper(client)
+		result, err := twitterXScraper.ScrapeTweetsByQuery(query)
+		if err != nil {
+			return nil, err
+		}
+		ts.statsCollector.Add(stats.TwitterTweets, uint(len(result.Data)))
+		return result, nil
+	}
+
 	var tweets []*TweetResult
 	ctx := context.Background()
 	scraper.SetSearchMode(twitterscraper.SearchLatest)
@@ -151,7 +179,7 @@ func (ts *TwitterScraper) ScrapeTweetsByQuery(baseDir string, query string, coun
 func (ts *TwitterScraper) ScrapeTweetByID(baseDir string, tweetID string) (*twitterscraper.Tweet, error) {
 	ts.statsCollector.Add(stats.TwitterScrapes, 1)
 
-	scraper, account, err := ts.getAuthenticatedScraper(baseDir)
+	scraper, account, _, err := ts.getAuthenticatedScraper(baseDir)
 	if err != nil {
 		return nil, err
 	}
@@ -170,7 +198,7 @@ func (ts *TwitterScraper) ScrapeTweetByID(baseDir string, tweetID string) (*twit
 
 // GetTweet retrieves a tweet by ID
 func (ts *TwitterScraper) GetTweet(baseDir, tweetID string) (*TweetResult, error) {
-	scraper, account, err := ts.getAuthenticatedScraper(baseDir)
+	scraper, account, _, err := ts.getAuthenticatedScraper(baseDir)
 	if err != nil {
 		return nil, err
 	}
@@ -188,7 +216,7 @@ func (ts *TwitterScraper) GetTweet(baseDir, tweetID string) (*TweetResult, error
 
 // GetTweetReplies retrieves replies to a tweet
 func (ts *TwitterScraper) GetTweetReplies(baseDir, tweetID string, cursor string) ([]*TweetResult, error) {
-	scraper, account, err := ts.getAuthenticatedScraper(baseDir)
+	scraper, account, _, err := ts.getAuthenticatedScraper(baseDir)
 	if err != nil {
 		return nil, err
 	}
@@ -211,7 +239,7 @@ func (ts *TwitterScraper) GetTweetReplies(baseDir, tweetID string, cursor string
 
 // GetTweetRetweeters retrieves users who retweeted a tweet
 func (ts *TwitterScraper) GetTweetRetweeters(baseDir, tweetID string, count int, cursor string) ([]*twitterscraper.Profile, error) {
-	scraper, account, err := ts.getAuthenticatedScraper(ts.configuration.DataDir)
+	scraper, account, _, err := ts.getAuthenticatedScraper(ts.configuration.DataDir)
 	if err != nil {
 		return nil, err
 	}
@@ -229,7 +257,7 @@ func (ts *TwitterScraper) GetTweetRetweeters(baseDir, tweetID string, count int,
 
 // GetUserTweets retrieves tweets from a user
 func (ts *TwitterScraper) GetUserTweets(baseDir, username string, count int, cursor string) ([]*TweetResult, string, error) {
-	scraper, account, err := ts.getAuthenticatedScraper(baseDir)
+	scraper, account, _, err := ts.getAuthenticatedScraper(baseDir)
 	if err != nil {
 		return nil, "", err
 	}
@@ -272,7 +300,7 @@ func (ts *TwitterScraper) GetUserTweets(baseDir, username string, count int, cur
 }
 
 func (ts *TwitterScraper) GetUserMedia(baseDir, username string, count int, cursor string) ([]*TweetResult, string, error) {
-	scraper, account, err := ts.getAuthenticatedScraper(baseDir)
+	scraper, account, _, err := ts.getAuthenticatedScraper(baseDir)
 	if err != nil {
 		return nil, "", err
 	}
@@ -321,7 +349,7 @@ func (ts *TwitterScraper) GetUserMedia(baseDir, username string, count int, curs
 }
 
 func (ts *TwitterScraper) GetHomeTweets(baseDir string, count int, cursor string) ([]*TweetResult, string, error) {
-	scraper, account, err := ts.getAuthenticatedScraper(baseDir)
+	scraper, account, _, err := ts.getAuthenticatedScraper(baseDir)
 	if err != nil {
 		return nil, "", err
 	}
@@ -367,7 +395,7 @@ func (ts *TwitterScraper) GetHomeTweets(baseDir string, count int, cursor string
 }
 
 func (ts *TwitterScraper) GetForYouTweets(baseDir string, count int, cursor string) ([]*TweetResult, string, error) {
-	scraper, account, err := ts.getAuthenticatedScraper(baseDir)
+	scraper, account, _, err := ts.getAuthenticatedScraper(baseDir)
 	if err != nil {
 		return nil, "", err
 	}
@@ -413,7 +441,7 @@ func (ts *TwitterScraper) GetForYouTweets(baseDir string, count int, cursor stri
 }
 
 func (ts *TwitterScraper) GetBookmarks(baseDir string, count int, cursor string) ([]*TweetResult, string, error) {
-	scraper, account, err := ts.getAuthenticatedScraper(baseDir)
+	scraper, account, _, err := ts.getAuthenticatedScraper(baseDir)
 	if err != nil {
 		return nil, "", err
 	}
@@ -460,7 +488,7 @@ func (ts *TwitterScraper) GetBookmarks(baseDir string, count int, cursor string)
 
 // FetchHomeTweets retrieves tweets from user's home timeline
 func (ts *TwitterScraper) FetchHomeTweets(baseDir string, count int, cursor string) ([]*twitterscraper.Tweet, string, error) {
-	scraper, account, err := ts.getAuthenticatedScraper(baseDir)
+	scraper, account, _, err := ts.getAuthenticatedScraper(baseDir)
 	if err != nil {
 		return nil, "", err
 	}
@@ -478,7 +506,7 @@ func (ts *TwitterScraper) FetchHomeTweets(baseDir string, count int, cursor stri
 
 // FetchForYouTweets retrieves tweets from For You timeline
 func (ts *TwitterScraper) FetchForYouTweets(baseDir string, count int, cursor string) ([]*twitterscraper.Tweet, string, error) {
-	scraper, account, err := ts.getAuthenticatedScraper(baseDir)
+	scraper, account, _, err := ts.getAuthenticatedScraper(baseDir)
 	if err != nil {
 		return nil, "", err
 	}
@@ -496,7 +524,7 @@ func (ts *TwitterScraper) FetchForYouTweets(baseDir string, count int, cursor st
 
 // GetProfileByID retrieves a user profile by ID
 func (ts *TwitterScraper) GetProfileByID(baseDir, userID string) (*twitterscraper.Profile, error) {
-	scraper, account, err := ts.getAuthenticatedScraper(baseDir)
+	scraper, account, _, err := ts.getAuthenticatedScraper(baseDir)
 	if err != nil {
 		return nil, err
 	}
@@ -514,7 +542,7 @@ func (ts *TwitterScraper) GetProfileByID(baseDir, userID string) (*twitterscrape
 
 // SearchProfile searches for user profiles
 func (ts *TwitterScraper) SearchProfile(query string, count int) ([]*twitterscraper.ProfileResult, error) {
-	scraper, _, err := ts.getAuthenticatedScraper(ts.configuration.DataDir)
+	scraper, _, _, err := ts.getAuthenticatedScraper(ts.configuration.DataDir)
 	if err != nil {
 		return nil, err
 	}
@@ -535,7 +563,7 @@ func (ts *TwitterScraper) SearchProfile(query string, count int) ([]*twitterscra
 
 // GetTrends retrieves current trending topics
 func (ts *TwitterScraper) GetTrends(baseDir string) ([]string, error) {
-	scraper, account, err := ts.getAuthenticatedScraper(baseDir)
+	scraper, account, _, err := ts.getAuthenticatedScraper(baseDir)
 	if err != nil {
 		return nil, err
 	}
@@ -554,7 +582,7 @@ func (ts *TwitterScraper) GetTrends(baseDir string) ([]string, error) {
 
 // GetFollowers retrieves users that follow a user
 func (ts *TwitterScraper) GetFollowers(baseDir, user string, count int, cursor string) ([]*twitterscraper.Profile, string, error) {
-	scraper, account, err := ts.getAuthenticatedScraper(baseDir)
+	scraper, account, _, err := ts.getAuthenticatedScraper(baseDir)
 	if err != nil {
 		return nil, "", err
 	}
@@ -573,7 +601,7 @@ func (ts *TwitterScraper) GetFollowers(baseDir, user string, count int, cursor s
 // GetFollowing retrieves users that a user follows
 func (ts *TwitterScraper) GetFollowing(baseDir, username string, count int) ([]*twitterscraper.Profile, error) {
 	// get the authenticated scraper
-	scraper, account, err := ts.getAuthenticatedScraper(baseDir)
+	scraper, account, _, err := ts.getAuthenticatedScraper(baseDir)
 	if err != nil {
 		return nil, err
 	}
@@ -593,7 +621,7 @@ func (ts *TwitterScraper) GetFollowing(baseDir, username string, count int) ([]*
 // GetSpace retrieves space information by ID
 func (ts *TwitterScraper) GetSpace(baseDir, spaceID string) (*twitterscraper.Space, error) {
 	// get the authenticated scraper
-	scraper, account, err := ts.getAuthenticatedScraper(baseDir)
+	scraper, account, _, err := ts.getAuthenticatedScraper(baseDir)
 	if err != nil {
 		return nil, err
 	}
@@ -614,7 +642,6 @@ const TwitterScraperType = "twitter-scraper"
 type TwitterScraper struct {
 	configuration  TwitterScraperConfiguration
 	accountManager *twitter.TwitterAccountManager
-	apiKeyManager  *twitterx.TwitterXApiKeyManager
 	statsCollector *stats.StatsCollector
 }
 
@@ -636,7 +663,8 @@ func NewTwitterScraper(jc types.JobConfiguration, c *stats.StatsCollector) *Twit
 	jc.Unmarshal(&config)
 
 	accounts := parseAccounts(config.Accounts)
-	accountManager := twitter.NewTwitterAccountManager(accounts)
+	apiKeys := parseApiKeys(config.ApiKeys)
+	accountManager := twitter.NewTwitterAccountManager(accounts, apiKeys)
 
 	return &TwitterScraper{
 		configuration:  config,
