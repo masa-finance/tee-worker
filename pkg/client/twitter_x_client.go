@@ -3,7 +3,6 @@ package client
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"io"
 	"net/http"
 )
@@ -42,7 +41,6 @@ func NewTwitterXClient(apiKey string) *TwitterXClient {
 	}
 
 	logrus.Info("TwitterXClient instantiated successfully using base URL: ", client.baseUrl)
-
 	return client
 }
 
