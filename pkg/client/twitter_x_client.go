@@ -3,6 +3,7 @@ package client
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"io"
 	"net/http"
 )
@@ -18,7 +19,7 @@ type TwitterXClient struct {
 	httpClient *http.Client
 }
 
-// Simple auth response structure
+// AuthResponse Simple auth response structure
 type AuthResponse struct {
 	Data struct {
 		ID       string `json:"id"`
@@ -32,13 +33,15 @@ type AuthResponse struct {
 }
 
 func NewTwitterXClient(apiKey string) *TwitterXClient {
-
+	logrus.Info("Creating new TwitterXClient with API key")
 	// test if the API key is valid before returning the client
 	client := &TwitterXClient{
 		apiKey:     apiKey,
 		baseUrl:    baseURL,
 		httpClient: &http.Client{},
 	}
+
+	logrus.Info("TwitterXClient instantiated successfully using base URL: ", client.baseUrl)
 
 	return client
 }
@@ -55,10 +58,12 @@ func (c *TwitterXClient) Do(req *http.Request) (*http.Response, error) {
 
 func (c *TwitterXClient) Get(endpointUrl string) (*http.Response, error) {
 	url := fmt.Sprintf("%s/%s", c.baseUrl, endpointUrl)
+	logrus.Info("GET request to: ", url)
 
 	// Create request
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
+		logrus.Errorf("error creating GET request: %v", err)
 		return nil, fmt.Errorf("error creating GET request: %w", err)
 	}
 
@@ -69,6 +74,7 @@ func (c *TwitterXClient) Get(endpointUrl string) (*http.Response, error) {
 	// Make the request
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
+		logrus.Errorf("error making GET request: %v", err)
 		return nil, fmt.Errorf("error making GET request: %w", err)
 	}
 	defer resp.Body.Close()
@@ -76,13 +82,15 @@ func (c *TwitterXClient) Get(endpointUrl string) (*http.Response, error) {
 	// Read the response body
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
+		logrus.Errorf("error reading response: %v", err)
 		return nil, fmt.Errorf("error reading response: %w", err)
 	}
 
-	fmt.Println(string(body))
+	logrus.Info("Response body: ", string(body))
 
 	// if the response is not 200, return an error
 	if resp.StatusCode != http.StatusOK {
+		logrus.Errorf("API request failed with status: %d", resp.StatusCode)
 		return nil, fmt.Errorf("API request failed with status: %d", resp.StatusCode)
 	}
 
