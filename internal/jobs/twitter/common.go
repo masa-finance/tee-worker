@@ -2,6 +2,7 @@ package twitter
 
 import (
 	"fmt"
+	"github.com/masa-finance/tee-worker/internal/jobs/twitterx"
 	"os"
 	"strings"
 	"sync"
@@ -12,7 +13,7 @@ import (
 
 var (
 	accountManager *TwitterAccountManager
-	apiKeyManager  *TwitterApiKeyManager
+	apiKeyManager  *twitterx.TwitterXApiKeyManager
 	once           sync.Once
 )
 
@@ -20,7 +21,7 @@ func initializeAccountManager() {
 	accounts := loadAccountsFromConfig()
 	apiKeys := loadApiKeysFromConfig()
 	accountManager = NewTwitterAccountManager(accounts)
-	apiKeyManager = NewTwitterApiKeyManager(apiKeys)
+	apiKeyManager = twitterx.NewTwitterApiKeyManager(apiKeys)
 }
 
 func loadAccountsFromConfig() []*TwitterAccount {
@@ -37,7 +38,7 @@ func loadAccountsFromConfig() []*TwitterAccount {
 	return parseAccounts(strings.Split(accountsEnv, ","))
 }
 
-func loadApiKeysFromConfig() []*TwitterApiKey {
+func loadApiKeysFromConfig() []*twitterx.TwitterXApiKey {
 	err := godotenv.Load()
 	if err != nil {
 		logrus.Fatalf("error loading .env file: %v", err)
@@ -51,9 +52,9 @@ func loadApiKeysFromConfig() []*TwitterApiKey {
 	return parseApiKeys(strings.Split(apiKeysEnv, ","))
 }
 
-func parseApiKeys(apiKeys []string) []*TwitterApiKey {
-	return filterMap(apiKeys, func(key string) (*TwitterApiKey, bool) {
-		return &TwitterApiKey{
+func parseApiKeys(apiKeys []string) []*twitterx.TwitterXApiKey {
+	return filterMap(apiKeys, func(key string) (*twitterx.TwitterXApiKey, bool) {
+		return &twitterx.TwitterXApiKey{
 			Key: strings.TrimSpace(key),
 		}, true
 	})

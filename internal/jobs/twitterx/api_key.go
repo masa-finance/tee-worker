@@ -1,27 +1,27 @@
-package twitter
+package twitterx
 
 import (
 	"sync"
 )
 
 // Client represents a Twitter API client
-type TwitterApiKey struct {
+type TwitterXApiKey struct {
 	Key string
 }
 
-type TwitterApiKeyManager struct {
-	apiKeys []*TwitterApiKey
+type TwitterXApiKeyManager struct {
+	apiKeys []*TwitterXApiKey
 	index   int
 	mutex   sync.Mutex
 }
 
-func NewTwitterApiKeyManager(twitterApiKeys []*TwitterApiKey) *TwitterApiKeyManager {
-	return &TwitterApiKeyManager{
+func NewTwitterApiKeyManager(twitterApiKeys []*TwitterXApiKey) *TwitterXApiKeyManager {
+	return &TwitterXApiKeyManager{
 		apiKeys: twitterApiKeys,
 	}
 }
 
-func (manager *TwitterApiKeyManager) GetNextApiKey() *TwitterApiKey {
+func (manager *TwitterXApiKeyManager) GetNextApiKey() *TwitterXApiKey {
 	manager.mutex.Lock()
 	defer manager.mutex.Unlock()
 	if len(manager.apiKeys) == 0 {
@@ -32,7 +32,7 @@ func (manager *TwitterApiKeyManager) GetNextApiKey() *TwitterApiKey {
 	return key
 }
 
-func (manager *TwitterApiKeyManager) AddApiKey(apiKey *TwitterApiKey) {
+func (manager *TwitterXApiKeyManager) AddApiKey(apiKey *TwitterXApiKey) {
 	manager.mutex.Lock()
 	defer manager.mutex.Unlock()
 	manager.apiKeys = append(manager.apiKeys, apiKey)

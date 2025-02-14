@@ -3,6 +3,7 @@ package client
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"io"
 	"net/http"
 )
@@ -14,6 +15,7 @@ const (
 // TwitterXClient represents a client for the Twitter API v2
 type TwitterXClient struct {
 	apiKey     string
+	baseUrl    string
 	httpClient *http.Client
 }
 
@@ -31,14 +33,71 @@ type AuthResponse struct {
 }
 
 func NewTwitterXClient(apiKey string) *TwitterXClient {
-	return &TwitterXClient{
+
+	// test if the API key is valid before returning the client
+	client := &TwitterXClient{
 		apiKey:     apiKey,
+		baseUrl:    baseURL,
 		httpClient: &http.Client{},
 	}
+
+	err := client.testAuth()
+	if err != nil {
+		logrus.Errorf("error testing API key: %s", err)
+		return nil
+	}
+
+	return client
+}
+
+// expose the http client
+func (c *TwitterXClient) HTTPClient() *http.Client {
+	return c.httpClient
+}
+
+// execute the GET or POST request
+func (c *TwitterXClient) Do(req *http.Request) (*http.Response, error) {
+	return c.httpClient.Do(req)
+}
+
+func (c *TwitterXClient) Get(endpointUrl string) (*http.Response, error) {
+	url := fmt.Sprintf("%s/%s", c.baseUrl, endpointUrl)
+
+	// Create request
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("error creating GET request: %w", err)
+	}
+
+	// Add headers
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", c.apiKey))
+	req.Header.Add("Content-Type", "application/json")
+
+	// Make the request
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("error making GET request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Read the response body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("error reading response: %w", err)
+	}
+
+	fmt.Println(string(body))
+
+	// if the response is not 200, return an error
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("API request failed with status: %d", resp.StatusCode)
+	}
+
+	return resp, nil
 }
 
 // TestAuth tests if the API key is valid by making a request to /2/users/me
-func (c *TwitterXClient) TestAuth() error {
+func (c *TwitterXClient) testAuth() error {
 	// Create request
 	req, err := http.NewRequest("GET", baseURL+"/users/me", nil)
 	if err != nil {

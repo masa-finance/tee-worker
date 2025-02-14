@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/masa-finance/tee-worker/internal/jobs/twitterx"
 	"strings"
 
 	twitterscraper "github.com/imperatrona/twitter-scraper"
@@ -38,21 +39,6 @@ func (ts *TwitterScraper) getAuthenticatedScraper(baseDir string) (*twitter.Scra
 	// if baseDir is empty, use the default data directory
 	if baseDir == "" {
 		baseDir = ts.configuration.DataDir
-	}
-
-	// authenticate the given API keys if available
-	apiKey := ts.apiKeyManager.GetNextApiKey()
-	if apiKey == nil {
-		ts.statsCollector.Add(stats.TwitterAuthErrors, 1)
-		// if no API keys are available, fall back to account-based authentication
-	} else {
-		// authenticate
-		scraper := twitter.NewScraper(twitter.AuthConfig{
-			APIKey: apiKey,
-		})
-		if scraper != nil {
-			return scraper, nil, nil
-		}
 	}
 
 	account := ts.accountManager.GetNextAccount()
@@ -628,12 +614,13 @@ const TwitterScraperType = "twitter-scraper"
 type TwitterScraper struct {
 	configuration  TwitterScraperConfiguration
 	accountManager *twitter.TwitterAccountManager
-	apiKeyManager  *twitter.TwitterApiKeyManager
+	apiKeyManager  *twitterx.TwitterXApiKeyManager
 	statsCollector *stats.StatsCollector
 }
 
 type TwitterScraperConfiguration struct {
 	Accounts []string `json:"twitter_accounts"`
+	ApiKeys  []string `json:"twitter_api_keys"`
 	DataDir  string   `json:"data_dir"`
 }
 

@@ -9,21 +9,10 @@ import (
 type AuthConfig struct {
 	// Account-based auth
 	Account *TwitterAccount
-
-	// API-based auth
-	APIKey *TwitterApiKey
-
 	BaseDir string
 }
 
 func NewScraper(config AuthConfig) *Scraper {
-	// Try API auth first if key is provided
-	if config.APIKey.Key != "" {
-		logrus.Debug("Using API key authentication")
-		return &Scraper{
-			Scraper: newTwitterScraperUsingApiKey(config.APIKey.Key),
-		}
-	}
 
 	// Fall back to account-based auth
 	if config.Account == nil {

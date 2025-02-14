@@ -42,6 +42,9 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 		jobs.WebScraperType: {
 			w: jobs.NewWebScraper(jc, s),
 		},
+		jobs.TwitterXScraperType: {
+			w: jobs.NewTwitterXScraper(jc, s),
+		},
 		jobs.TwitterScraperType: {
 			w: jobs.NewTwitterScraper(jc, s),
 		},
