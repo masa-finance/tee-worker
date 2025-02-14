@@ -50,6 +50,16 @@ func readConfig() types.JobConfiguration {
 		jc["twitter_accounts"] = twitterAccounts
 	}
 
+	twitterApiKeys := os.Getenv("TWITTER_API_KEYS")
+	if twitterApiKeys != "" {
+		logrus.Info("Twitter API keys found")
+		apiKeys := strings.Split(twitterApiKeys, ",")
+		for i, u := range apiKeys {
+			apiKeys[i] = strings.TrimSpace(u)
+		}
+		jc["twitter_api_keys"] = apiKeys
+	}
+
 	jc["stats_buf_size"] = statsBufSize()
 
 	logLevel := os.Getenv("LOG_LEVEL")

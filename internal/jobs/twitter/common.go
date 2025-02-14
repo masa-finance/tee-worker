@@ -17,7 +17,8 @@ var (
 
 func initializeAccountManager() {
 	accounts := loadAccountsFromConfig()
-	accountManager = NewTwitterAccountManager(accounts)
+	apiKeys := loadApiKeysFromConfig()
+	accountManager = NewTwitterAccountManager(accounts, apiKeys)
 }
 
 func loadAccountsFromConfig() []*TwitterAccount {
@@ -32,6 +33,30 @@ func loadAccountsFromConfig() []*TwitterAccount {
 	}
 
 	return parseAccounts(strings.Split(accountsEnv, ","))
+}
+
+func loadApiKeysFromConfig() []*TwitterApiKey {
+	err := godotenv.Load()
+	if err != nil {
+		logrus.Fatalf("error loading .env file: %v", err)
+	}
+
+	apiKeysEnv := os.Getenv("TWITTER_API_KEYS")
+	if apiKeysEnv == "" {
+		// optional
+		logrus.Info("TWITTER_API_KEYS not set in .env file")
+		return nil
+	}
+
+	return parseApiKeys(strings.Split(apiKeysEnv, ","))
+}
+
+func parseApiKeys(apiKeys []string) []*TwitterApiKey {
+	return filterMap(apiKeys, func(key string) (*TwitterApiKey, bool) {
+		return &TwitterApiKey{
+			Key: strings.TrimSpace(key),
+		}, true
+	})
 }
 
 func parseAccounts(accountPairs []string) []*TwitterAccount {
@@ -55,7 +80,13 @@ func getAuthenticatedScraper(baseDir string) (*Scraper, *TwitterAccount, error) 
 	if account == nil {
 		return nil, nil, fmt.Errorf("all accounts are rate-limited")
 	}
-	scraper := NewScraper(account, baseDir)
+
+	authConfig := AuthConfig{
+		Account: account,
+		BaseDir: baseDir,
+	}
+
+	scraper := NewScraper(authConfig)
 	if scraper == nil {
 		logrus.Errorf("Authentication failed for %s", account.Username)
 		return nil, account, fmt.Errorf("Twitter authentication failed for %s", account.Username)
