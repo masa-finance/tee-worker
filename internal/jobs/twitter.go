@@ -40,13 +40,33 @@ func (ts *TwitterScraper) getAuthenticatedScraper(baseDir string) (*twitter.Scra
 		baseDir = ts.configuration.DataDir
 	}
 
+	// authenticate the given API keys if available
+	apiKey := ts.apiKeyManager.GetNextApiKey()
+	if apiKey == nil {
+		ts.statsCollector.Add(stats.TwitterAuthErrors, 1)
+		// if no API keys are available, fall back to account-based authentication
+	} else {
+		// authenticate
+		scraper := twitter.NewScraper(twitter.AuthConfig{
+			APIKey: apiKey,
+		})
+		if scraper != nil {
+			return scraper, nil, nil
+		}
+	}
+
 	account := ts.accountManager.GetNextAccount()
 	if account == nil {
 		ts.statsCollector.Add(stats.TwitterAuthErrors, 1)
 		return nil, nil, fmt.Errorf("all accounts are rate-limited")
 	}
 
-	scraper := twitter.NewScraper(account, baseDir)
+	authConfig := twitter.AuthConfig{
+		Account: account,
+		BaseDir: baseDir,
+	}
+
+	scraper := twitter.NewScraper(authConfig)
 	if scraper == nil {
 		ts.statsCollector.Add(stats.TwitterAuthErrors, 1)
 		logrus.Errorf("Authentication failed for %s", account.Username)
@@ -608,6 +628,7 @@ const TwitterScraperType = "twitter-scraper"
 type TwitterScraper struct {
 	configuration  TwitterScraperConfiguration
 	accountManager *twitter.TwitterAccountManager
+	apiKeyManager  *twitter.TwitterApiKeyManager
 	statsCollector *stats.StatsCollector
 }
 

@@ -6,9 +6,19 @@ import (
 
 type Scraper struct {
 	*twitterscraper.Scraper
-	apiClient *Client // Add API client
 }
 
 func newTwitterScraper() *twitterscraper.Scraper {
 	return twitterscraper.New()
+}
+
+func newTwitterScraperUsingApiKey(apiKey string) *twitterscraper.Scraper {
+	scraper := twitterscraper.New()
+
+	authToken := twitterscraper.AuthToken{
+		Token: apiKey,
+	}
+	scraper.SetAuthToken(authToken)
+
+	return scraper
 }

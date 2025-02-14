@@ -9,18 +9,19 @@ import (
 type AuthConfig struct {
 	// Account-based auth
 	Account *TwitterAccount
-	BaseDir string
 
 	// API-based auth
-	APIKey string
+	APIKey *TwitterApiKey
+
+	BaseDir string
 }
 
 func NewScraper(config AuthConfig) *Scraper {
 	// Try API auth first if key is provided
-	if config.APIKey != "" {
+	if config.APIKey.Key != "" {
 		logrus.Debug("Using API key authentication")
 		return &Scraper{
-			apiClient: NewClient(config.APIKey),
+			Scraper: newTwitterScraperUsingApiKey(config.APIKey.Key),
 		}
 	}
 
@@ -59,10 +60,6 @@ func NewScraper(config AuthConfig) *Scraper {
 }
 
 func (scraper *Scraper) Login(username, password string, twoFACode ...string) error {
-	// Skip login if using API auth
-	if scraper.apiClient != nil {
-		return nil
-	}
 
 	var err error
 	if len(twoFACode) > 0 {
@@ -76,21 +73,6 @@ func (scraper *Scraper) Login(username, password string, twoFACode ...string) er
 	return nil
 }
 
-func (scraper *Scraper) Logout() error {
-	// No logout needed for API auth
-	if scraper.apiClient != nil {
-		return nil
-	}
-
-	if err := scraper.Scraper.Logout(); err != nil {
-		return fmt.Errorf("logout failed: %v", err)
-	}
-	return nil
-}
-
 func (scraper *Scraper) IsLoggedIn() bool {
-	if scraper.apiClient != nil {
-		return scraper.apiClient.apiKey != ""
-	}
-	return scraper.Scraper != nil && scraper.Scraper.IsLoggedIn()
+	return scraper.Scraper.IsLoggedIn()
 }
