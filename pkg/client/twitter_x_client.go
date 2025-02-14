@@ -3,7 +3,6 @@ package client
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"io"
 	"net/http"
 )
@@ -39,12 +38,6 @@ func NewTwitterXClient(apiKey string) *TwitterXClient {
 		apiKey:     apiKey,
 		baseUrl:    baseURL,
 		httpClient: &http.Client{},
-	}
-
-	err := client.testAuth()
-	if err != nil {
-		logrus.Errorf("error testing API key: %s", err)
-		return nil
 	}
 
 	return client
