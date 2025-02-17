@@ -85,6 +85,8 @@ func (s *TwitterXScraper) ScrapeTweetsByQuery(query string) (*TwitterXSearchQuer
 
 	// unmarshal the response
 	var result TwitterXSearchQueryResult
+	logrus.Info("Successfully scraped tweets by query, result count: ", result.Meta.ResultCount)
+	logrus.Info("Response body before decoding: ", response.Body)
 	err = json.NewDecoder(response.Body).Decode(&result)
 	if err != nil {
 		logrus.Error("failed to decode response: %w", err)
