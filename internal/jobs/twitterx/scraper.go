@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/masa-finance/tee-worker/pkg/client"
+	"github.com/sirupsen/logrus"
 	"io"
 	"net/http"
 	"net/url"
@@ -60,6 +61,7 @@ func (s *TwitterXScraper) ScrapeTweetsByQuery(query string) (*TwitterXSearchQuer
 	// run the search
 	response, err := client.Get(endpoint)
 	if err != nil {
+		logrus.Error("failed to execute search query: %w", err)
 		return nil, fmt.Errorf("failed to execute search query: %w", err)
 	}
 	defer response.Body.Close()
@@ -67,6 +69,7 @@ func (s *TwitterXScraper) ScrapeTweetsByQuery(query string) (*TwitterXSearchQuer
 	// check response status
 	if response.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(response.Body)
+		logrus.Error("unexpected status code %d: %s", response.StatusCode, string(body))
 		return nil, fmt.Errorf("unexpected status code %d: %s", response.StatusCode, string(body))
 	}
 
@@ -74,9 +77,10 @@ func (s *TwitterXScraper) ScrapeTweetsByQuery(query string) (*TwitterXSearchQuer
 	var result TwitterXSearchQueryResult
 	err = json.NewDecoder(response.Body).Decode(&result)
 	if err != nil {
+		logrus.Error("failed to decode response: %w", err)
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
-
+	logrus.Info("Successfully scraped tweets by query, result count: ", result.Meta.ResultCount)
 	return &result, nil
 }
 
