@@ -87,12 +87,10 @@ func (s *TwitterXScraper) ScrapeTweetsByQuery(query string) (*TwitterXSearchQuer
 	}
 
 	// check response status
-	fmt.Println("Response status code: ", response.StatusCode)
 	if response.StatusCode != http.StatusOK {
 		logrus.Error("unexpected status code %d", response.StatusCode)
 		return nil, fmt.Errorf("unexpected status code %d", response.StatusCode)
 	}
-	fmt.Println("Response body: ", string(body))
 
 	// unmarshal the response
 	var result TwitterXSearchQueryResult
