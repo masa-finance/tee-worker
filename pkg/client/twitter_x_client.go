@@ -76,22 +76,6 @@ func (c *TwitterXClient) Get(endpointUrl string) (*http.Response, error) {
 		logrus.Errorf("error making GET request: %v", err)
 		return nil, fmt.Errorf("error making GET request: %w", err)
 	}
-	defer resp.Body.Close()
-
-	// Read the response body
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		logrus.Errorf("error reading response: %v", err)
-		return nil, fmt.Errorf("error reading response: %w", err)
-	}
-
-	logrus.Info("Response body: ", string(body))
-
-	// if the response is not 200, return an error
-	if resp.StatusCode != http.StatusOK {
-		logrus.Errorf("API request failed with status: %d", resp.StatusCode)
-		return nil, fmt.Errorf("API request failed with status: %d", resp.StatusCode)
-	}
 
 	return resp, nil
 }
