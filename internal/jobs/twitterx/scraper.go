@@ -88,7 +88,7 @@ func (s *TwitterXScraper) ScrapeTweetsByQuery(query string) (*TwitterXSearchQuer
 
 	// check response status
 	if response.StatusCode != http.StatusOK {
-		logrus.Error("unexpected status code %d", response.StatusCode)
+		logrus.Errorf("unexpected status code %d", response.StatusCode)
 		return nil, fmt.Errorf("unexpected status code %d", response.StatusCode)
 	}
 
@@ -145,7 +145,7 @@ func (s *TwitterXScraper) ScrapeTweetsByQueryExtended(params SearchParams) (*Twi
 	// run the search
 	response, err := client.Get(endpoint)
 	if err != nil {
-		logrus.Error("failed to execute search query: %w", err)
+		logrus.Errorf("failed to execute search query: %w", err)
 		return nil, fmt.Errorf("failed to execute search query: %w", err)
 	}
 	defer response.Body.Close()
@@ -153,7 +153,7 @@ func (s *TwitterXScraper) ScrapeTweetsByQueryExtended(params SearchParams) (*Twi
 	// check response status
 	if response.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(response.Body)
-		logrus.Error("unexpected status code %d: %s", response.StatusCode, string(body))
+		logrus.Errorf("unexpected status code %d: %s", response.StatusCode, string(body))
 		return nil, fmt.Errorf("unexpected status code %d: %s", response.StatusCode, string(body))
 	}
 
