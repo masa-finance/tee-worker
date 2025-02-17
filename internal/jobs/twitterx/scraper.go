@@ -77,17 +77,20 @@ func (s *TwitterXScraper) ScrapeTweetsByQuery(query string) (*TwitterXSearchQuer
 	defer response.Body.Close()
 
 	// check response status
-	var body []byte
+	fmt.Println("Response status code: ", response.StatusCode)
 	if response.StatusCode != http.StatusOK {
-		body, err = io.ReadAll(response.Body)
-		if err != nil {
-			logrus.Error("failed to read response body: %w", err)
-			return nil, fmt.Errorf("failed to read response body: %w", err)
-		}
 		logrus.Error("unexpected status code %d: %s", response.StatusCode, string(body))
 		return nil, fmt.Errorf("unexpected status code %d: %s", response.StatusCode, string(body))
 	}
 
+	// read the response body
+	var body []byte
+	body, err = io.ReadAll(response.Body)
+	if err != nil {
+		logrus.Error("failed to read response body: %w", err)
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+	
 	// unmarshal the response
 	var result TwitterXSearchQueryResult
 	logrus.Info("Successfully scraped tweets by query, result count: ", result.Meta.ResultCount)
