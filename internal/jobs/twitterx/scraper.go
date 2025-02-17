@@ -145,7 +145,7 @@ func (s *TwitterXScraper) ScrapeTweetsByQueryExtended(params SearchParams) (*Twi
 	// run the search
 	response, err := client.Get(endpoint)
 	if err != nil {
-		logrus.Errorf("failed to execute search query: %w", err)
+		logrus.Errorf("failed to execute search query: %s", err)
 		return nil, fmt.Errorf("failed to execute search query: %w", err)
 	}
 	defer response.Body.Close()
