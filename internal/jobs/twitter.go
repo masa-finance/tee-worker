@@ -162,11 +162,15 @@ func (ts *TwitterScraper) ScrapeTweetsByQuery(baseDir string, query string, coun
 			var newTweet twitterscraper.Tweet
 			newTweet.ID = tweet.ID
 			newTweet.Text = tweet.Text
+
+			fmt.Println(newTweet)
+			fmt.Println(newTweet.Text)
+
 			tweets = append(tweets, &TweetResult{Tweet: &newTweet})
 		}
 
 		ts.statsCollector.Add(stats.TwitterTweets, uint(len(result.Data)))
-		logrus.Info("Scraped tweets: ", len(tweets))
+
 		return tweets, nil
 
 	}

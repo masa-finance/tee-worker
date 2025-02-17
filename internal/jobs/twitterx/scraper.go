@@ -93,11 +93,9 @@ func (s *TwitterXScraper) ScrapeTweetsByQuery(query string) (*TwitterXSearchQuer
 		return nil, fmt.Errorf("unexpected status code %d", response.StatusCode)
 	}
 	fmt.Println("Response body: ", string(body))
-	logrus.WithField("response", string(body)).Info("raw response body")
 
 	// unmarshal the response
 	var result TwitterXSearchQueryResult
-	logrus.Info("Successfully scraped tweets by query, result count: ", result.Meta.ResultCount)
 	if err := json.Unmarshal(body, &result); err != nil {
 		logrus.WithError(err).Error("failed to unmarshal response")
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
