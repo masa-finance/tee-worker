@@ -22,9 +22,9 @@ type TwitterXScraper struct {
 
 type TwitterXSearchQueryResult struct {
 	Data []struct {
-		ID                  string   `json:"id"`
-		EditHistoryTweetIds []string `json:"edit_history_tweet_ids"`
 		Text                string   `json:"text"`
+		EditHistoryTweetIds []string `json:"edit_history_tweet_ids"`
+		ID                  string   `json:"id"`
 	} `json:"data"`
 	Meta struct {
 		NewestID    string `json:"newest_id"`
@@ -32,6 +32,8 @@ type TwitterXSearchQueryResult struct {
 		ResultCount int    `json:"result_count"`
 		NextToken   string `json:"next_token"`
 	} `json:"meta"`
+	Status  string
+	Message string
 }
 
 // SearchParams holds all possible search parameters
@@ -76,13 +78,6 @@ func (s *TwitterXScraper) ScrapeTweetsByQuery(query string) (*TwitterXSearchQuer
 	}
 	defer response.Body.Close()
 
-	// check response status
-	fmt.Println("Response status code: ", response.StatusCode)
-	if response.StatusCode != http.StatusOK {
-		logrus.Error("unexpected status code %d", response.StatusCode)
-		return nil, fmt.Errorf("unexpected status code %d", response.StatusCode)
-	}
-
 	// read the response body
 	var body []byte
 	body, err = io.ReadAll(response.Body)
@@ -90,7 +85,14 @@ func (s *TwitterXScraper) ScrapeTweetsByQuery(query string) (*TwitterXSearchQuer
 		logrus.Error("failed to read response body: %w", err)
 		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
-	
+
+	// check response status
+	fmt.Println("Response status code: ", response.StatusCode)
+	if response.StatusCode != http.StatusOK {
+		logrus.Error("unexpected status code %d", response.StatusCode)
+		return nil, fmt.Errorf("unexpected status code %d", response.StatusCode)
+	}
+	fmt.Println("Response body: ", string(body))
 	logrus.WithField("response", string(body)).Info("raw response body")
 
 	// unmarshal the response
