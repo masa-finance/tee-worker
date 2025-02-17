@@ -91,16 +91,22 @@ func (s *TwitterXScraper) ScrapeTweetsByQuery(query string) (*TwitterXSearchQuer
 		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
 
+	logrus.WithField("response", string(body)).Debug("raw response body")
+
 	// unmarshal the response
 	var result TwitterXSearchQueryResult
 	logrus.Info("Successfully scraped tweets by query, result count: ", result.Meta.ResultCount)
-	logrus.Info("Response body before decoding: ", body)
-	err = json.Unmarshal(body, &result)
-	if err != nil {
-		logrus.Error("failed to decode response: %w", err)
-		return nil, fmt.Errorf("failed to decode response: %w", err)
+	if err := json.Unmarshal(body, &result); err != nil {
+		logrus.WithError(err).Error("failed to unmarshal response")
+		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
-	logrus.Info("Successfully scraped tweets by query, result count: ", result.Meta.ResultCount)
+
+	logrus.WithFields(logrus.Fields{
+		"result_count": result.Meta.ResultCount,
+		"newest_id":    result.Meta.NewestID,
+		"oldest_id":    result.Meta.OldestID,
+	}).Info("Successfully scraped tweets by query")
+	
 	return &result, nil
 }
 
