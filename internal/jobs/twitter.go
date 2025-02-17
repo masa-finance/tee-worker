@@ -59,7 +59,7 @@ func (ts *TwitterScraper) getAuthenticatedScraper(baseDir string) (*twitter.Scra
 
 	var scraper *twitter.Scraper
 	if account != nil {
-		
+
 		authConfig := twitter.AuthConfig{
 			Account: account,
 			BaseDir: baseDir,
@@ -139,13 +139,14 @@ func (ts *TwitterScraper) ScrapeTweetsProfile(baseDir string, username string) (
 	return profile, nil
 }
 
-func (ts *TwitterScraper) ScrapeTweetsByQuery(baseDir string, query string, count int) (interface{}, error) {
+func (ts *TwitterScraper) ScrapeTweetsByQuery(baseDir string, query string, count int) ([]*TweetResult, error) {
 	scraper, account, apiKey, err := ts.getAuthenticatedScraper(baseDir)
 	if err != nil {
 		return nil, err
 	}
 
 	ts.statsCollector.Add(stats.TwitterScrapes, 1)
+	var tweets []*TweetResult
 
 	// Check if we have a TwitterX API key
 	if apiKey != nil {
@@ -156,11 +157,21 @@ func (ts *TwitterScraper) ScrapeTweetsByQuery(baseDir string, query string, coun
 		if err != nil {
 			return nil, err
 		}
+
+		var tweets []*TweetResult
+		for _, tweet := range result.Data {
+			var newTweet twitterscraper.Tweet
+			newTweet.ID = tweet.ID
+			newTweet.Text = tweet.Text
+			tweets = append(tweets, &TweetResult{Tweet: &newTweet})
+		}
+
 		ts.statsCollector.Add(stats.TwitterTweets, uint(len(result.Data)))
-		return result, nil
+		return tweets, nil
+
 	}
 
-	var tweets []*TweetResult
+	// Use the default scraper if no TwitterX API key is available
 	ctx := context.Background()
 	scraper.SetSearchMode(twitterscraper.SearchLatest)
 
