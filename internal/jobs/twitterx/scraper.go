@@ -90,8 +90,8 @@ func (s *TwitterXScraper) ScrapeTweetsByQuery(query string) (*TwitterXSearchQuer
 		logrus.Error("failed to read response body: %w", err)
 		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
-
-	logrus.WithField("response", string(body)).Debug("raw response body")
+	
+	logrus.WithField("response", string(body)).Info("raw response body")
 
 	// unmarshal the response
 	var result TwitterXSearchQueryResult
@@ -106,7 +106,7 @@ func (s *TwitterXScraper) ScrapeTweetsByQuery(query string) (*TwitterXSearchQuer
 		"newest_id":    result.Meta.NewestID,
 		"oldest_id":    result.Meta.OldestID,
 	}).Info("Successfully scraped tweets by query")
-	
+
 	return &result, nil
 }
 
