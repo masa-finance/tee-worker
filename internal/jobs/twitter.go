@@ -146,6 +146,7 @@ func (ts *TwitterScraper) ScrapeTweetsByQuery(baseDir string, query string, coun
 	}
 
 	ts.statsCollector.Add(stats.TwitterScrapes, 1)
+	var tweets []*TweetResult
 
 	// Check if we have a TwitterX API key
 	if apiKey != nil {
@@ -169,8 +170,8 @@ func (ts *TwitterScraper) ScrapeTweetsByQuery(baseDir string, query string, coun
 		return tweets, nil
 
 	}
+
 	// Use the default scraper if no TwitterX API key is available
-	var tweets []*TweetResult
 	ctx := context.Background()
 	scraper.SetSearchMode(twitterscraper.SearchLatest)
 
