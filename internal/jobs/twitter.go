@@ -695,6 +695,7 @@ func (ws *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 		if err != nil {
 			return types.JobResult{Error: err.Error()}, err
 		}
+		fmt.Println(tweets)
 		dat, err := json.Marshal(tweets)
 		fmt.Println(dat) // check if this has `/n` characters
 		return types.JobResult{
