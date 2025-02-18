@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/masa-finance/tee-worker/pkg/client"
+	"github.com/sirupsen/logrus"
 	"io"
 	"net/http"
 	"net/url"
@@ -21,9 +22,9 @@ type TwitterXScraper struct {
 
 type TwitterXSearchQueryResult struct {
 	Data []struct {
-		ID                  string   `json:"id"`
-		EditHistoryTweetIds []string `json:"edit_history_tweet_ids"`
 		Text                string   `json:"text"`
+		EditHistoryTweetIds []string `json:"edit_history_tweet_ids"`
+		ID                  string   `json:"id"`
 	} `json:"data"`
 	Meta struct {
 		NewestID    string `json:"newest_id"`
@@ -31,6 +32,18 @@ type TwitterXSearchQueryResult struct {
 		ResultCount int    `json:"result_count"`
 		NextToken   string `json:"next_token"`
 	} `json:"meta"`
+	Status  string
+	Message string
+}
+
+// SearchParams holds all possible search parameters
+type SearchParams struct {
+	Query       string   // The search query
+	MaxResults  int      // Maximum number of results to return
+	NextToken   string   // Token for getting the next page of results
+	SinceID     string   // Returns results with a Tweet ID greater than this ID
+	UntilID     string   // Returns results with a Tweet ID less than this ID
+	TweetFields []string // Additional tweet fields to include
 }
 
 func NewTwitterXScraper(client *client.TwitterXClient) *TwitterXScraper {
@@ -60,22 +73,37 @@ func (s *TwitterXScraper) ScrapeTweetsByQuery(query string) (*TwitterXSearchQuer
 	// run the search
 	response, err := client.Get(endpoint)
 	if err != nil {
+		logrus.Error("failed to execute search query: %w", err)
 		return nil, fmt.Errorf("failed to execute search query: %w", err)
 	}
 	defer response.Body.Close()
 
+	// read the response body
+	var body []byte
+	body, err = io.ReadAll(response.Body)
+	if err != nil {
+		logrus.Error("failed to read response body: %w", err)
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
 	// check response status
 	if response.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(response.Body)
-		return nil, fmt.Errorf("unexpected status code %d: %s", response.StatusCode, string(body))
+		logrus.Errorf("unexpected status code %d", response.StatusCode)
+		return nil, fmt.Errorf("unexpected status code %d", response.StatusCode)
 	}
 
 	// unmarshal the response
 	var result TwitterXSearchQueryResult
-	err = json.NewDecoder(response.Body).Decode(&result)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
+	if err := json.Unmarshal(body, &result); err != nil {
+		logrus.WithError(err).Error("failed to unmarshal response")
+		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
+
+	logrus.WithFields(logrus.Fields{
+		"result_count": result.Meta.ResultCount,
+		"newest_id":    result.Meta.NewestID,
+		"oldest_id":    result.Meta.OldestID,
+	}).Info("Successfully scraped tweets by query")
 
 	return &result, nil
 }
@@ -117,6 +145,7 @@ func (s *TwitterXScraper) ScrapeTweetsByQueryExtended(params SearchParams) (*Twi
 	// run the search
 	response, err := client.Get(endpoint)
 	if err != nil {
+		logrus.Errorf("failed to execute search query: %s", err)
 		return nil, fmt.Errorf("failed to execute search query: %w", err)
 	}
 	defer response.Body.Close()
@@ -124,6 +153,7 @@ func (s *TwitterXScraper) ScrapeTweetsByQueryExtended(params SearchParams) (*Twi
 	// check response status
 	if response.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(response.Body)
+		logrus.Errorf("unexpected status code %d: %s", response.StatusCode, string(body))
 		return nil, fmt.Errorf("unexpected status code %d: %s", response.StatusCode, string(body))
 	}
 
@@ -131,18 +161,10 @@ func (s *TwitterXScraper) ScrapeTweetsByQueryExtended(params SearchParams) (*Twi
 	var result TwitterXSearchQueryResult
 	err = json.NewDecoder(response.Body).Decode(&result)
 	if err != nil {
+		logrus.Error("failed to decode response: %w", err)
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
+	logrus.Info("Successfully scraped tweets by query, result count: ", result.Meta.ResultCount)
 	return &result, nil
-}
-
-// SearchParams holds all possible search parameters
-type SearchParams struct {
-	Query       string   // The search query
-	MaxResults  int      // Maximum number of results to return
-	NextToken   string   // Token for getting the next page of results
-	SinceID     string   // Returns results with a Tweet ID greater than this ID
-	UntilID     string   // Returns results with a Tweet ID less than this ID
-	TweetFields []string // Additional tweet fields to include
 }
