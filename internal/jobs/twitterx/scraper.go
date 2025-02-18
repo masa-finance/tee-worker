@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const (
@@ -22,18 +23,81 @@ type TwitterXScraper struct {
 
 type TwitterXSearchQueryResult struct {
 	Data []struct {
-		Text                string   `json:"text"`
-		EditHistoryTweetIds []string `json:"edit_history_tweet_ids"`
-		ID                  string   `json:"id"`
+		AuthorID  string `json:"author_id"`
+		CreatedAt string `json:"created_at"`
+		ID        string `json:"id"`
+		Text      string `json:"text"`
+		Username  string `json:"username"`
 	} `json:"data"`
+	Errors []struct {
+		Detail string `json:"detail"`
+		Status int    `json:"status"`
+		Title  string `json:"title"`
+		Type   string `json:"type"`
+	} `json:"errors"`
+	Includes struct {
+		Media []struct {
+			Height   int    `json:"height"`
+			MediaKey string `json:"media_key"`
+			Type     string `json:"type"`
+			Width    int    `json:"width"`
+		} `json:"media"`
+		Places []struct {
+			ContainedWithin []string `json:"contained_within"`
+			Country         string   `json:"country"`
+			CountryCode     string   `json:"country_code"`
+			FullName        string   `json:"full_name"`
+			Geo             struct {
+				Bbox     []float64 `json:"bbox"`
+				Geometry struct {
+					Coordinates []float64 `json:"coordinates"`
+					Type        string    `json:"type"`
+				} `json:"geometry"`
+				Properties struct {
+				} `json:"properties"`
+				Type string `json:"type"`
+			} `json:"geo"`
+			ID        string `json:"id"`
+			Name      string `json:"name"`
+			PlaceType string `json:"place_type"`
+		} `json:"places"`
+		Polls []struct {
+			DurationMinutes int       `json:"duration_minutes"`
+			EndDatetime     time.Time `json:"end_datetime"`
+			ID              string    `json:"id"`
+			Options         []struct {
+				Label    string `json:"label"`
+				Position int    `json:"position"`
+				Votes    int    `json:"votes"`
+			} `json:"options"`
+			VotingStatus string `json:"voting_status"`
+		} `json:"polls"`
+		Topics []struct {
+			Description string `json:"description"`
+			ID          string `json:"id"`
+			Name        string `json:"name"`
+		} `json:"topics"`
+		Tweets []struct {
+			AuthorID  string `json:"author_id"`
+			CreatedAt string `json:"created_at"`
+			ID        string `json:"id"`
+			Text      string `json:"text"`
+			Username  string `json:"username"`
+		} `json:"tweets"`
+		Users []struct {
+			CreatedAt time.Time `json:"created_at"`
+			ID        string    `json:"id"`
+			Name      string    `json:"name"`
+			Protected bool      `json:"protected"`
+			Username  string    `json:"username"`
+		} `json:"users"`
+	} `json:"includes"`
 	Meta struct {
 		NewestID    string `json:"newest_id"`
+		NextToken   string `json:"next_token"`
 		OldestID    string `json:"oldest_id"`
 		ResultCount int    `json:"result_count"`
-		NextToken   string `json:"next_token"`
 	} `json:"meta"`
-	Status  string
-	Message string
 }
 
 // SearchParams holds all possible search parameters

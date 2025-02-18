@@ -159,9 +159,45 @@ func (ts *TwitterScraper) ScrapeTweetsByQuery(baseDir string, query string, coun
 		}
 
 		for _, tweet := range result.Data {
+
 			var newTweet twitterscraper.Tweet
+
 			newTweet.ID = tweet.ID
 			newTweet.Text = tweet.Text
+			newTweet.Username = tweet.Username
+			newTweet.UserID = tweet.AuthorID
+
+			for _, place := range result.Includes.Places {
+				newTweet.Place = &twitterscraper.Place{
+					ID:          place.ID,
+					PlaceType:   place.PlaceType,
+					Name:        place.Name,
+					FullName:    place.FullName,
+					CountryCode: place.CountryCode,
+					Country:     place.Country,
+					BoundingBox: struct {
+						Type        string        `json:"type"`
+						Coordinates [][][]float64 `json:"coordinates"`
+					}{
+						Type: place.Geo.Type,
+					},
+				}
+			}
+
+			for _, media := range result.Includes.Media {
+				if media.Type == "photo" {
+					photo := twitterscraper.Photo{
+						ID: media.MediaKey,
+					}
+					newTweet.Photos = append(newTweet.Photos, photo)
+				} else if media.Type == "video" {
+					video := twitterscraper.Video{
+						ID: media.MediaKey,
+					}
+					newTweet.Videos = append(newTweet.Videos, video)
+				}
+			}
+
 			tweets = append(tweets, &TweetResult{Tweet: &newTweet})
 		}
 
