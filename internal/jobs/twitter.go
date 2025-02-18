@@ -158,7 +158,6 @@ func (ts *TwitterScraper) ScrapeTweetsByQuery(baseDir string, query string, coun
 			return nil, err
 		}
 
-		var tweets []*TweetResult
 		for _, tweet := range result.Data {
 			var newTweet twitterscraper.Tweet
 			newTweet.ID = tweet.ID
@@ -167,6 +166,7 @@ func (ts *TwitterScraper) ScrapeTweetsByQuery(baseDir string, query string, coun
 		}
 
 		ts.statsCollector.Add(stats.TwitterTweets, uint(len(result.Data)))
+
 		return tweets, nil
 
 	}
@@ -184,6 +184,7 @@ func (ts *TwitterScraper) ScrapeTweetsByQuery(baseDir string, query string, coun
 	}
 
 	ts.statsCollector.Add(stats.TwitterTweets, uint(len(tweets)))
+	logrus.Info("Scraped tweets: ", len(tweets))
 	return tweets, nil
 }
 
