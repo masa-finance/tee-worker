@@ -137,8 +137,8 @@ func (s *TwitterXScraper) ScrapeTweetsByQuery(query string, count int) (*Twitter
 
 	// include all possible fields - but note that the twitter api does not return all fields.
 	// TODO: check the response and adjust the fields as needed
-	endpoint = endpoint + "&tweet.fields=tweet.fields=created_at,author_id,public_metrics,context_annotations,geo,lang,possibly_sensitive,source,withheld,attachments,entities,conversation_id,in_reply_to_user_id,referenced_tweets,reply_settings,media_metadata,note_tweet,display_text_range,edit_controls,edit_history_tweet_ids,article,card_uri,community_id"
-	endpoint = endpoint + "&user.fields=username,affiliation,connection_status,created_at,description,entities,id,is_identity_verified,location,most_recent_tweet_id,name,parody,pinned_tweet_id,profile_banner_url,profile_image_url,protected,public_metrics,receives_your_dm,subscription,subscription_type,url,verified,verified_followers_count,verified_type,withheld"
+	endpoint = endpoint + "&tweet.fields=created_at,author_id,public_metrics,context_annotations,geo,lang,possibly_sensitive,source,withheld,attachments,entities,conversation_id,in_reply_to_user_id,referenced_tweets,reply_settings,media_metadata,note_tweet,display_text_range,edit_controls,edit_history_tweet_ids,article,card_uri,community_id"
+	endpoint = endpoint + "&user.fields=username,affiliation,connection_status,description,entities,id,is_identity_verified,location,most_recent_tweet_id,name,parody,pinned_tweet_id,profile_banner_url,profile_image_url,protected,public_metrics,receives_your_dm,subscription,subscription_type,url,verified,verified_followers_count,verified_type,withheld"
 	endpoint = endpoint + "&place.fields=contained_within,country,country_code,full_name,geo,id,name,place_type"
 
 	// sample
