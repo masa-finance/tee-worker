@@ -18,8 +18,8 @@ import (
 
 type TweetResult struct {
 	Tweet        *twitterscraper.Tweet
-	TweetXData   *twitterx.TwitterXData
-	TweetXMeta   *twitterx.TwitterXMeta
+	TweetXData   twitterx.TwitterXData
+	TweetXMeta   twitterx.TwitterXMeta
 	ThreadCursor *twitterscraper.ThreadCursor
 	Error        error
 }
@@ -163,8 +163,8 @@ func (ts *TwitterScraper) ScrapeTweetsByQuery(baseDir string, query string, coun
 		for _, tweet := range result.Data {
 			// Append the tweet to the list of tweet result
 			tweetResult := &TweetResult{
-				TweetXData: &tweet,
-				TweetXMeta: &result.Meta,
+				TweetXData: tweet,
+				TweetXMeta: result.Meta,
 			}
 			tweets = append(tweets, tweetResult)
 		}
