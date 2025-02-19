@@ -78,13 +78,15 @@ type TwitterXData struct {
 		ID   string `json:"id"`
 	} `json:"referenced_tweets,omitempty"`
 }
+
+type TwitterXMeta struct {
+	NewestID    string `json:"newest_id"`
+	OldestID    string `json:"oldest_id"`
+	ResultCount int    `json:"result_count"`
+}
 type TwitterXSearchQueryResult struct {
 	Data []TwitterXData `json:"data"`
-	Meta struct {
-		NewestID    string `json:"newest_id"`
-		OldestID    string `json:"oldest_id"`
-		ResultCount int    `json:"result_count"`
-	} `json:"meta"`
+	Meta TwitterXMeta   `json:"meta"`
 }
 
 // SearchParams holds all possible search parameters
