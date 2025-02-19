@@ -18,10 +18,11 @@ import (
 
 type TweetResult struct {
 	Tweet        *twitterscraper.Tweet
-	TweetXData   twitterx.TwitterXData
-	TweetXMeta   twitterx.TwitterXMeta
 	ThreadCursor *twitterscraper.ThreadCursor
 	Error        error
+
+	TweetXData twitterx.TwitterXData
+	TweetXMeta twitterx.TwitterXMeta
 }
 
 func parseAccounts(accountPairs []string) []*twitter.TwitterAccount {
@@ -165,13 +166,9 @@ func (ts *TwitterScraper) ScrapeTweetsByQuery(baseDir string, query string, coun
 			tweetResult := &TweetResult{
 				TweetXData: tweet,
 				TweetXMeta: result.Meta,
+				Error:      err,
 			}
 			tweets = append(tweets, tweetResult)
-		}
-
-		for _, tweet := range tweets {
-			fmt.Println(tweet.TweetXData.ID)
-			fmt.Println(tweet.TweetXData.Text)
 		}
 
 		ts.statsCollector.Add(stats.TwitterTweets, uint(len(tweets)))

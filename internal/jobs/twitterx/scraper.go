@@ -85,8 +85,14 @@ type TwitterXMeta struct {
 	ResultCount int    `json:"result_count"`
 }
 type TwitterXSearchQueryResult struct {
-	Data []TwitterXData `json:"data"`
-	Meta TwitterXMeta   `json:"meta"`
+	Data   []TwitterXData `json:"data"`
+	Meta   TwitterXMeta   `json:"meta"`
+	Errors []struct {
+		Detail string `json:"detail"`
+		Status int    `json:"status"`
+		Title  string `json:"title"`
+		Type   string `json:"type"`
+	}
 }
 
 // SearchParams holds all possible search parameters
