@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const (
@@ -20,20 +21,78 @@ type TwitterXScraper struct {
 	twitterXClient *client.TwitterXClient
 }
 
+type TwitterXData struct {
+	AuthorID string `json:"author_id"`
+	Entities struct {
+		Urls []struct {
+			Start       int    `json:"start"`
+			End         int    `json:"end"`
+			URL         string `json:"url"`
+			ExpandedURL string `json:"expanded_url"`
+			DisplayURL  string `json:"display_url"`
+		} `json:"urls"`
+		Annotations []struct {
+			Start          int     `json:"start"`
+			End            int     `json:"end"`
+			Probability    float64 `json:"probability"`
+			Type           string  `json:"type"`
+			NormalizedText string  `json:"normalized_text"`
+		} `json:"annotations"`
+	} `json:"entities"`
+	ID                string `json:"id"`
+	PossiblySensitive bool   `json:"possibly_sensitive"`
+	ReplySettings     string `json:"reply_settings"`
+	ConversationID    string `json:"conversation_id"`
+	PublicMetrics     struct {
+		RetweetCount    int `json:"retweet_count"`
+		ReplyCount      int `json:"reply_count"`
+		LikeCount       int `json:"like_count"`
+		QuoteCount      int `json:"quote_count"`
+		BookmarkCount   int `json:"bookmark_count"`
+		ImpressionCount int `json:"impression_count"`
+	} `json:"public_metrics"`
+	EditControls struct {
+		EditsRemaining int       `json:"edits_remaining"`
+		IsEditEligible bool      `json:"is_edit_eligible"`
+		EditableUntil  time.Time `json:"editable_until"`
+	} `json:"edit_controls"`
+	Text               string `json:"text"`
+	ContextAnnotations []struct {
+		Domain struct {
+			ID          string `json:"id"`
+			Name        string `json:"name"`
+			Description string `json:"description"`
+		} `json:"domain"`
+		Entity struct {
+			ID   string `json:"id"`
+			Name string `json:"name"`
+		} `json:"entity"`
+	} `json:"context_annotations"`
+	CreatedAt           time.Time `json:"created_at"`
+	DisplayTextRange    []int     `json:"display_text_range"`
+	Lang                string    `json:"lang"`
+	EditHistoryTweetIds []string  `json:"edit_history_tweet_ids"`
+	InReplyToUserID     string    `json:"in_reply_to_user_id,omitempty"`
+	ReferencedTweets    []struct {
+		Type string `json:"type"`
+		ID   string `json:"id"`
+	} `json:"referenced_tweets,omitempty"`
+}
+
+type TwitterXMeta struct {
+	NewestID    string `json:"newest_id"`
+	OldestID    string `json:"oldest_id"`
+	ResultCount int    `json:"result_count"`
+}
 type TwitterXSearchQueryResult struct {
-	Data []struct {
-		Text                string   `json:"text"`
-		EditHistoryTweetIds []string `json:"edit_history_tweet_ids"`
-		ID                  string   `json:"id"`
-	} `json:"data"`
-	Meta struct {
-		NewestID    string `json:"newest_id"`
-		OldestID    string `json:"oldest_id"`
-		ResultCount int    `json:"result_count"`
-		NextToken   string `json:"next_token"`
-	} `json:"meta"`
-	Status  string
-	Message string
+	Data   []TwitterXData `json:"data"`
+	Meta   TwitterXMeta   `json:"meta"`
+	Errors []struct {
+		Detail string `json:"detail"`
+		Status int    `json:"status"`
+		Title  string `json:"title"`
+		Type   string `json:"type"`
+	}
 }
 
 // SearchParams holds all possible search parameters
@@ -53,7 +112,7 @@ func NewTwitterXScraper(client *client.TwitterXClient) *TwitterXScraper {
 }
 
 // ScrapeTweetsByQuery Alternative version using url.Values for more parameters
-func (s *TwitterXScraper) ScrapeTweetsByQuery(query string) (*TwitterXSearchQueryResult, error) {
+func (s *TwitterXScraper) ScrapeTweetsByQuery(query string, count int) (*TwitterXSearchQueryResult, error) {
 	// initialize the client
 	client := s.twitterXClient
 
@@ -70,12 +129,36 @@ func (s *TwitterXScraper) ScrapeTweetsByQuery(query string) (*TwitterXSearchQuer
 	// construct the final URL with encoded parameters
 	endpoint := baseURL + "?" + params.Encode()
 
+	// max_results
+	//if count = 0, just return the first 10 results.query parameter value [2] is not between 10 and 100
+	fmt.Println("count", count)
+	if count == 0 {
+		count = 10
+	}
+
+	if count < 10 || count > 100 {
+		logrus.Error("Invalid count value. Must be between 10 and 100")
+		return nil, fmt.Errorf("invalid count value. Must be between 10 and 100")
+	}
+
+	endpoint = endpoint + "&max_results=" + strconv.Itoa(count)
+
+	// include all possible fields - but note that the twitter api does not return all fields.
+	// TODO: check the response and adjust the fields as needed
+	endpoint = endpoint + "&tweet.fields=created_at,author_id,public_metrics,context_annotations,geo,lang,possibly_sensitive,source,withheld,attachments,entities,conversation_id,in_reply_to_user_id,referenced_tweets,reply_settings,media_metadata,note_tweet,display_text_range,edit_controls,edit_history_tweet_ids,article,card_uri,community_id"
+	endpoint = endpoint + "&user.fields=username,affiliation,connection_status,description,entities,id,is_identity_verified,location,most_recent_tweet_id,name,parody,pinned_tweet_id,profile_banner_url,profile_image_url,protected,public_metrics,receives_your_dm,subscription,subscription_type,url,verified,verified_followers_count,verified_type,withheld"
+	endpoint = endpoint + "&place.fields=contained_within,country,country_code,full_name,geo,id,name,place_type"
+
+	// sample
+	//https://api.x.com/2/tweets/search/recent?query=Learn+how+to+use+the+user+Tweet+timeline&tweet.fields=created_at,author_id,public_metrics,context_annotations,geo,lang,possibly_sensitive,source,withheld,attachments,entities,conversation_id,in_reply_to_user_id,referenced_tweets,reply_settings,media_metadata,note_tweet,display_text_range,edit_controls,edit_history_tweet_ids,article,card_uri,community_id&user.fields=username,affiliation,connection_status,created_at,description,entities,id,is_identity_verified,location,most_recent_tweet_id,name,parody,pinned_tweet_id,profile_banner_url,profile_image_url,protected,public_metrics,receives_your_dm,subscription,subscription_type,url,verified,verified_followers_count,verified_type,withheld&place.fields=contained_within,country,country_code,full_name,geo,id,name,place_type
+
 	// run the search
 	response, err := client.Get(endpoint)
 	if err != nil {
 		logrus.Error("failed to execute search query: %w", err)
 		return nil, fmt.Errorf("failed to execute search query: %w", err)
 	}
+
 	defer response.Body.Close()
 
 	// read the response body
