@@ -162,7 +162,11 @@ func (ts *TwitterScraper) ScrapeTweetsByQuery(baseDir string, query string, coun
 
 		for _, tweet := range result.Data {
 			// Append the tweet to the list of tweet result
-			tweets = append(tweets, &TweetResult{TweetXData: &tweet, TweetXMeta: &result.Meta})
+			tweetResult := &TweetResult{
+				TweetXData: &tweet,
+				TweetXMeta: &result.Meta,
+			}
+			tweets = append(tweets, tweetResult)
 		}
 
 		for _, tweet := range tweets {
