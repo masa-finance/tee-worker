@@ -20,6 +20,9 @@ type TweetResult struct {
 	Tweet        *twitterscraper.Tweet
 	ThreadCursor *twitterscraper.ThreadCursor
 	Error        error
+
+	TweetXData twitterx.TwitterXData
+	TweetXMeta twitterx.TwitterXMeta
 }
 
 func parseAccounts(accountPairs []string) []*twitter.TwitterAccount {
@@ -153,19 +156,22 @@ func (ts *TwitterScraper) ScrapeTweetsByQuery(baseDir string, query string, coun
 
 		client := client.NewTwitterXClient(apiKey.Key)
 		twitterXScraper := twitterx.NewTwitterXScraper(client)
-		result, err := twitterXScraper.ScrapeTweetsByQuery(query)
+		result, err := twitterXScraper.ScrapeTweetsByQuery(query, count)
 		if err != nil {
 			return nil, err
 		}
 
 		for _, tweet := range result.Data {
-			var newTweet twitterscraper.Tweet
-			newTweet.ID = tweet.ID
-			newTweet.Text = tweet.Text
-			tweets = append(tweets, &TweetResult{Tweet: &newTweet})
+			// Append the tweet to the list of tweet result
+			tweetResult := &TweetResult{
+				TweetXData: tweet,
+				TweetXMeta: result.Meta,
+				Error:      err,
+			}
+			tweets = append(tweets, tweetResult)
 		}
 
-		ts.statsCollector.Add(stats.TwitterTweets, uint(len(result.Data)))
+		ts.statsCollector.Add(stats.TwitterTweets, uint(len(tweets)))
 
 		return tweets, nil
 
