@@ -709,6 +709,9 @@ func (ws *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 		if err != nil {
 			return types.JobResult{Error: err.Error()}, err
 		}
+		if len(tweets) == 0 {
+			logrus.Warnf("No tweets found for query: %s", args.Query)
+		}
 		logrus.Info("Tweets: ", tweets)
 		dat, err := json.Marshal(tweets)
 		return types.JobResult{
