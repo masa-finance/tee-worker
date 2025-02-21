@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/masa-finance/tee-worker/internal/jobs/twitterx"
 	"github.com/masa-finance/tee-worker/pkg/client"
+	"strconv"
 	"strings"
 	"time"
 
@@ -18,7 +19,7 @@ import (
 )
 
 type TweetResult struct {
-	ID             string
+	ID             int64
 	TweetID        string
 	ConversationID string
 	UserID         string
@@ -88,8 +89,14 @@ type Video struct {
 
 func (ts *TwitterScraper) convertTwitterScraperTweetToTweetResult(tweet twitterscraper.Tweet) TweetResult {
 
+	id, err := strconv.ParseInt(tweet.ID, 10, 64)
+	if err != nil {
+		logrus.Warnf("failed to convert tweet ID to int64: %s", tweet.ID)
+		id = 0 // set to 0 if conversion fails
+	}
+
 	return TweetResult{
-		ID:             tweet.ID,
+		ID:             id,
 		TweetID:        tweet.ID,
 		ConversationID: tweet.ConversationID,
 		UserID:         tweet.UserID,
@@ -276,7 +283,14 @@ func (ts *TwitterScraper) ScrapeTweetsByQuery(baseDir string, query string, coun
 
 			// Append the tweet to the list of tweet result
 			var newTweetResult TweetResult
-			newTweetResult.ID = tweet.ID
+
+			// convert id string to int64
+			id, err := strconv.ParseInt(tweet.ID, 10, 64)
+			if err != nil {
+				return nil, err
+			}
+
+			newTweetResult.ID = id
 			newTweetResult.TweetID = tweet.ID
 			newTweetResult.AuthorID = tweet.AuthorID
 			newTweetResult.Text = tweet.Text
@@ -498,7 +512,7 @@ func (ts *TwitterScraper) GetUserTweets(baseDir, username string, count int, cur
 
 		// Set next cursor to last tweet's ID if available
 		if len(tweets) > 0 {
-			nextCursor = tweets[len(tweets)-1].ID
+			nextCursor = strconv.FormatInt(tweets[len(tweets)-1].ID, 10)
 		}
 	}
 
@@ -550,7 +564,7 @@ func (ts *TwitterScraper) GetUserMedia(baseDir, username string, count int, curs
 
 		// Set next cursor to last tweet's ID if available
 		if len(media) > 0 {
-			nextCursor = media[len(media)-1].ID
+			nextCursor = strconv.FormatInt(media[len(media)-1].ID, 10)
 		}
 	}
 
@@ -600,7 +614,7 @@ func (ts *TwitterScraper) GetHomeTweets(baseDir string, count int, cursor string
 
 		// Set next cursor to last tweet's ID if available
 		if len(tweets) > 0 {
-			nextCursor = tweets[len(tweets)-1].ID
+			nextCursor = strconv.FormatInt(tweets[len(tweets)-1].ID, 10)
 		}
 	}
 
@@ -650,7 +664,7 @@ func (ts *TwitterScraper) GetForYouTweets(baseDir string, count int, cursor stri
 
 		// Set next cursor to last tweet's ID if available
 		if len(tweets) > 0 {
-			nextCursor = tweets[len(tweets)-1].ID
+			nextCursor = strconv.FormatInt(tweets[len(tweets)-1].ID, 10)
 		}
 	}
 
@@ -708,7 +722,7 @@ func (ts *TwitterScraper) GetBookmarks(baseDir string, count int, cursor string)
 
 		// Set next cursor to last tweet's ID if available
 		if len(bookmarks) > 0 {
-			nextCursor = bookmarks[len(bookmarks)-1].ID
+			nextCursor = strconv.FormatInt(bookmarks[len(bookmarks)-1].ID, 10)
 		}
 	}
 
