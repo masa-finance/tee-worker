@@ -711,7 +711,6 @@ func (ws *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 		}
 		logrus.Info("Tweets: ", tweets)
 		dat, err := json.Marshal(tweets)
-		logrus.Info("Data: ", dat)
 		return types.JobResult{
 			Data: dat,
 		}, err
