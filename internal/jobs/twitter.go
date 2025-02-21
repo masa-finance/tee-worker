@@ -21,20 +21,20 @@ type TweetResult struct {
 	ThreadCursor *twitterscraper.ThreadCursor
 
 	// from twitterx
-	AuthorID      string `json:"author_id"`
+	AuthorID      string
 	PublicMetrics struct {
-		RetweetCount    int `json:"retweet_count"`
-		ReplyCount      int `json:"reply_count"`
-		LikeCount       int `json:"like_count"`
-		QuoteCount      int `json:"quote_count"`
-		BookmarkCount   int `json:"bookmark_count"`
-		ImpressionCount int `json:"impression_count"`
-	} `json:"public_metrics"`
-	PossiblySensitive bool        `json:"possibly_sensitive"`
-	Lang              interface{} `json:"lang"`
-	NewestID          string      `json:"newest_id"`
-	OldestID          string      `json:"oldest_id"`
-	ResultCount       int         `json:"result_count"`
+		RetweetCount    int
+		ReplyCount      int
+		LikeCount       int
+		QuoteCount      int
+		BookmarkCount   int
+		ImpressionCount int
+	}
+	PossiblySensitive bool
+	Lang              interface{}
+	NewestID          string
+	OldestID          string
+	ResultCount       int
 
 	Error error
 }
@@ -188,8 +188,14 @@ func (ts *TwitterScraper) ScrapeTweetsByQuery(baseDir string, query string, coun
 				Tweet: &newTweet,
 				Error: err,
 			}
+			tweetResult.AuthorID = tweet.AuthorID
+			tweetResult.PublicMetrics.BookmarkCount = tweet.PublicMetrics.BookmarkCount
+			tweetResult.PublicMetrics.ImpressionCount = tweet.PublicMetrics.ImpressionCount
+			tweetResult.PublicMetrics.LikeCount = tweet.PublicMetrics.LikeCount
+			tweetResult.PublicMetrics.QuoteCount = tweet.PublicMetrics.QuoteCount
+			tweetResult.PublicMetrics.ReplyCount = tweet.PublicMetrics.ReplyCount
+			tweetResult.PublicMetrics.RetweetCount = tweet.PublicMetrics.RetweetCount
 
-			tweetResult.PublicMetrics = tweet.PublicMetrics
 			tweetResult.Lang = tweet.Lang
 			tweetResult.PossiblySensitive = tweet.PossiblySensitive
 
