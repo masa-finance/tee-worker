@@ -276,6 +276,7 @@ func (ts *TwitterScraper) ScrapeTweetsByQuery(baseDir string, query string, coun
 
 			// Append the tweet to the list of tweet result
 			var newTweetResult TweetResult
+			newTweetResult.ID = tweet.ID
 			newTweetResult.TweetID = tweet.ID
 			newTweetResult.AuthorID = tweet.AuthorID
 			newTweetResult.Text = tweet.Text
