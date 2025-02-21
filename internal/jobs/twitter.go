@@ -284,15 +284,15 @@ func (ts *TwitterScraper) ScrapeTweetsByQuery(baseDir string, query string, coun
 			newTweetResult.UserID = tweet.AuthorID
 			newTweetResult.CreatedAt = tweet.CreatedAt
 
-			newTweetPublicMetrics := PublicMetrics{
-				BookmarkCount: tweet.PublicMetrics.BookmarkCount,
-				LikeCount:     tweet.PublicMetrics.LikeCount,
-				QuoteCount:    tweet.PublicMetrics.QuoteCount,
-				ReplyCount:    tweet.PublicMetrics.ReplyCount,
-				RetweetCount:  tweet.PublicMetrics.RetweetCount,
-			}
-
-			newTweetResult.PublicMetrics = newTweetPublicMetrics
+			//newTweetPublicMetrics := PublicMetrics{
+			//	BookmarkCount: tweet.PublicMetrics.BookmarkCount,
+			//	LikeCount:     tweet.PublicMetrics.LikeCount,
+			//	QuoteCount:    tweet.PublicMetrics.QuoteCount,
+			//	ReplyCount:    tweet.PublicMetrics.ReplyCount,
+			//	RetweetCount:  tweet.PublicMetrics.RetweetCount,
+			//}
+			//
+			//newTweetResult.PublicMetrics = newTweetPublicMetrics
 
 			newTweetResult.Lang = tweet.Lang
 			newTweetResult.NewestID = result.Meta.NewestID
