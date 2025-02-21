@@ -175,6 +175,7 @@ func (ts *TwitterScraper) ScrapeTweetsByQuery(baseDir string, query string, coun
 				TweetExtended: tweet,
 				Error:         err,
 			}
+
 			tweets = append(tweets, tweetResult)
 		}
 
@@ -708,7 +709,9 @@ func (ws *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 		if err != nil {
 			return types.JobResult{Error: err.Error()}, err
 		}
+		logrus.Info("Tweets: ", tweets)
 		dat, err := json.Marshal(tweets)
+		logrus.Info("Data: ", dat)
 		return types.JobResult{
 			Data: dat,
 		}, err
