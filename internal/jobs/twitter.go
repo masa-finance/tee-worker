@@ -198,6 +198,9 @@ func (ts *TwitterScraper) ScrapeTweetsByQuery(baseDir string, query string, coun
 
 			tweetResult.Lang = tweet.Lang
 			tweetResult.PossiblySensitive = tweet.PossiblySensitive
+			tweetResult.ResultCount = result.Meta.ResultCount
+			tweetResult.NewestID = result.Meta.NewestID
+			tweetResult.OldestID = result.Meta.OldestID
 
 			tweets = append(tweets, tweetResult)
 		}
