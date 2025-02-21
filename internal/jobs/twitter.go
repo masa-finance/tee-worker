@@ -17,11 +17,26 @@ import (
 )
 
 type TweetResult struct {
-	Tweet         *twitterscraper.Tweet
-	ThreadCursor  *twitterscraper.ThreadCursor
-	TweetExtended twitterx.TwitterXData
-	Meta          twitterx.TwitterMeta
-	Error         error
+	Tweet        *twitterscraper.Tweet
+	ThreadCursor *twitterscraper.ThreadCursor
+
+	// from twitterx
+	AuthorID      string `json:"author_id"`
+	PublicMetrics struct {
+		RetweetCount    int `json:"retweet_count"`
+		ReplyCount      int `json:"reply_count"`
+		LikeCount       int `json:"like_count"`
+		QuoteCount      int `json:"quote_count"`
+		BookmarkCount   int `json:"bookmark_count"`
+		ImpressionCount int `json:"impression_count"`
+	} `json:"public_metrics"`
+	PossiblySensitive bool        `json:"possibly_sensitive"`
+	Lang              interface{} `json:"lang"`
+	NewestID          string      `json:"newest_id"`
+	OldestID          string      `json:"oldest_id"`
+	ResultCount       int         `json:"result_count"`
+
+	Error error
 }
 
 func parseAccounts(accountPairs []string) []*twitter.TwitterAccount {
@@ -170,11 +185,13 @@ func (ts *TwitterScraper) ScrapeTweetsByQuery(baseDir string, query string, coun
 			newTweet.TimeParsed = tweet.CreatedAt
 
 			tweetResult := &TweetResult{
-				Tweet:         &newTweet,
-				Meta:          result.Meta,
-				TweetExtended: tweet,
-				Error:         err,
+				Tweet: &newTweet,
+				Error: err,
 			}
+
+			tweetResult.PublicMetrics = tweet.PublicMetrics
+			tweetResult.Lang = tweet.Lang
+			tweetResult.PossiblySensitive = tweet.PossiblySensitive
 
 			tweets = append(tweets, tweetResult)
 		}
