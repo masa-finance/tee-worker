@@ -63,7 +63,7 @@ var _ = Describe("Twitter Scraper", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(results).ToNot(BeEmpty())
 
-		Expect(results[0].Tweet.Text).ToNot(BeEmpty())
+		Expect(results[0].Text).ToNot(BeEmpty())
 		Expect(statsCollector.Stats.Stats[stats.TwitterScrapes]).To(BeNumerically("==", 1))
 		Expect(statsCollector.Stats.Stats[stats.TwitterTweets]).To(BeNumerically("==", uint(len(results))))
 	})
@@ -147,7 +147,7 @@ var _ = Describe("Twitter Scraper", func() {
 		err = res.Unmarshal(&replies)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(replies).ToNot(BeEmpty())
-		Expect(replies[0].Tweet.Text).ToNot(BeEmpty())
+		Expect(replies[0].Text).ToNot(BeEmpty())
 	})
 
 	It("should fetch tweet retweeters", func() {
@@ -185,7 +185,7 @@ var _ = Describe("Twitter Scraper", func() {
 		err = res.Unmarshal(&tweets)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(tweets)).ToNot(BeZero())
-		Expect(tweets[0].Tweet.Text).ToNot(BeEmpty())
+		Expect(tweets[0].Text).ToNot(BeEmpty())
 	})
 
 	It("should fetch user media", func() {
@@ -204,7 +204,7 @@ var _ = Describe("Twitter Scraper", func() {
 		err = res.Unmarshal(&media)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(media).ToNot(BeEmpty())
-		Expect(len(media[0].Tweet.Photos) + len(media[0].Tweet.Videos)).ToNot(BeZero())
+		Expect(len(media[0].Photos) + len(media[0].Videos)).ToNot(BeZero())
 	})
 
 	It("should fetch bookmarks", func() {
@@ -222,7 +222,7 @@ var _ = Describe("Twitter Scraper", func() {
 		err = res.Unmarshal(&bookmarks)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(bookmarks)).ToNot(BeZero())
-		Expect(bookmarks[0].Tweet.Text).ToNot(BeEmpty())
+		Expect(bookmarks[0].Text).ToNot(BeEmpty())
 	})
 
 	It("should fetch home tweets", func() {
@@ -240,7 +240,7 @@ var _ = Describe("Twitter Scraper", func() {
 		err = res.Unmarshal(&tweets)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(tweets)).ToNot(BeZero())
-		Expect(tweets[0].Tweet.Text).ToNot(BeEmpty())
+		Expect(tweets[0].Text).ToNot(BeEmpty())
 	})
 
 	It("should fetch for you tweets", func() {
@@ -259,7 +259,7 @@ var _ = Describe("Twitter Scraper", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(tweets)).ToNot(BeZero())
 		Expect(tweets).ToNot(BeEmpty())
-		Expect(tweets[0].Tweet.Text).ToNot(BeEmpty())
+		Expect(tweets[0].Text).ToNot(BeEmpty())
 	})
 
 	It("should fetch profile by ID", func() {

@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"github.com/masa-finance/tee-worker/internal/jobs/twitterx"
 	"github.com/masa-finance/tee-worker/pkg/client"
+	"strconv"
 	"strings"
+	"time"
 
 	twitterscraper "github.com/imperatrona/twitter-scraper"
 	"github.com/masa-finance/tee-worker/api/types"
@@ -17,12 +19,128 @@ import (
 )
 
 type TweetResult struct {
-	Tweet        *twitterscraper.Tweet
-	ThreadCursor *twitterscraper.ThreadCursor
-	Error        error
+	ID             int64
+	TweetID        string
+	ConversationID string
+	UserID         string
+	Text           string
+	CreatedAt      time.Time
+	Timestamp      int64
 
-	TweetXData twitterx.TwitterXData
-	TweetXMeta twitterx.TwitterXMeta
+	ThreadCursor struct {
+		FocalTweetID string
+		ThreadID     string
+		Cursor       string
+		CursorType   string
+	}
+	IsQuoted     bool
+	IsPin        bool
+	IsReply      bool
+	IsRetweet    bool
+	IsSelfThread bool
+	Likes        int
+	Hashtags     []string
+	HTML         string
+	Replies      int
+	Retweets     int
+	URLs         []string
+	Username     string
+
+	Photos []Photo
+
+	// Video type.
+	Videos []Video
+
+	RetweetedStatusID string
+	Views             int
+	SensitiveContent  bool
+
+	// from twitterx
+	AuthorID          string
+	PublicMetrics     PublicMetrics
+	PossiblySensitive bool
+	Lang              string
+	NewestID          string
+	OldestID          string
+	ResultCount       int
+
+	Error error
+}
+
+type PublicMetrics struct {
+	RetweetCount    int
+	ReplyCount      int
+	LikeCount       int
+	QuoteCount      int
+	BookmarkCount   int
+	ImpressionCount int
+}
+type Photo struct {
+	ID  string
+	URL string
+}
+
+type Video struct {
+	ID      string
+	Preview string
+	URL     string
+	HLSURL  string
+}
+
+func (ts *TwitterScraper) convertTwitterScraperTweetToTweetResult(tweet twitterscraper.Tweet) TweetResult {
+
+	id, err := strconv.ParseInt(tweet.ID, 10, 64)
+	if err != nil {
+		logrus.Warnf("failed to convert tweet ID to int64: %s", tweet.ID)
+		id = 0 // set to 0 if conversion fails
+	}
+
+	return TweetResult{
+		ID:             id,
+		TweetID:        tweet.ID,
+		ConversationID: tweet.ConversationID,
+		UserID:         tweet.UserID,
+		Text:           tweet.Text,
+		CreatedAt:      time.Time{},
+		Timestamp:      tweet.Timestamp,
+		IsQuoted:       tweet.IsQuoted,
+		IsPin:          tweet.IsPin,
+		IsReply:        tweet.IsPin,
+		IsRetweet:      tweet.IsRetweet,
+		IsSelfThread:   tweet.IsSelfThread,
+		Likes:          tweet.Likes,
+		Hashtags:       tweet.Hashtags,
+		HTML:           tweet.HTML,
+		Replies:        tweet.Replies,
+		Retweets:       tweet.Retweets,
+		URLs:           tweet.URLs,
+		Username:       tweet.Username,
+		Photos: func() []Photo {
+			var photos []Photo
+			for _, photo := range tweet.Photos {
+				photos = append(photos, Photo{
+					ID:  photo.ID,
+					URL: photo.URL,
+				})
+			}
+			return photos
+		}(),
+		Videos: func() []Video {
+			var videos []Video
+			for _, video := range tweet.Videos {
+				videos = append(videos, Video{
+					ID:      video.ID,
+					Preview: video.Preview,
+					URL:     video.URL,
+					HLSURL:  video.HLSURL,
+				})
+			}
+			return videos
+		}(),
+		RetweetedStatusID: tweet.RetweetedStatusID,
+		Views:             tweet.Views,
+		SensitiveContent:  tweet.SensitiveContent,
+	}
 }
 
 func parseAccounts(accountPairs []string) []*twitter.TwitterAccount {
@@ -162,15 +280,42 @@ func (ts *TwitterScraper) ScrapeTweetsByQuery(baseDir string, query string, coun
 		}
 
 		for _, tweet := range result.Data {
-			// Append the tweet to the list of tweet result
-			tweetResult := &TweetResult{
-				TweetXData: tweet,
-				TweetXMeta: result.Meta,
-				Error:      err,
-			}
-			tweets = append(tweets, tweetResult)
-		}
 
+			// Append the tweet to the list of tweet result
+			var newTweetResult TweetResult
+
+			// convert id string to int64
+			id, err := strconv.ParseInt(tweet.ID, 10, 64)
+			if err != nil {
+				return nil, err
+			}
+
+			newTweetResult.ID = id
+			newTweetResult.TweetID = tweet.ID
+			newTweetResult.AuthorID = tweet.AuthorID
+			newTweetResult.Text = tweet.Text
+			newTweetResult.ConversationID = tweet.ConversationID
+			newTweetResult.UserID = tweet.AuthorID
+			newTweetResult.CreatedAt = tweet.CreatedAt
+
+			newTweetPublicMetrics := PublicMetrics{
+				BookmarkCount: tweet.PublicMetrics.BookmarkCount,
+				LikeCount:     tweet.PublicMetrics.LikeCount,
+				QuoteCount:    tweet.PublicMetrics.QuoteCount,
+				ReplyCount:    tweet.PublicMetrics.ReplyCount,
+				RetweetCount:  tweet.PublicMetrics.RetweetCount,
+			}
+
+			newTweetResult.PublicMetrics = newTweetPublicMetrics
+
+			newTweetResult.Lang = tweet.Lang
+			newTweetResult.NewestID = result.Meta.NewestID
+			newTweetResult.OldestID = result.Meta.OldestID
+			newTweetResult.ResultCount = result.Meta.ResultCount
+
+			tweets = append(tweets, &newTweetResult)
+		}
+		logrus.Info("Scraped tweets - post:  ", len(tweets))
 		ts.statsCollector.Add(stats.TwitterTweets, uint(len(tweets)))
 
 		return tweets, nil
@@ -186,15 +331,24 @@ func (ts *TwitterScraper) ScrapeTweetsByQuery(baseDir string, query string, coun
 			_ = ts.handleError(tweet.Error, account)
 			return nil, tweet.Error
 		}
-		tweets = append(tweets, &TweetResult{Tweet: &tweet.Tweet})
+
+		newTweetResult := ts.convertTwitterScraperTweetToTweetResult(tweet.Tweet)
+		tweets = append(tweets, &newTweetResult)
 	}
 
 	ts.statsCollector.Add(stats.TwitterTweets, uint(len(tweets)))
-	logrus.Info("Scraped tweets: ", len(tweets))
 	return tweets, nil
 }
 
-func (ts *TwitterScraper) ScrapeTweetByID(baseDir string, tweetID string) (*twitterscraper.Tweet, error) {
+// ScrapeTweetByID scrapes a tweet by ID
+//
+// It takes a base directory and a tweet ID as parameters, and returns
+// a pointer to a TweetResult and an error. It increments the
+// TwitterScrapes and TwitterTweets stats counters.
+//
+// If the scraper fails, it calls handleError with the error and the
+// account, and returns the error.
+func (ts *TwitterScraper) ScrapeTweetByID(baseDir string, tweetID string) (*TweetResult, error) {
 	ts.statsCollector.Add(stats.TwitterScrapes, 1)
 
 	scraper, account, _, err := ts.getAuthenticatedScraper(baseDir)
@@ -208,13 +362,22 @@ func (ts *TwitterScraper) ScrapeTweetByID(baseDir string, tweetID string) (*twit
 		return nil, err
 	}
 
+	tweetResult := ts.convertTwitterScraperTweetToTweetResult(*tweet)
+
 	ts.statsCollector.Add(stats.TwitterTweets, 1)
-	return tweet, nil
+	return &tweetResult, nil
 }
 
 // End of adapted code from masa-oracle (commit: bf277c646d44c49cc387bc5219c900e96b06dc02)
 
-// GetTweet retrieves a tweet by ID
+// GetTweet retrieves a tweet by ID.
+//
+// It takes a base directory and a tweet ID as parameters, and returns
+// a pointer to a TweetResult and an error. It increments the
+// TwitterScrapes and TwitterTweets stats counters.
+//
+// If the scraper fails, it calls handleError with the error and the
+// account, and returns the error.
 func (ts *TwitterScraper) GetTweet(baseDir, tweetID string) (*TweetResult, error) {
 	scraper, account, _, err := ts.getAuthenticatedScraper(baseDir)
 	if err != nil {
@@ -228,19 +391,28 @@ func (ts *TwitterScraper) GetTweet(baseDir, tweetID string) (*TweetResult, error
 		return nil, err
 	}
 
+	tweetResult := ts.convertTwitterScraperTweetToTweetResult(*tweet)
+
 	ts.statsCollector.Add(stats.TwitterTweets, 1)
-	return &TweetResult{Tweet: tweet}, nil
+	return &tweetResult, nil
 }
 
-// GetTweetReplies retrieves replies to a tweet
-func (ts *TwitterScraper) GetTweetReplies(baseDir, tweetID string, cursor string) ([]*TweetResult, error) {
+// GetTweetReplies retrieves replies to a tweet.
+//
+// It takes a base directory, a tweet ID and a cursor as parameters,
+// and returns a slice of pointers to TweetResult and an error.
+// It increments the TwitterScrapes and TwitterTweets stats counters.
+//
+// If the scraper fails, it calls handleError with the error and the
+// account, and returns the error.
+func (ts *TwitterScraper) GetTweetReplies(baseDir, tweetID string, cursor string) ([]TweetResult, error) {
 	scraper, account, _, err := ts.getAuthenticatedScraper(baseDir)
 	if err != nil {
 		return nil, err
 	}
 
 	ts.statsCollector.Add(stats.TwitterScrapes, 1)
-	var replies []*TweetResult
+	var replies []TweetResult
 	tweets, threadCursor, err := scraper.GetTweetReplies(tweetID, cursor)
 
 	for i, tweet := range tweets {
@@ -248,14 +420,30 @@ func (ts *TwitterScraper) GetTweetReplies(baseDir, tweetID string, cursor string
 			_ = ts.handleError(err, account)
 			return nil, err
 		}
-		replies = append(replies, &TweetResult{Tweet: tweet, ThreadCursor: threadCursor[i], Error: err})
+
+		newTweetResult := ts.convertTwitterScraperTweetToTweetResult(*tweet)
+		newTweetResult.ThreadCursor.Cursor = threadCursor[i].Cursor
+		newTweetResult.ThreadCursor.CursorType = threadCursor[i].CursorType
+		newTweetResult.ThreadCursor.FocalTweetID = threadCursor[i].FocalTweetID
+		newTweetResult.ThreadCursor.ThreadID = threadCursor[i].ThreadID
+		newTweetResult.Error = err
+
+		replies = append(replies, newTweetResult)
+
 	}
 
 	ts.statsCollector.Add(stats.TwitterTweets, uint(len(replies)))
 	return replies, nil
 }
 
-// GetTweetRetweeters retrieves users who retweeted a tweet
+// GetTweetRetweeters retrieves the retweeters of a tweet.
+//
+// It takes a base directory, a tweet ID, a count and a cursor as parameters,
+// and returns a slice of pointers to twitterscraper.Profile and an error.
+// It increments the TwitterScrapes and TwitterProfiles stats counters.
+//
+// If the scraper fails, it calls handleError with the error and the
+// account, and returns the error.
 func (ts *TwitterScraper) GetTweetRetweeters(baseDir, tweetID string, count int, cursor string) ([]*twitterscraper.Profile, error) {
 	scraper, account, _, err := ts.getAuthenticatedScraper(ts.configuration.DataDir)
 	if err != nil {
@@ -273,8 +461,21 @@ func (ts *TwitterScraper) GetTweetRetweeters(baseDir, tweetID string, count int,
 	return retweeters, nil
 }
 
-// GetUserTweets retrieves tweets from a user
-func (ts *TwitterScraper) GetUserTweets(baseDir, username string, count int, cursor string) ([]*TweetResult, string, error) {
+// GetUserTweets retrieves the tweets of a user.
+//
+// It takes a base directory, a username, a count and a cursor as parameters,
+// and returns a slice of pointers to TweetResult, a next cursor string and an error.
+// It increments the TwitterScrapes and TwitterTweets stats counters.
+//
+// If the scraper fails, it calls handleError with the error and the
+// account, and returns the error.
+//
+// If the cursor is empty, it uses the streaming method to retrieve tweets
+// without a cursor. Otherwise, it uses the fetch method with the given cursor.
+// If the streaming method is used, it sets the next cursor to the last tweet's
+// ID if available. If the fetch method is used, the next cursor is set to the
+// cursor returned by the fetch method.
+func (ts *TwitterScraper) GetUserTweets(baseDir, username string, count int, cursor string) ([]TweetResult, string, error) {
 	scraper, account, _, err := ts.getAuthenticatedScraper(baseDir)
 	if err != nil {
 		return nil, "", err
@@ -282,7 +483,7 @@ func (ts *TwitterScraper) GetUserTweets(baseDir, username string, count int, cur
 
 	ts.statsCollector.Add(stats.TwitterScrapes, 1)
 
-	var tweets []*TweetResult
+	var tweets []TweetResult
 	var nextCursor string
 
 	if cursor != "" {
@@ -294,7 +495,8 @@ func (ts *TwitterScraper) GetUserTweets(baseDir, username string, count int, cur
 		}
 
 		for _, tweet := range fetchedTweets {
-			tweets = append(tweets, &TweetResult{Tweet: tweet})
+			newTweetResult := ts.convertTwitterScraperTweetToTweetResult(*tweet)
+			tweets = append(tweets, newTweetResult)
 		}
 		nextCursor = fetchCursor
 	} else {
@@ -304,12 +506,13 @@ func (ts *TwitterScraper) GetUserTweets(baseDir, username string, count int, cur
 				_ = ts.handleError(tweet.Error, account)
 				return nil, "", tweet.Error
 			}
-			tweets = append(tweets, &TweetResult{Tweet: &tweet.Tweet})
+			newTweetResult := ts.convertTwitterScraperTweetToTweetResult(tweet.Tweet)
+			tweets = append(tweets, newTweetResult)
 		}
 
 		// Set next cursor to last tweet's ID if available
 		if len(tweets) > 0 {
-			nextCursor = tweets[len(tweets)-1].Tweet.ID
+			nextCursor = strconv.FormatInt(tweets[len(tweets)-1].ID, 10)
 		}
 	}
 
@@ -317,7 +520,7 @@ func (ts *TwitterScraper) GetUserTweets(baseDir, username string, count int, cur
 	return tweets, nextCursor, nil
 }
 
-func (ts *TwitterScraper) GetUserMedia(baseDir, username string, count int, cursor string) ([]*TweetResult, string, error) {
+func (ts *TwitterScraper) GetUserMedia(baseDir, username string, count int, cursor string) ([]TweetResult, string, error) {
 	scraper, account, _, err := ts.getAuthenticatedScraper(baseDir)
 	if err != nil {
 		return nil, "", err
@@ -325,7 +528,7 @@ func (ts *TwitterScraper) GetUserMedia(baseDir, username string, count int, curs
 
 	ts.statsCollector.Add(stats.TwitterScrapes, 1)
 
-	var media []*TweetResult
+	var media []TweetResult
 	var nextCursor string
 
 	if cursor != "" {
@@ -338,7 +541,8 @@ func (ts *TwitterScraper) GetUserMedia(baseDir, username string, count int, curs
 
 		for _, tweet := range fetchedTweets {
 			if len(tweet.Photos) > 0 || len(tweet.Videos) > 0 {
-				media = append(media, &TweetResult{Tweet: tweet})
+				newTweetResult := ts.convertTwitterScraperTweetToTweetResult(*tweet)
+				media = append(media, newTweetResult)
 			}
 		}
 		nextCursor = fetchCursor
@@ -352,13 +556,15 @@ func (ts *TwitterScraper) GetUserMedia(baseDir, username string, count int, curs
 				continue
 			}
 			if len(tweet.Tweet.Photos) > 0 || len(tweet.Tweet.Videos) > 0 {
-				media = append(media, &TweetResult{Tweet: &tweet.Tweet})
+				newTweetResult := ts.convertTwitterScraperTweetToTweetResult(tweet.Tweet)
+				media = append(media, newTweetResult)
+				//media = append(media, &TweetResult{Tweet: &tweet.Tweet})
 			}
 		}
 
 		// Set next cursor to last tweet's ID if available
 		if len(media) > 0 {
-			nextCursor = media[len(media)-1].Tweet.ID
+			nextCursor = strconv.FormatInt(media[len(media)-1].ID, 10)
 		}
 	}
 
@@ -366,7 +572,7 @@ func (ts *TwitterScraper) GetUserMedia(baseDir, username string, count int, curs
 	return media, nextCursor, nil
 }
 
-func (ts *TwitterScraper) GetHomeTweets(baseDir string, count int, cursor string) ([]*TweetResult, string, error) {
+func (ts *TwitterScraper) GetHomeTweets(baseDir string, count int, cursor string) ([]TweetResult, string, error) {
 	scraper, account, _, err := ts.getAuthenticatedScraper(baseDir)
 	if err != nil {
 		return nil, "", err
@@ -374,7 +580,7 @@ func (ts *TwitterScraper) GetHomeTweets(baseDir string, count int, cursor string
 
 	ts.statsCollector.Add(stats.TwitterScrapes, 1)
 
-	var tweets []*TweetResult
+	var tweets []TweetResult
 	var nextCursor string
 
 	if cursor != "" {
@@ -386,7 +592,9 @@ func (ts *TwitterScraper) GetHomeTweets(baseDir string, count int, cursor string
 		}
 
 		for _, tweet := range fetchedTweets {
-			tweets = append(tweets, &TweetResult{Tweet: tweet})
+			newTweetResult := ts.convertTwitterScraperTweetToTweetResult(*tweet)
+			tweets = append(tweets, newTweetResult)
+			//tweets = append(tweets, &TweetResult{Tweet: tweet})
 		}
 		nextCursor = fetchCursor
 	} else {
@@ -396,7 +604,9 @@ func (ts *TwitterScraper) GetHomeTweets(baseDir string, count int, cursor string
 				_ = ts.handleError(tweet.Error, account)
 				return nil, "", tweet.Error
 			}
-			tweets = append(tweets, &TweetResult{Tweet: &tweet.Tweet})
+			newTweetResult := ts.convertTwitterScraperTweetToTweetResult(tweet.Tweet)
+			tweets = append(tweets, newTweetResult)
+			//tweets = append(tweets, &TweetResult{Tweet: &tweet.Tweet})
 			if len(tweets) >= count {
 				break
 			}
@@ -404,7 +614,7 @@ func (ts *TwitterScraper) GetHomeTweets(baseDir string, count int, cursor string
 
 		// Set next cursor to last tweet's ID if available
 		if len(tweets) > 0 {
-			nextCursor = tweets[len(tweets)-1].Tweet.ID
+			nextCursor = strconv.FormatInt(tweets[len(tweets)-1].ID, 10)
 		}
 	}
 
@@ -412,7 +622,7 @@ func (ts *TwitterScraper) GetHomeTweets(baseDir string, count int, cursor string
 	return tweets, nextCursor, nil
 }
 
-func (ts *TwitterScraper) GetForYouTweets(baseDir string, count int, cursor string) ([]*TweetResult, string, error) {
+func (ts *TwitterScraper) GetForYouTweets(baseDir string, count int, cursor string) ([]TweetResult, string, error) {
 	scraper, account, _, err := ts.getAuthenticatedScraper(baseDir)
 	if err != nil {
 		return nil, "", err
@@ -420,7 +630,7 @@ func (ts *TwitterScraper) GetForYouTweets(baseDir string, count int, cursor stri
 
 	ts.statsCollector.Add(stats.TwitterScrapes, 1)
 
-	var tweets []*TweetResult
+	var tweets []TweetResult
 	var nextCursor string
 
 	if cursor != "" {
@@ -432,7 +642,9 @@ func (ts *TwitterScraper) GetForYouTweets(baseDir string, count int, cursor stri
 		}
 
 		for _, tweet := range fetchedTweets {
-			tweets = append(tweets, &TweetResult{Tweet: tweet})
+			newTweetResult := ts.convertTwitterScraperTweetToTweetResult(*tweet)
+			tweets = append(tweets, newTweetResult)
+			//tweets = append(tweets, &TweetResult{Tweet: tweet})
 		}
 		nextCursor = fetchCursor
 	} else {
@@ -442,7 +654,9 @@ func (ts *TwitterScraper) GetForYouTweets(baseDir string, count int, cursor stri
 				_ = ts.handleError(tweet.Error, account)
 				return nil, "", tweet.Error
 			}
-			tweets = append(tweets, &TweetResult{Tweet: &tweet.Tweet})
+			newTweetResult := ts.convertTwitterScraperTweetToTweetResult(tweet.Tweet)
+			tweets = append(tweets, newTweetResult)
+			//tweets = append(tweets, &TweetResult{Tweet: &tweet.Tweet})
 			if len(tweets) >= count {
 				break
 			}
@@ -450,7 +664,7 @@ func (ts *TwitterScraper) GetForYouTweets(baseDir string, count int, cursor stri
 
 		// Set next cursor to last tweet's ID if available
 		if len(tweets) > 0 {
-			nextCursor = tweets[len(tweets)-1].Tweet.ID
+			nextCursor = strconv.FormatInt(tweets[len(tweets)-1].ID, 10)
 		}
 	}
 
@@ -458,7 +672,15 @@ func (ts *TwitterScraper) GetForYouTweets(baseDir string, count int, cursor stri
 	return tweets, nextCursor, nil
 }
 
-func (ts *TwitterScraper) GetBookmarks(baseDir string, count int, cursor string) ([]*TweetResult, string, error) {
+// GetBookmarks retrieves the bookmarks of a user.
+//
+// It takes a base directory, a count and a cursor as parameters,
+// and returns a slice of pointers to TweetResult and an error.
+// It increments the TwitterScrapes and TwitterTweets stats counters.
+//
+// If the scraper fails, it calls handleError with the error and the
+// account, and returns the error.
+func (ts *TwitterScraper) GetBookmarks(baseDir string, count int, cursor string) ([]TweetResult, string, error) {
 	scraper, account, _, err := ts.getAuthenticatedScraper(baseDir)
 	if err != nil {
 		return nil, "", err
@@ -466,7 +688,7 @@ func (ts *TwitterScraper) GetBookmarks(baseDir string, count int, cursor string)
 
 	ts.statsCollector.Add(stats.TwitterScrapes, 1)
 
-	var bookmarks []*TweetResult
+	var bookmarks []TweetResult
 	var nextCursor string
 
 	if cursor != "" {
@@ -478,7 +700,9 @@ func (ts *TwitterScraper) GetBookmarks(baseDir string, count int, cursor string)
 		}
 
 		for _, tweet := range fetchedTweets {
-			bookmarks = append(bookmarks, &TweetResult{Tweet: tweet})
+			newTweetResult := ts.convertTwitterScraperTweetToTweetResult(*tweet)
+			bookmarks = append(bookmarks, newTweetResult)
+			//bookmarks = append(bookmarks, &TweetResult{Tweet: tweet})
 		}
 		nextCursor = fetchCursor
 	} else {
@@ -488,7 +712,9 @@ func (ts *TwitterScraper) GetBookmarks(baseDir string, count int, cursor string)
 				_ = ts.handleError(tweet.Error, account)
 				return nil, "", tweet.Error
 			}
-			bookmarks = append(bookmarks, &TweetResult{Tweet: &tweet.Tweet})
+			newTweetResult := ts.convertTwitterScraperTweetToTweetResult(tweet.Tweet)
+			bookmarks = append(bookmarks, newTweetResult)
+			//bookmarks = append(bookmarks, &TweetResult{Tweet: &tweet.Tweet})
 			if len(bookmarks) >= count {
 				break
 			}
@@ -496,7 +722,7 @@ func (ts *TwitterScraper) GetBookmarks(baseDir string, count int, cursor string)
 
 		// Set next cursor to last tweet's ID if available
 		if len(bookmarks) > 0 {
-			nextCursor = bookmarks[len(bookmarks)-1].Tweet.ID
+			nextCursor = strconv.FormatInt(bookmarks[len(bookmarks)-1].ID, 10)
 		}
 	}
 
@@ -701,6 +927,7 @@ func (ws *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 		if err != nil {
 			return types.JobResult{Error: err.Error()}, err
 		}
+		fmt.Println("Tweets: ", len(tweets))
 		dat, err := json.Marshal(tweets)
 		return types.JobResult{
 			Data: dat,

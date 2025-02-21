@@ -79,14 +79,14 @@ type TwitterXData struct {
 	} `json:"referenced_tweets,omitempty"`
 }
 
-type TwitterXMeta struct {
+type TwitterMeta struct {
 	NewestID    string `json:"newest_id"`
 	OldestID    string `json:"oldest_id"`
 	ResultCount int    `json:"result_count"`
 }
 type TwitterXSearchQueryResult struct {
 	Data   []TwitterXData `json:"data"`
-	Meta   TwitterXMeta   `json:"meta"`
+	Meta   TwitterMeta    `json:"meta"`
 	Errors []struct {
 		Detail string `json:"detail"`
 		Status int    `json:"status"`
