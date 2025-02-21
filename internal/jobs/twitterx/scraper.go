@@ -39,11 +39,11 @@ type TwitterXData struct {
 			NormalizedText string  `json:"normalized_text"`
 		} `json:"annotations"`
 	} `json:"entities"`
-	ID                string `json:"id"`
+	//ID                string `json:"id"`
 	PossiblySensitive bool   `json:"possibly_sensitive"`
 	ReplySettings     string `json:"reply_settings"`
-	ConversationID    string `json:"conversation_id"`
-	PublicMetrics     struct {
+	//ConversationID    string `json:"conversation_id"`
+	PublicMetrics struct {
 		RetweetCount    int `json:"retweet_count"`
 		ReplyCount      int `json:"reply_count"`
 		LikeCount       int `json:"like_count"`
@@ -56,7 +56,7 @@ type TwitterXData struct {
 		IsEditEligible bool      `json:"is_edit_eligible"`
 		EditableUntil  time.Time `json:"editable_until"`
 	} `json:"edit_controls"`
-	Text               string `json:"text"`
+	//Text               string `json:"text"`
 	ContextAnnotations []struct {
 		Domain struct {
 			ID          string `json:"id"`
