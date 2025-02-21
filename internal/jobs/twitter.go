@@ -272,6 +272,7 @@ func (ts *TwitterScraper) ScrapeTweetsByQuery(baseDir string, query string, coun
 			return nil, err
 		}
 
+		logrus.Info("Scraped tweets: ", len(result.Data))
 		for _, tweet := range result.Data {
 			// Append the tweet to the list of tweet result
 			var newTweetResult *TweetResult
@@ -299,7 +300,7 @@ func (ts *TwitterScraper) ScrapeTweetsByQuery(baseDir string, query string, coun
 
 			tweets = append(tweets, newTweetResult)
 		}
-
+		logrus.Info("Scraped tweets: ", len(tweets))
 		ts.statsCollector.Add(stats.TwitterTweets, uint(len(tweets)))
 
 		return tweets, nil
@@ -904,6 +905,7 @@ func (ws *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 		if err != nil {
 			return types.JobResult{Error: err.Error()}, err
 		}
+		fmt.Println("Tweets: ", len(tweets))
 		dat, err := json.Marshal(tweets)
 		return types.JobResult{
 			Data: dat,
