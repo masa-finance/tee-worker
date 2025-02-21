@@ -274,6 +274,7 @@ func (ts *TwitterScraper) ScrapeTweetsByQuery(baseDir string, query string, coun
 
 		logrus.Info("Scraped tweets: ", len(result.Data))
 		for _, tweet := range result.Data {
+			logrus.Info("Scraped tweet: ", tweet)
 			// Append the tweet to the list of tweet result
 			var newTweetResult *TweetResult
 			newTweetResult.TweetID = tweet.ID
@@ -300,7 +301,7 @@ func (ts *TwitterScraper) ScrapeTweetsByQuery(baseDir string, query string, coun
 
 			tweets = append(tweets, newTweetResult)
 		}
-		logrus.Info("Scraped tweets: ", len(tweets))
+		logrus.Info("Scraped tweets - post:  ", len(tweets))
 		ts.statsCollector.Add(stats.TwitterTweets, uint(len(tweets)))
 
 		return tweets, nil
