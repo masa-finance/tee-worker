@@ -45,16 +45,38 @@ func NewTwitterXClient(apiKey string) *TwitterXClient {
 	return client
 }
 
-// HTTPClient expose the http client
+// HTTPClient returns the underlying HTTP client.
+//
+// The returned client is the same instance that is used by the TwitterXClient
+// to make requests to the Twitter API. It can be used to customize the client
+// or to make requests that are not supported by the TwitterXClient.
 func (c *TwitterXClient) HTTPClient() *http.Client {
 	return c.httpClient
 }
 
-// Do execute the GET or POST request
+// Do sends an HTTP request and returns an HTTP response.
+//
+// Do is a wrapper around the underlying HTTP client's Do method. It can be used
+// to make custom requests to the Twitter API that are not supported by the
+// TwitterXClient.
+//
+// The returned response is the same as the one returned by the underlying HTTP
+// client's Do method.
 func (c *TwitterXClient) Do(req *http.Request) (*http.Response, error) {
 	return c.httpClient.Do(req)
 }
 
+// Get sends a GET request to the Twitter API with the given endpoint URL.
+//
+// The given endpoint URL is appended to the base URL of the Twitter API and
+// the request is made with the provided API key.
+//
+// The response is the same as the one returned by the underlying HTTP client's
+// Do method.
+//
+// If the request is successful, the HTTP response is returned. If there is an
+// error making the request, an error is returned with a descriptive error
+// message.
 func (c *TwitterXClient) Get(endpointUrl string) (*http.Response, error) {
 	url := fmt.Sprintf("%s/%s", c.baseUrl, endpointUrl)
 	logrus.Info("GET request to: ", url)
@@ -80,7 +102,19 @@ func (c *TwitterXClient) Get(endpointUrl string) (*http.Response, error) {
 	return resp, nil
 }
 
-// TestAuth tests if the API key is valid by making a request to /2/users/me
+// testAuth tests the authentication of the TwitterXClient by making a GET request to the users/me endpoint.
+//
+// testAuth returns nil if the authentication is successful, or an error if the authentication fails.
+//
+// The error returned by testAuth contains a descriptive error message and the HTTP status code.
+// The error message may contain information returned by the Twitter API.
+//
+// The possible error messages returned by testAuth are:
+//
+// - "API error: <message> (code: <code>)": The Twitter API returned an error.
+// - "invalid API key": The API key is invalid.
+// - "rate limit exceeded": The rate limit for the API has been exceeded.
+// - "API auth test failed with status: <status code>": The authentication test failed with an unexpected HTTP status code.
 func (c *TwitterXClient) testAuth() error {
 	// Create request
 	req, err := http.NewRequest("GET", baseURL+"/users/me", nil)

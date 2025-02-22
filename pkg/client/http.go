@@ -25,7 +25,11 @@ func NewClient(baseURL string) *Client {
 	}
 }
 
-// SubmitJob submits a new job to the server and returns the job result.
+// CreateJobSignature generates a signature for a job.
+//
+// The function marshals the job, sends a POST request to /job/generate, and
+// returns the response body as a JobSignature. If the request fails or the
+// response is not a 200, an error is returned.
 func (c *Client) CreateJobSignature(job types.Job) (JobSignature, error) {
 	jobJSON, err := json.Marshal(job)
 	if err != nil {
@@ -51,6 +55,16 @@ func (c *Client) CreateJobSignature(job types.Job) (JobSignature, error) {
 }
 
 // SubmitJob submits a new job to the server and returns the job result.
+//
+// The JobSignature is marshaled into a JSON payload and sent to the server via
+// a POST request to the "/job/add" endpoint. The response is expected to be a
+// JSON payload containing a JobResponse with the UUID of the added job. If the
+// request fails, an error is returned with a descriptive error message.
+//
+// The function will retry up to 60 times with a 1 second delay between retries
+// if the job result is not available yet. If the job result is available, the
+// function returns a JobResult with the UUID of the job and the client instance.
+// If the job result is not available after 60 retries, an error is returned.
 func (c *Client) SubmitJob(JobSignature JobSignature) (*JobResult, error) {
 	jr := types.JobRequest{EncryptedJob: string(JobSignature)}
 
@@ -83,7 +97,14 @@ func (c *Client) SubmitJob(JobSignature JobSignature) (*JobResult, error) {
 	return &JobResult{UUID: jobResp.UID, client: c, maxRetries: 60, delay: 1 * time.Second}, nil
 }
 
-// Decrypt sends the encrypted result to the server to decrypt it.
+// Decrypt decrypts a job result given a JobSignature and the encrypted result.
+//
+// Decrypt sends a POST request to /job/result with a JSON body containing the
+// encrypted result and the encrypted job request. If the request is successful,
+// the decrypted result is returned. If the request fails, an error is returned.
+//
+// The function retries the request up to 60 times with a delay of 1 second
+// between each retry if the server returns a status code other than 200.
 func (c *Client) Decrypt(JobSignature JobSignature, encryptedResult string) (string, error) {
 	decryptReq := types.EncryptedRequest{
 		EncryptedResult:  encryptedResult,
@@ -113,7 +134,11 @@ func (c *Client) Decrypt(JobSignature JobSignature, encryptedResult string) (str
 	return string(body), nil
 }
 
-// GetJobResult retrieves the encrypted result of a job.
+// GetResult gets the result of a job. If the job has not finished, an empty
+// string is returned with a success status of false. If the job does not exist,
+// an error is returned with a status code of 404. If there is an error with the
+// job, an error is returned with a status code of 500. If the job has finished,
+// the result is returned with a success status of true.
 func (c *Client) GetResult(jobUUID string) (string, bool, error) {
 	resp, err := c.HTTPClient.Get(c.BaseURL + "/job/status/" + jobUUID)
 	if err != nil {

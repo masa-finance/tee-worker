@@ -110,13 +110,44 @@ type SearchParams struct {
 	TweetFields []string // Additional tweet fields to include
 }
 
+// NewTwitterXScraper creates a new TwitterXScraper with the given TwitterXClient.
+//
+// A TwitterXScraper is used to scrape tweets from Twitter using the Twitter API v2.
+// The TwitterXClient is used to make requests to the API.
+//
+// After creating a TwitterXScraper, you can use its methods to scrape tweets.
+// For example, you can use ScrapeTweetsByQuery to scrape tweets by query.
 func NewTwitterXScraper(client *client.TwitterXClient) *TwitterXScraper {
 	return &TwitterXScraper{
 		twitterXClient: client,
 	}
 }
 
-// ScrapeTweetsByQuery Alternative version using url.Values for more parameters
+// ScrapeTweetsByQuery scrapes tweets by query using the Twitter API v2.
+//
+// ScrapeTweetsByQuery makes a GET request to the Twitter API v2's "tweets/search/recent" endpoint.
+// It uses the provided query parameter to construct the request URL.
+// The query parameter is added to the URL without encoding or escaping.
+// This preserves Twitter search operators and special characters.
+//
+// ScrapeTweetsByQuery returns a pointer to a TwitterXSearchQueryResult, which contains the results of the search.
+// The TwitterXSearchQueryResult contains a Meta field with information about the search results.
+// The Meta field has the following fields:
+// - NewestID: The newest tweet ID in the results
+// - NextToken: The next token to get the next page of results
+// - OldestID: The oldest tweet ID in the results
+// - ResultCount: The number of results returned
+//
+// If there is an error making the request or processing the response, ScrapeTweetsByQuery returns an error.
+//
+// Example:
+//
+//	scraper := NewTwitterXScraper(client)
+//	result, err := scraper.ScrapeTweetsByQuery("from:twitterdev")
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
+//	log.Printf("newest_id: %s, oldest_id: %s, result_count: %d", result.Meta.NewestID, result.Meta.OldestID, result.Meta.ResultCount)
 func (s *TwitterXScraper) ScrapeTweetsByQuery(query string) (*TwitterXSearchQueryResult, error) {
 	// initialize the client
 	client := s.twitterXClient
@@ -172,7 +203,22 @@ func (s *TwitterXScraper) ScrapeTweetsByQuery(query string) (*TwitterXSearchQuer
 	return &result, nil
 }
 
-// ScrapeTweetsByQueryExtended Example extended version that supports pagination and additional parameters
+// ScrapeTweetsByQueryExtended scrapes tweets by query using the Twitter API v2.
+//
+// ScrapeTweetsByQueryExtended makes a GET request to the Twitter API v2's "tweets/search/recent" endpoint.
+// It uses the provided SearchParams to construct the request URL.
+// The query parameter is added to the URL without encoding or escaping.
+// This preserves Twitter search operators and special characters.
+//
+// ScrapeTweetsByQueryExtended returns a pointer to a TwitterXSearchQueryResult, which contains the results of the search.
+// The TwitterXSearchQueryResult contains a Meta field with information about the search results.
+// The Meta field has the following fields:
+// - NewestID: The newest tweet ID in the results
+// - NextToken: The next token to get the next page of results
+// - OldestID: The oldest tweet ID in the results
+// - ResultCount: The number of results returned
+//
+// If there is an error making the request or processing the response, ScrapeTweetsByQueryExtended returns an error.
 func (s *TwitterXScraper) ScrapeTweetsByQueryExtended(params SearchParams) (*TwitterXSearchQueryResult, error) {
 	// initialize the client
 	client := s.twitterXClient
