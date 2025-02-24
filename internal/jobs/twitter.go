@@ -19,7 +19,7 @@ import (
 )
 
 type TweetResult struct {
-	ID             int64
+	ID             int64 `json:"id"`
 	TweetID        string
 	ConversationID string
 	UserID         string
@@ -95,13 +95,17 @@ func (ts *TwitterScraper) convertTwitterScraperTweetToTweetResult(tweet twitters
 		id = 0 // set to 0 if conversion fails
 	}
 
+	// int64 timestamp to time.Time
+	createdAt := time.Unix(tweet.Timestamp, 0).UTC()
+
+	logrus.Info("Tweet ID: ", id)
 	return TweetResult{
 		ID:             id,
 		TweetID:        tweet.ID,
 		ConversationID: tweet.ConversationID,
 		UserID:         tweet.UserID,
 		Text:           tweet.Text,
-		CreatedAt:      time.Time{},
+		CreatedAt:      createdAt,
 		Timestamp:      tweet.Timestamp,
 		IsQuoted:       tweet.IsQuoted,
 		IsPin:          tweet.IsPin,
