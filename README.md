@@ -13,6 +13,11 @@ Want to help in development? check the [DEVELOPMENT.md](DEVELOPMENT.md) file.
 To run the tee-worker, use docker with our images. Our images have signed binaries which are allowed to be part of the network:
 
 ```bash
+mkdir .masa
+cp -rf .env.example .masa/.env
+# Edit .masa/.env with your settings
+
+# Run the worker
 docker run --device /dev/sgx_enclave --device /dev/sgx_provision --net host --rm -v $(PWD)/.masa:/home/masa -ti masaengineering/tee-worker:main
 ```
 
