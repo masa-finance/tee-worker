@@ -14,7 +14,7 @@ To run the tee-worker, use docker with our images. Our images have signed binari
 
 ```bash
 mkdir .masa
-cp -rf .env.example .masa/.env
+wget https://raw.githubusercontent.com/masa-finance/tee-worker/refs/heads/main/.env.example -O .masa/.env
 # Edit .masa/.env with your settings
 
 # Run the worker
