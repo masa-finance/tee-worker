@@ -111,71 +111,72 @@ func NewTwitterXScraper(client *client.TwitterXClient) *TwitterXScraper {
 	}
 }
 
-// ScrapeTweetsByQuery Alternative version using url.Values for more parameters
 func (s *TwitterXScraper) ScrapeTweetsByQuery(query string, count int) (*TwitterXSearchQueryResult, error) {
-	// initialize the client
+	// Initialize the client
 	client := s.twitterXClient
 
-	// construct the base URL
+	// Construct the base URL
 	baseURL := TweetsSearchRecent
 
-	// create url.Values to properly handle query parameters
+	// Create url.Values to handle all query parameters
 	params := url.Values{}
 
-	// Add the raw query - url.Values.Add() will handle the encoding
-	// This preserves Twitter search operators and special characters
+	// Check if query has special characters and add quotes if needed
+	if s.containsSpecialChars(query) && !strings.HasPrefix(query, "\"") && !strings.HasSuffix(query, "\"") {
+		// Add quotes around the query
+		query = fmt.Sprintf("\"%s\"", query)
+		logrus.Debugf("Added quotes to query with special characters: %s", query)
+	}
+
+	// Add the query parameter (will be properly encoded)
 	params.Add("query", query)
 
-	// construct the final URL with encoded parameters
-	endpoint := baseURL + "?" + params.Encode()
-
-	// max_results
-	//if count = 0, just return the first 10 results.query parameter value [2] is not between 10 and 100
-	fmt.Println("count", count)
+	// Handle count parameter with validation
 	if count == 0 {
 		count = 10
 	}
-
 	if count < 10 || count > 100 {
 		logrus.Error("Invalid count value. Must be between 10 and 100")
 		return nil, fmt.Errorf("invalid count value. Must be between 10 and 100")
 	}
+	params.Add("max_results", strconv.Itoa(count))
 
-	endpoint = endpoint + "&max_results=" + strconv.Itoa(count)
+	// Add tweet fields
+	params.Add("tweet.fields", "created_at,author_id,public_metrics,context_annotations,geo,lang,possibly_sensitive,source,withheld,attachments,entities,conversation_id,in_reply_to_user_id,referenced_tweets,reply_settings,media_metadata,note_tweet,display_text_range,edit_controls,edit_history_tweet_ids,article,card_uri,community_id")
 
-	// include all possible fields - but note that the twitter api does not return all fields.
-	// TODO: check the response and adjust the fields as needed
-	endpoint = endpoint + "&tweet.fields=created_at,author_id,public_metrics,context_annotations,geo,lang,possibly_sensitive,source,withheld,attachments,entities,conversation_id,in_reply_to_user_id,referenced_tweets,reply_settings,media_metadata,note_tweet,display_text_range,edit_controls,edit_history_tweet_ids,article,card_uri,community_id"
-	endpoint = endpoint + "&user.fields=username,affiliation,connection_status,description,entities,id,is_identity_verified,location,most_recent_tweet_id,name,parody,pinned_tweet_id,profile_banner_url,profile_image_url,protected,public_metrics,receives_your_dm,subscription,subscription_type,url,verified,verified_followers_count,verified_type,withheld"
-	endpoint = endpoint + "&place.fields=contained_within,country,country_code,full_name,geo,id,name,place_type"
+	// Add user fields
+	params.Add("user.fields", "username,affiliation,connection_status,description,entities,id,is_identity_verified,location,most_recent_tweet_id,name,parody,pinned_tweet_id,profile_banner_url,profile_image_url,protected,public_metrics,receives_your_dm,subscription,subscription_type,url,verified,verified_followers_count,verified_type,withheld")
 
-	// sample
-	//https://api.x.com/2/tweets/search/recent?query=Learn+how+to+use+the+user+Tweet+timeline&tweet.fields=created_at,author_id,public_metrics,context_annotations,geo,lang,possibly_sensitive,source,withheld,attachments,entities,conversation_id,in_reply_to_user_id,referenced_tweets,reply_settings,media_metadata,note_tweet,display_text_range,edit_controls,edit_history_tweet_ids,article,card_uri,community_id&user.fields=username,affiliation,connection_status,created_at,description,entities,id,is_identity_verified,location,most_recent_tweet_id,name,parody,pinned_tweet_id,profile_banner_url,profile_image_url,protected,public_metrics,receives_your_dm,subscription,subscription_type,url,verified,verified_followers_count,verified_type,withheld&place.fields=contained_within,country,country_code,full_name,geo,id,name,place_type
+	// Add place fields
+	params.Add("place.fields", "contained_within,country,country_code,full_name,geo,id,name,place_type")
 
-	// run the search
+	// Construct the final URL with all encoded parameters
+	endpoint := baseURL + "?" + params.Encode()
+
+	logrus.Debugf("Making request to endpoint: %s", endpoint)
+
+	// Run the search
 	response, err := client.Get(endpoint)
 	if err != nil {
 		logrus.Error("failed to execute search query: %w", err)
 		return nil, fmt.Errorf("failed to execute search query: %w", err)
 	}
-
 	defer response.Body.Close()
 
-	// read the response body
-	var body []byte
-	body, err = io.ReadAll(response.Body)
+	// Read the response body
+	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		logrus.Error("failed to read response body: %w", err)
 		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	// check response status
+	// Check response status
 	if response.StatusCode != http.StatusOK {
-		logrus.Errorf("unexpected status code %d", response.StatusCode)
-		return nil, fmt.Errorf("unexpected status code %d", response.StatusCode)
+		logrus.Errorf("unexpected status code %d: %s", response.StatusCode, string(body))
+		return nil, fmt.Errorf("unexpected status code %d: %s", response.StatusCode, string(body))
 	}
 
-	// unmarshal the response
+	// Unmarshal the response
 	var result TwitterXSearchQueryResult
 	if err := json.Unmarshal(body, &result); err != nil {
 		logrus.WithError(err).Error("failed to unmarshal response")
@@ -189,6 +190,28 @@ func (s *TwitterXScraper) ScrapeTweetsByQuery(query string, count int) (*Twitter
 	}).Info("Successfully scraped tweets by query")
 
 	return &result, nil
+}
+
+// Helper function to check if a string contains special characters
+func (s *TwitterXScraper) containsSpecialChars(str string) bool {
+	specialChars := []string{
+		"$", "@", "#", "!", "%", "^", "&", "*", "(", ")", "+", "=",
+		"{", "}", "[", "]", ":", ";", "'", "\"", "\\", "|", "<", ">",
+		",", ".", "?", "/", "~", "`",
+	}
+
+	for _, char := range specialChars {
+		if strings.Contains(str, char) {
+			return true
+		}
+	}
+
+	// Also check for spaces which may indicate multiple words
+	if strings.Contains(str, " ") {
+		return true
+	}
+
+	return false
 }
 
 // ScrapeTweetsByQueryExtended Example extended version that supports pagination and additional parameters
