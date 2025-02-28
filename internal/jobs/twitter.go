@@ -225,6 +225,14 @@ func filterMap[T any, R any](slice []T, f func(T) (R, bool)) []R {
 	return result
 }
 
+// ScrapeFollowersForProfile scrapes the followers of a given Twitter profile.
+//
+// It takes a base directory, a username and a count as parameters, and returns
+// a slice of pointers to twitterscraper.Profile and an error. It increments the
+// TwitterScrapes and TwitterProfiles stats counters.
+//
+// If the scraper fails, it calls handleError with the error and the account,
+// and returns the error.
 func (ts *TwitterScraper) ScrapeFollowersForProfile(baseDir string, username string, count int) ([]*twitterscraper.Profile, error) {
 	scraper, account, _, err := ts.getAuthenticatedScraper(baseDir)
 	if err != nil {
@@ -247,6 +255,14 @@ func (ts *TwitterScraper) ScrapeFollowersForProfile(baseDir string, username str
 	return followingResponse, nil
 }
 
+// ScrapeTweetsProfile retrieves a Twitter profile by username.
+//
+// It takes a base directory and a username as parameters, and returns a
+// twitterscraper.Profile and an error. It increments the TwitterScrapes and
+// TwitterProfiles stats counters.
+//
+// If the scraper fails, it calls handleError with the error and the account,
+// and returns the error.
 func (ts *TwitterScraper) ScrapeTweetsProfile(baseDir string, username string) (twitterscraper.Profile, error) {
 	scraper, account, _, err := ts.getAuthenticatedScraper(baseDir)
 	if err != nil {
@@ -264,7 +280,32 @@ func (ts *TwitterScraper) ScrapeTweetsProfile(baseDir string, username string) (
 	return profile, nil
 }
 
-func (ts *TwitterScraper) ScrapeTweetsByQuery(baseDir string, query string, count int) ([]*TweetResult, error) {
+// ScrapeTweetsByFullArchiveSearchQuery scrapes tweets by a full archive search query.
+//
+// It takes a base directory, a query string and a count as parameters, and returns
+// a slice of pointer to TweetResult.
+func (ts *TwitterScraper) ScrapeTweetsByFullArchiveSearchQuery(baseDir string, query string, count int) ([]*TweetResult, error) {
+	return ts.scrapeTweetsByQuery(twitterx.TweetsAll, baseDir, query, count)
+}
+
+// ScrapeTweetsByRecentSearchQuery scrapes tweets by a search query using the TwitterX API.
+//
+// It takes a base directory, a query string and a count as parameters, and returns
+// a slice of pointer to TweetResult.
+func (ts *TwitterScraper) ScrapeTweetsByRecentSearchQuery(baseDir string, query string, count int) ([]*TweetResult, error) {
+	return ts.scrapeTweetsByQuery(twitterx.TweetsSearchRecent, baseDir, query, count)
+}
+
+// scrapeTweetsByQuery scrapes tweets by a search query using the TwitterX API
+// if a TwitterX API key is available. Otherwise, it uses the default scraper.
+//
+// It takes a base query endpoint, a base directory, a query string and a count
+// as parameters, and returns a slice of pointers to TweetResult and an error.
+// It increments the TwitterScrapes and TwitterTweets stats counters.
+//
+// If the scraper fails, it calls handleError with the error and the account,
+// and returns the error.
+func (ts *TwitterScraper) scrapeTweetsByQuery(baseQueryEndpoint string, baseDir string, query string, count int) ([]*TweetResult, error) {
 	scraper, account, apiKey, err := ts.getAuthenticatedScraper(baseDir)
 	if err != nil {
 		return nil, err
@@ -278,9 +319,24 @@ func (ts *TwitterScraper) ScrapeTweetsByQuery(baseDir string, query string, coun
 
 		client := client.NewTwitterXClient(apiKey.Key)
 		twitterXScraper := twitterx.NewTwitterXScraper(client)
-		result, err := twitterXScraper.ScrapeTweetsByQuery(query, count)
-		if err != nil {
-			return nil, err
+
+		// Scrape tweets using the TwitterX API
+		var result *twitterx.TwitterXSearchQueryResult
+		switch baseQueryEndpoint {
+		case twitterx.TweetsAll:
+			result, err = twitterXScraper.ScrapeTweetsByFullTextSearchQuery(query, count)
+			if err != nil {
+				return nil, err
+			}
+		case twitterx.TweetsSearchRecent:
+			result, err = twitterXScraper.ScrapeTweetsByQuery(query, count)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		if result == nil {
+			return nil, fmt.Errorf("no tweets found")
 		}
 
 		for _, tweet := range result.Data {
@@ -927,11 +983,20 @@ func (ws *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 
 	switch strings.ToLower(args.SearchType) {
 	case "searchbyquery":
-		tweets, err := ws.ScrapeTweetsByQuery(ws.configuration.DataDir, args.Query, args.Count)
+		tweets, err := ws.ScrapeTweetsByRecentSearchQuery(ws.configuration.DataDir, args.Query, args.Count)
 		if err != nil {
 			return types.JobResult{Error: err.Error()}, err
 		}
-		fmt.Println("Tweets: ", len(tweets))
+		dat, err := json.Marshal(tweets)
+		return types.JobResult{
+			Data: dat,
+		}, err
+
+	case "searchbyfullarchive":
+		tweets, err := ws.ScrapeTweetsByFullArchiveSearchQuery(ws.configuration.DataDir, args.Query, args.Count)
+		if err != nil {
+			return types.JobResult{Error: err.Error()}, err
+		}
 		dat, err := json.Marshal(tweets)
 		return types.JobResult{
 			Data: dat,

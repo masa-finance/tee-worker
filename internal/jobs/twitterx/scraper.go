@@ -15,6 +15,7 @@ import (
 
 const (
 	TweetsSearchRecent = "tweets/search/recent"
+	TweetsAll          = "tweets/search/all"
 )
 
 type TwitterXScraper struct {
@@ -111,12 +112,19 @@ func NewTwitterXScraper(client *client.TwitterXClient) *TwitterXScraper {
 	}
 }
 
+func (s *TwitterXScraper) ScrapeTweetsByFullTextSearchQuery(query string, count int) (*TwitterXSearchQueryResult, error) {
+	return s.scrapeTweetsByQuery(TweetsAll, query, count)
+}
+
 func (s *TwitterXScraper) ScrapeTweetsByQuery(query string, count int) (*TwitterXSearchQueryResult, error) {
+	return s.scrapeTweetsByQuery(TweetsSearchRecent, query, count)
+}
+func (s *TwitterXScraper) scrapeTweetsByQuery(baseQueryEndpoint string, query string, count int) (*TwitterXSearchQueryResult, error) {
 	// Initialize the client
 	client := s.twitterXClient
 
 	// Construct the base URL
-	baseURL := TweetsSearchRecent
+	baseURL := baseQueryEndpoint
 
 	// Create url.Values to handle all query parameters
 	params := url.Values{}
@@ -134,10 +142,6 @@ func (s *TwitterXScraper) ScrapeTweetsByQuery(query string, count int) (*Twitter
 	// Handle count parameter with validation
 	if count == 0 {
 		count = 10
-	}
-	if count < 10 || count > 100 {
-		logrus.Error("Invalid count value. Must be between 10 and 100")
-		return nil, fmt.Errorf("invalid count value. Must be between 10 and 100")
 	}
 	params.Add("max_results", strconv.Itoa(count))
 
