@@ -122,6 +122,13 @@ func (s *TwitterXScraper) ScrapeTweetsByQuery(query string, count int) (*Twitter
 	// Create url.Values to handle all query parameters
 	params := url.Values{}
 
+	// Check if query has special characters and add quotes if needed
+	if containsSpecialChars(query) && !strings.HasPrefix(query, "\"") && !strings.HasSuffix(query, "\"") {
+		// Add quotes around the query
+		query = fmt.Sprintf("\"%s\"", query)
+		logrus.Debugf("Added quotes to query with special characters: %s", query)
+	}
+
 	// Add the query parameter (will be properly encoded)
 	params.Add("query", query)
 
@@ -147,6 +154,8 @@ func (s *TwitterXScraper) ScrapeTweetsByQuery(query string, count int) (*Twitter
 	// Construct the final URL with all encoded parameters
 	endpoint := baseURL + "?" + params.Encode()
 
+	logrus.Debugf("Making request to endpoint: %s", endpoint)
+
 	// Run the search
 	response, err := client.Get(endpoint)
 	if err != nil {
@@ -165,7 +174,7 @@ func (s *TwitterXScraper) ScrapeTweetsByQuery(query string, count int) (*Twitter
 	// Check response status
 	if response.StatusCode != http.StatusOK {
 		logrus.Errorf("unexpected status code %d: %s", response.StatusCode, string(body))
-		return nil, fmt.Errorf("unexpected status code %d", response.StatusCode)
+		return nil, fmt.Errorf("unexpected status code %d: %s", response.StatusCode, string(body))
 	}
 
 	// Unmarshal the response
@@ -182,6 +191,28 @@ func (s *TwitterXScraper) ScrapeTweetsByQuery(query string, count int) (*Twitter
 	}).Info("Successfully scraped tweets by query")
 
 	return &result, nil
+}
+
+// Helper function to check if a string contains special characters
+func containsSpecialChars(s string) bool {
+	specialChars := []string{
+		"$", "@", "#", "!", "%", "^", "&", "*", "(", ")", "+", "=",
+		"{", "}", "[", "]", ":", ";", "'", "\"", "\\", "|", "<", ">",
+		",", ".", "?", "/", "~", "`",
+	}
+
+	for _, char := range specialChars {
+		if strings.Contains(s, char) {
+			return true
+		}
+	}
+
+	// Also check for spaces which may indicate multiple words
+	if strings.Contains(s, " ") {
+		return true
+	}
+
+	return false
 }
 
 // ScrapeTweetsByQueryExtended Example extended version that supports pagination and additional parameters
