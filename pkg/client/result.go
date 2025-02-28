@@ -33,6 +33,8 @@ func (jr *JobResult) Get() (result string, err error) {
 	var resultIsAvailable bool
 
 	for {
+		fmt.Println("Retries: ", retries)
+		fmt.Println("Error: ", err)
 		if retries >= jr.maxRetries {
 			return "", fmt.Errorf("max retries reached: %w", err)
 		}
