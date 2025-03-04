@@ -980,7 +980,7 @@ func NewTwitterScraper(jc types.JobConfiguration, c *stats.StatsCollector) *Twit
 func (ws *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 	args := &TwitterScraperArgs{}
 	j.Arguments.Unmarshal(args)
-
+	fmt.Println("args: ", args)
 	switch strings.ToLower(args.SearchType) {
 	case "searchbyquery":
 		tweets, err := ws.ScrapeTweetsByRecentSearchQuery(ws.configuration.DataDir, args.Query, args.Count)

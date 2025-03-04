@@ -113,10 +113,28 @@ func NewTwitterXScraper(client *client.TwitterXClient) *TwitterXScraper {
 }
 
 func (s *TwitterXScraper) ScrapeTweetsByFullTextSearchQuery(query string, count int) (*TwitterXSearchQueryResult, error) {
+
+	if count == 0 {
+		count = 10
+	}
+
+	if count > 500 {
+		count = 499
+	}
+
 	return s.scrapeTweetsByQuery(TweetsAll, query, count)
 }
 
 func (s *TwitterXScraper) ScrapeTweetsByQuery(query string, count int) (*TwitterXSearchQueryResult, error) {
+
+	if count == 0 {
+		count = 10
+	}
+
+	if count > 100 {
+		count = 99
+	}
+
 	return s.scrapeTweetsByQuery(TweetsSearchRecent, query, count)
 }
 func (s *TwitterXScraper) scrapeTweetsByQuery(baseQueryEndpoint string, query string, count int) (*TwitterXSearchQueryResult, error) {
@@ -143,6 +161,7 @@ func (s *TwitterXScraper) scrapeTweetsByQuery(baseQueryEndpoint string, query st
 	if count == 0 {
 		count = 10
 	}
+
 	params.Add("max_results", strconv.Itoa(count))
 
 	// Add tweet fields
