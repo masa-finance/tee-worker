@@ -903,6 +903,7 @@ type TwitterScraperArgs struct {
 	SearchType string `json:"type"`
 	Query      string `json:"query"`
 	Count      int    `json:"count"`
+	MaxResults int    `json:"max_results"`
 	NextCursor string `json:"next_cursor"`
 }
 
