@@ -903,6 +903,7 @@ type TwitterScraperArgs struct {
 	SearchType string `json:"type"`
 	Query      string `json:"query"`
 	Count      int    `json:"count"`
+	MaxResults int    `json:"max_results"`
 	NextCursor string `json:"next_cursor"`
 }
 
@@ -927,7 +928,7 @@ func (ws *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 
 	switch strings.ToLower(args.SearchType) {
 	case "searchbyquery":
-		tweets, err := ws.ScrapeTweetsByQuery(ws.configuration.DataDir, args.Query, args.Count)
+		tweets, err := ws.ScrapeTweetsByQuery(ws.configuration.DataDir, args.Query, args.MaxResults)
 		if err != nil {
 			return types.JobResult{Error: err.Error()}, err
 		}
