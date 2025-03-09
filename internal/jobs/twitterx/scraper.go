@@ -135,10 +135,15 @@ func (s *TwitterXScraper) ScrapeTweetsByQuery(query string, count int) (*Twitter
 	if count == 0 {
 		count = 10
 	}
-	if count < 10 || count > 100 {
-		logrus.Error("Invalid count value. Must be between 10 and 100")
-		return nil, fmt.Errorf("invalid count value. Must be between 10 and 100")
+	if count < 10 { // Minimum count is 10
+		logrus.Debugf("Count is less than 10, setting it to 10")
+		count = 10
 	}
+	if count > 100 {
+		logrus.Debugf("Count is greater than 100, setting it to 99")
+		count = 99
+	}
+
 	params.Add("max_results", strconv.Itoa(count))
 
 	// Add tweet fields
