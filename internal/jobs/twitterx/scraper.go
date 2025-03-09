@@ -157,10 +157,6 @@ func (s *TwitterXScraper) scrapeTweetsByQuery(baseQueryEndpoint string, query st
 	// Add the query parameter (will be properly encoded)
 	params.Add("query", query)
 
-	// Handle count parameter with validation
-	if count == 0 {
-		count = 10
-	}
 
 	params.Add("max_results", strconv.Itoa(count))
 

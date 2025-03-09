@@ -959,6 +959,7 @@ type TwitterScraperArgs struct {
 	SearchType string `json:"type"`
 	Query      string `json:"query"`
 	Count      int    `json:"count"`
+	MaxResults int    `json:"max_results"`
 	NextCursor string `json:"next_cursor"`
 }
 
@@ -980,10 +981,9 @@ func NewTwitterScraper(jc types.JobConfiguration, c *stats.StatsCollector) *Twit
 func (ws *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 	args := &TwitterScraperArgs{}
 	j.Arguments.Unmarshal(args)
-	fmt.Println("args: ", args)
 	switch strings.ToLower(args.SearchType) {
 	case "searchbyquery":
-		tweets, err := ws.ScrapeTweetsByRecentSearchQuery(ws.configuration.DataDir, args.Query, args.Count)
+		tweets, err := ws.ScrapeTweetsByRecentSearchQuery(ws.configuration.DataDir, args.Query, args.MaxResults)
 		if err != nil {
 			return types.JobResult{Error: err.Error()}, err
 		}
@@ -993,7 +993,7 @@ func (ws *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 		}, err
 
 	case "searchbyfullarchive":
-		tweets, err := ws.ScrapeTweetsByFullArchiveSearchQuery(ws.configuration.DataDir, args.Query, args.Count)
+		tweets, err := ws.ScrapeTweetsByFullArchiveSearchQuery(ws.configuration.DataDir, args.Query, args.MaxResults)
 		if err != nil {
 			return types.JobResult{Error: err.Error()}, err
 		}
