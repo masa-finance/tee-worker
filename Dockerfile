@@ -23,6 +23,15 @@ RUN make bundle
 
 # Use the official Ubuntu 22.04 image as a base for the final image
 FROM ${baseimage} AS base
+ARG pccs_server=https://pccs.dev.masalabs.ai/
+
+# Install Intel SGX DCAP driver
+RUN mkdir -p /etc/apt/keyrings && \
+    wget -qO- https://download.01.org/intel-sgx/sgx_repo/ubuntu/intel-sgx-deb.key | tee /etc/apt/keyrings/intel-sgx-keyring.asc > /dev/null && \
+    /bin/bash -c 'echo "deb [signed-by=/etc/apt/keyrings/intel-sgx-keyring.asc arch=amd64] https://download.01.org/intel-sgx/sgx_repo/ubuntu $(lsb_release -cs) main' | tee /etc/apt/sources.list.d/intel-sgx.list && \
+    apt-get update && \
+    apt-get install -y libsgx-dcap-default-qpl
+RUN sed -i 's#"pccs_url": *"[^"]*"#"pccs_url": "'${pccs_server}'"#' /etc/sgx_default_qcnl.conf
 
 COPY --from=builder /app/bin/masa-tee-worker /usr/bin/masa-tee-worker
 
