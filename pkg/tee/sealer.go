@@ -5,15 +5,11 @@ package tee
 This is a wrapper package just to ease out adding logics that
 should apply to all callers of the sealer.
 
-XXX: Currently it is equivalent as calling the library directly,
-and provides just syntax sugar.
-
 */
 
 import (
 	"encoding/base64"
-
-	"github.com/edgelesssys/ego/ecrypto"
+	"fmt"
 )
 
 // Seal uses the TEE Product Key to encrypt the plaintext
@@ -32,13 +28,13 @@ func SealWithKey(key string, plaintext []byte) (string, error) {
 		additionalKey = []byte(key)
 	}
 
-	res, err := ecrypto.SealWithProductKey(plaintext, additionalKey)
-	if err != nil {
-		return "", err
+	if SealingKey == "" {
+		return "", fmt.Errorf("sealing key not set")
 	}
 
-	b64 := base64.StdEncoding.EncodeToString(res)
-	return b64, nil
+	res, err := EncryptAES(string(plaintext), fmt.Sprintf("%s-%s", SealingKey, additionalKey))
+	b64 := base64.StdEncoding.EncodeToString([]byte(res))
+	return b64, err
 }
 
 func UnsealWithKey(key string, encryptedText string) ([]byte, error) {
@@ -52,5 +48,7 @@ func UnsealWithKey(key string, encryptedText string) ([]byte, error) {
 		return nil, err
 	}
 
-	return ecrypto.Unseal(b64, additionalKey)
+	res, err := DecryptAES(string(b64), fmt.Sprintf("%s-%s", SealingKey, additionalKey))
+
+	return []byte(res), err
 }

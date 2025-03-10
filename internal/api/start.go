@@ -2,14 +2,28 @@ package api
 
 import (
 	"context"
+	"fmt"
+	"net/http"
 
+	"github.com/edgelesssys/ego/enclave"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/masa-finance/tee-worker/api/types"
 	"github.com/masa-finance/tee-worker/internal/jobserver"
+	"github.com/masa-finance/tee-worker/pkg/tee"
 )
 
-func Start(ctx context.Context, listenAddress string, config types.JobConfiguration) {
+func Start(ctx context.Context, listenAddress, dataDIR string, config types.JobConfiguration) {
+
+	// Create a TLS config with a self-signed certificate and an embedded report.
+	tlsCfg, err := enclave.CreateAttestationServerTLSConfig()
+	if err != nil {
+		fmt.Println("Failed to create TLS config: ", err)
+		panic(err)
+	}
+
+	// TODO: implement
+
 	// Echo instance
 	e := echo.New()
 
@@ -21,6 +35,12 @@ func Start(ctx context.Context, listenAddress string, config types.JobConfigurat
 	// Middleware
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
+
+	// Load already existing key
+	tee.LoadKey(dataDIR)
+
+	// TODO: This should go under TLSConfig for RA
+	e.POST("/setkey", setKey(dataDIR))
 
 	// Routes
 	/*
@@ -40,6 +60,13 @@ func Start(ctx context.Context, listenAddress string, config types.JobConfigurat
 		e.Close()
 	}()
 
-	// Start server
-	e.Logger.Error(e.Start(listenAddress))
+	s := http.Server{
+		Addr:      listenAddress,
+		Handler:   e, // set Echo as handler
+		TLSConfig: tlsCfg,
+		//ReadTimeout: 30 * time.Second, // use custom timeouts
+	}
+	if err := s.ListenAndServeTLS("", ""); err != http.ErrServerClosed {
+		e.Logger.Fatal(err)
+	}
 }

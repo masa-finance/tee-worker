@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/masa-finance/tee-worker/pkg/tee"
 	"golang.org/x/exp/rand"

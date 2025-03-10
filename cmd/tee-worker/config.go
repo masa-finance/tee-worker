@@ -12,12 +12,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+var dataDir = os.Getenv("DATA_DIR")
+
 func readConfig() types.JobConfiguration {
 	// The jobs will then unmarshal from this configuration to the specific configuration
 	// that is needed for the job
 	jc := types.JobConfiguration{}
 
-	dataDir := os.Getenv("DATA_DIR")
 	if dataDir == "" {
 		dataDir = "/home/masa"
 		os.Setenv("DATA_DIR", dataDir)
