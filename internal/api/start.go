@@ -14,12 +14,6 @@ import (
 )
 
 func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, config types.JobConfiguration) {
-	// Create a TLS config with a self-signed certificate and an embedded report.
-	tlsCfg, err := enclave.CreateAttestationServerTLSConfig()
-	if err != nil {
-		fmt.Println("Failed to create TLS config: ", err)
-		panic(err)
-	}
 
 	// TODO: implement
 
@@ -61,6 +55,13 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 		e.Logger.Fatal(e.Start(listenAddress))
 	} else {
 		e.POST("/setkey", setKey(dataDIR))
+
+		// Create a TLS config with a self-signed certificate and an embedded report.
+		tlsCfg, err := enclave.CreateAttestationServerTLSConfig()
+		if err != nil {
+			fmt.Println("Failed to create TLS config: ", err)
+			panic(err)
+		}
 
 		e.Logger.Info(fmt.Sprintf("Starting server on %s", listenAddress))
 		s := http.Server{
