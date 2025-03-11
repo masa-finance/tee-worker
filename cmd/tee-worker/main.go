@@ -10,5 +10,7 @@ func main() {
 	jc := readConfig()
 	listenAddress := listenAddress()
 
-	api.Start(context.Background(), listenAddress, dataDir, standalone, jc)
+	if err := api.Start(context.Background(), listenAddress, dataDir, standalone, jc); err != nil {
+		panic(err)
+	}
 }

@@ -13,9 +13,7 @@ import (
 	"github.com/masa-finance/tee-worker/pkg/tee"
 )
 
-func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, config types.JobConfiguration) {
-
-	// TODO: implement
+func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, config types.JobConfiguration) error {
 
 	// Echo instance
 	e := echo.New()
@@ -52,15 +50,15 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 
 	if standalone {
 		tee.SealStandaloneMode = true
-		e.Logger.Fatal(e.Start(listenAddress))
+		e.Logger.Error(e.Start(listenAddress))
 	} else {
 		e.POST("/setkey", setKey(dataDIR))
 
 		// Create a TLS config with a self-signed certificate and an embedded report.
 		tlsCfg, err := enclave.CreateAttestationServerTLSConfig()
 		if err != nil {
-			fmt.Println("Failed to create TLS config: ", err)
-			panic(err)
+			e.Logger.Error("Failed to create TLS config: ", err)
+			return err
 		}
 
 		e.Logger.Info(fmt.Sprintf("Starting server on %s", listenAddress))
@@ -71,7 +69,10 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 			//ReadTimeout: 30 * time.Second, // use custom timeouts
 		}
 		if err := s.ListenAndServeTLS("", ""); err != http.ErrServerClosed {
-			e.Logger.Fatal(err)
+			e.Logger.Error(err)
+			return err
 		}
 	}
+
+	return nil
 }
