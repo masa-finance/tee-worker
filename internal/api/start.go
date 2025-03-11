@@ -13,8 +13,7 @@ import (
 	"github.com/masa-finance/tee-worker/pkg/tee"
 )
 
-func Start(ctx context.Context, listenAddress, dataDIR string, config types.JobConfiguration) {
-
+func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, config types.JobConfiguration) {
 	// Create a TLS config with a self-signed certificate and an embedded report.
 	tlsCfg, err := enclave.CreateAttestationServerTLSConfig()
 	if err != nil {
@@ -39,9 +38,6 @@ func Start(ctx context.Context, listenAddress, dataDIR string, config types.JobC
 	// Load already existing key
 	tee.LoadKey(dataDIR)
 
-	// TODO: This should go under TLSConfig for RA
-	e.POST("/setkey", setKey(dataDIR))
-
 	// Routes
 	/*
 		- POST /job/generate: Generate a job payload
@@ -60,13 +56,21 @@ func Start(ctx context.Context, listenAddress, dataDIR string, config types.JobC
 		e.Close()
 	}()
 
-	s := http.Server{
-		Addr:      listenAddress,
-		Handler:   e, // set Echo as handler
-		TLSConfig: tlsCfg,
-		//ReadTimeout: 30 * time.Second, // use custom timeouts
-	}
-	if err := s.ListenAndServeTLS("", ""); err != http.ErrServerClosed {
-		e.Logger.Fatal(err)
+	if standalone {
+		tee.SealStandaloneMode = true
+		e.Logger.Fatal(e.Start(listenAddress))
+	} else {
+		e.POST("/setkey", setKey(dataDIR))
+
+		e.Logger.Info(fmt.Sprintf("Starting server on %s", listenAddress))
+		s := http.Server{
+			Addr:      listenAddress,
+			Handler:   e, // set Echo as handler
+			TLSConfig: tlsCfg,
+			//ReadTimeout: 30 * time.Second, // use custom timeouts
+		}
+		if err := s.ListenAndServeTLS("", ""); err != http.ErrServerClosed {
+			e.Logger.Fatal(err)
+		}
 	}
 }

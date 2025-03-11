@@ -10,5 +10,5 @@ func main() {
 	jc := readConfig()
 	listenAddress := listenAddress()
 
-	api.Start(context.Background(), listenAddress, dataDir, jc)
+	api.Start(context.Background(), listenAddress, dataDir, standalone, jc)
 }

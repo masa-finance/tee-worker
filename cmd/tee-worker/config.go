@@ -13,6 +13,7 @@ import (
 )
 
 var dataDir = os.Getenv("DATA_DIR")
+var standalone = os.Getenv("STANDALONE") == "true"
 
 func readConfig() types.JobConfiguration {
 	// The jobs will then unmarshal from this configuration to the specific configuration
