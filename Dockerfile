@@ -14,8 +14,8 @@ COPY . .
 FROM dependencies AS builder
 
 ENV VERSION=${VERSION}
-
-RUN make build
+ARG DISTRIBUTOR_PUBKEY
+RUN DISTRIBUTOR_PUBKEY=${DISTRIBUTOR_PUBKEY} make build
 
 RUN --mount=type=secret,id=private_key,dst=/app/tee/private.pem make sign
 
