@@ -22,7 +22,7 @@ bundle:
 	@ego bundle ./bin/masa-tee-worker
 
 run-simulate: docker-build
-	@docker run --net host -e OE_SIMULATION=1 --rm -v $(PWD)/.masa:/home/masa -ti $(IMAGE)
+	@docker run --net host -e STANDALONE=true -e OE_SIMULATION=1 --rm -v $(PWD)/.masa:/home/masa -ti $(IMAGE)
 
 run-sgx: docker-build
 	@docker run --device /dev/sgx_enclave --device /dev/sgx_provision --net host --rm -v $(PWD)/.masa:/home/masa -ti $(IMAGE)
