@@ -32,7 +32,7 @@ func SealWithKey(key string, plaintext []byte) (string, error) {
 		additionalKey = []byte(key)
 	}
 
-	if SealingKey == "" {
+	if SealingKey == "" && !SealStandaloneMode {
 		return "", fmt.Errorf("sealing key not set")
 	}
 
@@ -53,6 +53,10 @@ func SealWithKey(key string, plaintext []byte) (string, error) {
 }
 
 func UnsealWithKey(key string, encryptedText string) ([]byte, error) {
+	if SealingKey == "" && !SealStandaloneMode {
+		return []byte{}, fmt.Errorf("sealing key not set")
+	}
+
 	additionalKey := []byte{}
 	if key != "" {
 		additionalKey = []byte(key)

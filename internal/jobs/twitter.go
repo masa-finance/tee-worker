@@ -4,11 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/masa-finance/tee-worker/internal/jobs/twitterx"
-	"github.com/masa-finance/tee-worker/pkg/client"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/masa-finance/tee-worker/internal/jobs/twitterx"
+	"github.com/masa-finance/tee-worker/pkg/client"
 
 	twitterscraper "github.com/imperatrona/twitter-scraper"
 	"github.com/masa-finance/tee-worker/api/types"
