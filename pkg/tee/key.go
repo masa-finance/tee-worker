@@ -1,6 +1,7 @@
 package tee
 
 import (
+	"encoding/base64"
 	"os"
 
 	"github.com/edgelesssys/ego/ecrypto"
@@ -27,8 +28,13 @@ func LoadKey(datadir string) error {
 }
 
 func SetKey(datadir, key, signature string) error {
+	dkey, err := base64.StdEncoding.DecodeString(KeyDistributorPubKey)
+	if err != nil {
+		return err
+	}
+
 	// Verify the signature
-	if err := VerifySignature([]byte(key), []byte(signature), []byte(KeyDistributorPubKey)); err != nil {
+	if err := VerifySignature([]byte(key), []byte(signature), dkey); err != nil {
 		return err
 	}
 
