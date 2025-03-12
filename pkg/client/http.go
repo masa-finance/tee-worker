@@ -2,6 +2,7 @@ package client
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -14,15 +15,27 @@ import (
 // Client represents a client to interact with the job server.
 type Client struct {
 	BaseURL    string
+	options    *Options
 	HTTPClient *http.Client
 }
 
 // NewClient creates a new Client instance.
-func NewClient(baseURL string) *Client {
-	return &Client{
+func NewClient(baseURL string, opts ...Option) *Client {
+	options := NewOptions(opts...)
+	c := &Client{
 		BaseURL:    baseURL,
-		HTTPClient: &http.Client{},
+		options:    options,
+		HTTPClient: &http.Client{
+			//Timeout: options.timeout,
+		},
 	}
+	if options.ignoreTLSCert {
+		c.HTTPClient.Transport = &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		}
+	}
+
+	return c
 }
 
 // SubmitJob submits a new job to the server and returns the job result.
@@ -38,13 +51,13 @@ func (c *Client) CreateJobSignature(job types.Job) (JobSignature, error) {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return JobSignature(""), fmt.Errorf("error: received status code %d", resp.StatusCode)
-	}
-
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return JobSignature(""), fmt.Errorf("error reading response body: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return JobSignature(""), fmt.Errorf("error: received status code %d, body: %s", resp.StatusCode, string(body))
 	}
 
 	return JobSignature(string(body)), nil

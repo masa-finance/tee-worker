@@ -36,7 +36,7 @@ To run the container, use the appropriate Make target(below), or you can use the
 
 ```bash
 ## Run without an Intel SGX hardware
-docker run --net host -e OE_SIMULATION=1 --rm -v $PWD/.masa:/home/masa -ti masaengineering/tee-worker:main
+docker run --net host -e STANDALONE=true -e OE_SIMULATION=1 --rm -v $PWD/.masa:/home/masa -ti masaengineering/tee-worker:main
 ```
 
 ### If you have an Intel-SGX capable machine

@@ -6,6 +6,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/masa-finance/tee-worker/api/types"
 	"github.com/masa-finance/tee-worker/internal/jobserver"
+	"github.com/masa-finance/tee-worker/pkg/tee"
 )
 
 func generate(c echo.Context) error {
@@ -95,4 +96,19 @@ func result(c echo.Context) error {
 	}
 
 	return c.String(http.StatusOK, result)
+}
+
+func setKey(dataDir string) func(c echo.Context) error {
+	return func(c echo.Context) error {
+		key := &types.Key{}
+		if err := c.Bind(key); err != nil {
+			return err
+		}
+
+		if err := tee.SetKey(dataDir, key.Key, key.Signature); err != nil {
+			return c.JSON(http.StatusInternalServerError, types.KeyResponse{Status: err.Error()})
+		}
+
+		return c.JSON(http.StatusOK, types.KeyResponse{Status: "Key set"})
+	}
 }
