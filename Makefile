@@ -2,7 +2,6 @@ VERSION?=$(shell git describe --tags --abbrev=0)
 PWD:=$(shell pwd)
 IMAGE?=masa-tee-worker:latest
 TEST_COOKIE_DIR?=$(PWD)/.testdir
-export DISTRIBUTOR_PUBKEY?=$(shell cat tee/keybroker.pub | base64 -w0)
 
 print-version:
 	@echo "Version: ${VERSION}"
@@ -14,8 +13,7 @@ docker-compose-up:
 	@docker compose up --build
 
 build:
-	echo "Pubkey is ${DISTRIBUTOR_PUBKEY}"
-	@ego-go build -v -gcflags=all="-N -l" -ldflags '-linkmode=external -extldflags=-static' -ldflags "-X github.com/masa-finance/tee-worker/internal/versioning.ApplicationVersion=${VERSION} -X github.com/masa-finance/tee-worker/pkg/tee.KeyDistributorPubKey=${DISTRIBUTOR_PUBKEY}"  -o ./bin/masa-tee-worker ./cmd/tee-worker
+	@ego-go build -v -gcflags=all="-N -l" -ldflags '-linkmode=external -extldflags=-static' -ldflags "-X github.com/masa-finance/tee-worker/internal/versioning.ApplicationVersion=${VERSION}"  -o ./bin/masa-tee-worker ./cmd/tee-worker
 
 sign: tee/private.pem
 	@ego sign ./tee/masa-tee-worker.json
@@ -36,11 +34,15 @@ tee/private.pem:
 tee/keybroker.pem:
 	@openssl genrsa -out tee/keybroker.pem -3 4092
 
+pkg/tee/KeyDistributorPubKey.txt: tee/keybroker.pub
+	cat tee/keybroker.pub | base64 -w0 > pkg/tee/KeyDistributorPubKey.txt
+
 tee/keybroker.pub: tee/keybroker.pem
 	@openssl rsa -in tee/keybroker.pem -outform PEM -pubout -out tee/keybroker.pub
 
+
 docker-build: tee/private.pem tee/keybroker.pub
-	PUBKEY=$(shell cat tee/keybroker.pub | base64 -w0) docker build --build-arg DISTRIBUTOR_PUBKEY="$(DISTRIBUTOR_PUBKEY)" --secret id=private_key,src=./tee/private.pem  -t $(IMAGE) -f Dockerfile .
+	PUBKEY=$(shell cat tee/keybroker.pub | base64 -w0) docker build --secret id=private_key,src=./tee/private.pem  -t $(IMAGE) -f Dockerfile .
 
 $(TEST_COOKIE_DIR):
 	@mkdir -p $(TEST_COOKIE_DIR)
