@@ -18,6 +18,9 @@ build:
 sign: tee/private.pem
 	@ego sign ./tee/masa-tee-worker.json
 
+ci-sign:
+	@ego sign ./tee/masa-tee-worker.json
+
 bundle:
 	@ego bundle ./bin/masa-tee-worker
 
@@ -29,7 +32,7 @@ run-sgx: docker-build
 
 ## TEE bits
 tee/private.pem:
-	@openssl genrsa -out tee/private.pem -3 4092
+	@openssl genrsa -out tee/private.pem -3 3072
 
 tee/keybroker.pem:
 	@openssl genrsa -out tee/keybroker.pem -3 4092
