@@ -12,7 +12,7 @@ clean:
 docker-compose-up:
 	@docker compose up --build
 
-build:
+build: pkg/tee/KeyDistributorPubKey.txt
 	@ego-go build -v -gcflags=all="-N -l" -ldflags '-linkmode=external -extldflags=-static' -ldflags "-X github.com/masa-finance/tee-worker/internal/versioning.ApplicationVersion=${VERSION}"  -o ./bin/masa-tee-worker ./cmd/tee-worker
 
 sign: tee/private.pem
@@ -42,7 +42,6 @@ pkg/tee/KeyDistributorPubKey.txt: tee/keybroker.pub
 
 tee/keybroker.pub: tee/keybroker.pem
 	@openssl rsa -in tee/keybroker.pem -outform PEM -pubout -out tee/keybroker.pub
-
 
 docker-build: tee/private.pem tee/keybroker.pub
 	PUBKEY=$(shell cat tee/keybroker.pub | base64 -w0) docker build --secret id=private_key,src=./tee/private.pem  -t $(IMAGE) -f Dockerfile .
