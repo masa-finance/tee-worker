@@ -84,6 +84,8 @@
                 VERSION=${{ steps.prep.outputs.binary_version }}
               context: ./
               file: ./Dockerfile
+              secret-files: |
+                private_key=./tee/private.pem
               platforms: linux/amd64
               push: true
               #tags: ${{ steps.prep.outputs.tags }}
