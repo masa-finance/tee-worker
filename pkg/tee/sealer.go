@@ -8,7 +8,10 @@ should apply to all callers of the sealer.
 */
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 
 	"github.com/edgelesssys/ego/ecrypto"
@@ -26,10 +29,25 @@ func Unseal(encryptedText string) ([]byte, error) {
 	return UnsealWithKey("", encryptedText)
 }
 
-func SealWithKey(key string, plaintext []byte) (string, error) {
-	additionalKey := []byte{}
-	if key != "" {
-		additionalKey = []byte(key)
+// deriveKey takes an input key and a salt, then generates a new key of the same length
+func deriveKey(inputKey, salt string) string {
+	hash := hmac.New(sha256.New, []byte(salt))
+	hash.Write([]byte(inputKey))
+	hashedKey := hash.Sum(nil)
+
+	hashedHex := hex.EncodeToString(hashedKey)
+
+	// Ensure the derived key has the same length as the input key
+	if len(hashedHex) > len(inputKey) {
+		return hashedHex[:len(inputKey)]
+	}
+	return hashedHex
+}
+
+func SealWithKey(salt string, plaintext []byte) (string, error) {
+	key := SealingKey
+	if salt != "" {
+		key = deriveKey(SealingKey, salt)
 	}
 
 	if SealingKey == "" && !SealStandaloneMode {
@@ -39,9 +57,9 @@ func SealWithKey(key string, plaintext []byte) (string, error) {
 	var res string
 	var err error
 	if !SealStandaloneMode {
-		res, err = EncryptAES(string(plaintext), fmt.Sprintf("%s-%s", SealingKey, additionalKey))
+		res, err = EncryptAES(string(plaintext), key)
 	} else {
-		resBytes, errSeal := ecrypto.SealWithProductKey(plaintext, additionalKey)
+		resBytes, errSeal := ecrypto.SealWithProductKey(plaintext, []byte(salt))
 		if errSeal != nil {
 			return "", errSeal
 		}
@@ -52,14 +70,14 @@ func SealWithKey(key string, plaintext []byte) (string, error) {
 	return b64, err
 }
 
-func UnsealWithKey(key string, encryptedText string) ([]byte, error) {
+func UnsealWithKey(salt string, encryptedText string) ([]byte, error) {
 	if SealingKey == "" && !SealStandaloneMode {
 		return []byte{}, fmt.Errorf("sealing key not set")
 	}
 
-	additionalKey := []byte{}
-	if key != "" {
-		additionalKey = []byte(key)
+	key := SealingKey
+	if salt != "" {
+		key = deriveKey(SealingKey, salt)
 	}
 
 	b64, err := base64.StdEncoding.DecodeString(encryptedText)
@@ -69,9 +87,9 @@ func UnsealWithKey(key string, encryptedText string) ([]byte, error) {
 
 	var res string
 	if !SealStandaloneMode {
-		res, err = DecryptAES(string(b64), fmt.Sprintf("%s-%s", SealingKey, additionalKey))
+		res, err = DecryptAES(string(b64), key)
 	} else {
-		resString, errUnseal := ecrypto.Unseal(b64, additionalKey)
+		resString, errUnseal := ecrypto.Unseal(b64, []byte(salt))
 		if errUnseal != nil {
 			return nil, errUnseal
 		}
