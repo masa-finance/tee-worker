@@ -16,7 +16,7 @@ func main() {
 		fmt.Println("This instance will allow only ", tee.KeyDistributorPubKey, " to set the sealing keys")
 	}
 
-	if err := api.Start(context.Background(), listenAddress, dataDir, standalone, jc); err != nil {
+	if err := api.Start(context.Background(), listenAddress, dataDir, standaloneMode(), jc); err != nil {
 		panic(err)
 	}
 }
