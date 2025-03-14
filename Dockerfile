@@ -32,6 +32,7 @@ RUN mkdir -p /etc/apt/keyrings && \
     apt-get update && \
     apt-get install -y libsgx-dcap-default-qpl
 RUN sed -i 's#"pccs_url": *"[^"]*"#"pccs_url": "'${pccs_server}'/sgx/certification/v4/"#' /etc/sgx_default_qcnl.conf
+RUN sed -i 's#"use_secure_cert": true#"use_secure_cert": false#' /etc/sgx_default_qcnl.conf
 
 COPY --from=builder /app/bin/masa-tee-worker /usr/bin/masa-tee-worker
 
