@@ -49,6 +49,6 @@ docker-build: tee/private.pem
 $(TEST_COOKIE_DIR):
 	@mkdir -p $(TEST_COOKIE_DIR)
 
-test: tee/private.pem pkg/tee/KeyDistributorPubKey.txt $(TEST_COOKIE_DIR)
+test: tee/private.pem $(TEST_COOKIE_DIR)
 	@docker build --target=dependencies --build-arg baseimage=builder --secret id=private_key,src=./tee/private.pem -t $(IMAGE) -f Dockerfile .
 	@docker run --user root -e TWITTER_TEST_ACCOUNT -e LOG_LEVEL=debug -v $(TEST_COOKIE_DIR):/cookies -e TEST_COOKIE_DIR=/cookies -v $(PWD)/coverage:/app/coverage --rm --workdir /app $(IMAGE) go test -coverprofile=coverage/coverage.txt -covermode=atomic -v ./...
