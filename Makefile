@@ -26,6 +26,8 @@ bundle:
 	@ego bundle ./bin/masa-tee-worker
 
 run-simulate: docker-build
+	touch .masa/.env
+	echo "STANDALONE=true" > .masa/.env
 	@docker run --net host -e STANDALONE=true -e OE_SIMULATION=1 --rm -v $(PWD)/.masa:/home/masa -ti $(IMAGE)
 
 run-sgx: docker-build
