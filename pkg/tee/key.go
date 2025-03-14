@@ -1,10 +1,8 @@
 package tee
 
 import (
-	"embed"
 	"encoding/base64"
 	"os"
-	"strings"
 
 	"github.com/edgelesssys/ego/ecrypto"
 )
@@ -13,17 +11,6 @@ var (
 	KeyDistributorPubKey string
 	SealingKey           string
 )
-
-//go:embed KeyDistributorPubKey.txt
-var fs embed.FS
-
-func init() {
-	data, err := fs.ReadFile("KeyDistributorPubKey.txt")
-	if err != nil {
-		panic(err)
-	}
-	KeyDistributorPubKey = strings.TrimSpace(string(data))
-}
 
 func LoadKey(datadir string) error {
 	key, err := os.ReadFile(datadir + "/sealing_key")
