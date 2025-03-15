@@ -15,6 +15,7 @@ import (
 
 const (
 	TweetsSearchRecent = "tweets/search/recent"
+	TweetsAll          = "tweets/search/all"
 )
 
 type TwitterXScraper struct {
@@ -111,12 +112,37 @@ func NewTwitterXScraper(client *client.TwitterXClient) *TwitterXScraper {
 	}
 }
 
+func (s *TwitterXScraper) ScrapeTweetsByFullTextSearchQuery(query string, count int) (*TwitterXSearchQueryResult, error) {
+
+	if count == 0 {
+		count = 10
+	}
+
+	if count > 500 {
+		count = 499
+	}
+
+	return s.scrapeTweetsByQuery(TweetsAll, query, count)
+}
+
 func (s *TwitterXScraper) ScrapeTweetsByQuery(query string, count int) (*TwitterXSearchQueryResult, error) {
+
+	if count == 0 {
+		count = 10
+	}
+
+	if count > 100 {
+		count = 99
+	}
+
+	return s.scrapeTweetsByQuery(TweetsSearchRecent, query, count)
+}
+func (s *TwitterXScraper) scrapeTweetsByQuery(baseQueryEndpoint string, query string, count int) (*TwitterXSearchQueryResult, error) {
 	// Initialize the client
 	client := s.twitterXClient
 
 	// Construct the base URL
-	baseURL := TweetsSearchRecent
+	baseURL := baseQueryEndpoint
 
 	// Create url.Values to handle all query parameters
 	params := url.Values{}
@@ -131,18 +157,6 @@ func (s *TwitterXScraper) ScrapeTweetsByQuery(query string, count int) (*Twitter
 	// Add the query parameter (will be properly encoded)
 	params.Add("query", query)
 
-	// Handle count parameter with validation
-	if count == 0 {
-		count = 10
-	}
-	if count < 10 { // Minimum count is 10
-		logrus.Debugf("Count is less than 10, setting it to 10")
-		count = 10
-	}
-	if count > 100 {
-		logrus.Debugf("Count is greater than 100, setting it to 99")
-		count = 99
-	}
 
 	params.Add("max_results", strconv.Itoa(count))
 
