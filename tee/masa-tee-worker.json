@@ -1,7 +1,7 @@
 {
  "exe": "./../bin/masa-tee-worker",
  "key": "private.pem",
- "debug": true,
+ "debug": false,
  "heapSize": 4092,
  "executableHeap": false,
  "productID": 1,
