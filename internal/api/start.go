@@ -48,6 +48,7 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 		e.Close()
 	}()
 
+	fmt.Println("Starting server server/standalone: "+listenAddress, standalone)
 	if standalone {
 		e.Logger.Info(fmt.Sprintf("Starting server on %s", listenAddress))
 		tee.SealStandaloneMode = true
