@@ -41,10 +41,12 @@ func SaveWorkerID(dataDir, workerID string) error {
 		}
 		encryptedID = []byte(encrypted)
 	} else {
-		// In standalone mode, use the SGX sealing mechanism
+		// In standalone mode, try to use the SGX sealing mechanism
 		encryptedID, err = ecrypto.SealWithProductKey([]byte(workerID), []byte{})
 		if err != nil {
-			return err
+			// If SGX sealing fails in standalone mode, store as plain text
+			// This is a fallback for environments where SGX is not available
+			encryptedID = []byte(workerID)
 		}
 	}
 
@@ -83,12 +85,15 @@ func LoadWorkerID(dataDir string) (string, error) {
 		}
 		workerID = decrypted
 	} else {
-		// In standalone mode, use the SGX unsealing mechanism
+		// In standalone mode, try to use the SGX unsealing mechanism first
 		rawID, err := ecrypto.Unseal(encryptedID, []byte{})
 		if err != nil {
-			return "", err
+			// If SGX unsealing fails in standalone mode, try to read as plain text
+			// This is a fallback for environments where SGX is not available
+			workerID = string(encryptedID)
+		} else {
+			workerID = string(rawID)
 		}
-		workerID = string(rawID)
 	}
 
 	return workerID, nil
