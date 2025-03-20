@@ -24,7 +24,6 @@ const (
 	WebErrors             statType = "web_errors"
 	WebInvalid            statType = "web_invalid"
 	// TODO: Should we add stats for calls to each of the Twitter job types?
-
 )
 
 // allStats is a list of all the stats that we support.
@@ -52,6 +51,7 @@ type stats struct {
 	BootTimeUnix      int64             `json:"boot_time"`
 	LastOperationUnix int64             `json:"last_operation_time"`
 	CurrentTimeUnix   int64             `json:"current_time"`
+	WorkerID          string            `json:"worker_id"`
 	Stats             map[statType]uint `json:"stats"`
 	sync.Mutex
 }
@@ -68,6 +68,7 @@ func StartCollector(bufSize uint) *StatsCollector {
 
 	s := stats{
 		BootTimeUnix: time.Now().Unix(),
+		WorkerID:     "", // Will be set later via SetWorkerID
 		Stats:        make(map[statType]uint),
 	}
 	for _, t := range allStats {
@@ -105,4 +106,11 @@ func (s *StatsCollector) Json() ([]byte, error) {
 // Add is a convenience method to add a number to a statistic
 func (s *StatsCollector) Add(typ statType, num uint) {
 	s.Chan <- AddStat{Type: typ, Num: num}
+}
+
+// SetWorkerID sets the worker ID for the stats collector
+func (s *StatsCollector) SetWorkerID(workerID string) {
+	s.Stats.Lock()
+	defer s.Stats.Unlock()
+	s.Stats.WorkerID = workerID
 }
