@@ -22,14 +22,7 @@ func main() {
 	// Initialize worker ID - this will work even if sealing key loading failed
 	// The worker ID is designed to be persistent across restarts
 	if err := tee.InitializeWorkerID(dataDir); err != nil {
-		logrus.Warnf("Failed to initialize persistent worker ID: %v. Using a temporary ID for this session.", err)
-
-		// Generate a temporary ID for this session
-		tempID := tee.GenerateWorkerID()
-		tee.WorkerID = tempID
-		jc["worker_id"] = tempID
-
-		logrus.Infof("Worker using temporary ID for this session: %s", tempID)
+		logrus.Fatalf("Failed to initialize persistent worker ID: %v. Exiting...", err)
 	} else {
 		logrus.Infof("Worker initialized with persistent ID: %s", tee.WorkerID)
 

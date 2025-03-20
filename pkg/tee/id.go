@@ -17,8 +17,8 @@ var (
 	WorkerID string // Global variable to store the worker ID
 )
 
-// GenerateWorkerID generates a new worker ID.
-func GenerateWorkerID() string {
+// generateWorkerID generates a new worker ID.
+func generateWorkerID() string {
 	return uuid.New().String()
 }
 
@@ -83,7 +83,7 @@ func InitializeWorkerID(dataDir string) error {
 
 	// If the worker ID doesn't exist, generate a new one and save it
 	if existingID == "" {
-		newID := GenerateWorkerID()
+		newID := generateWorkerID()
 		if err := saveWorkerID(dataDir, newID); err != nil {
 			return fmt.Errorf("error saving worker ID: %w", err)
 		}
