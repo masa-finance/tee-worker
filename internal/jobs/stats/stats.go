@@ -68,7 +68,6 @@ func StartCollector(bufSize uint) *StatsCollector {
 
 	s := stats{
 		BootTimeUnix: time.Now().Unix(),
-		WorkerID:     "", // Will be set later via SetWorkerID
 		Stats:        make(map[statType]uint),
 	}
 	for _, t := range allStats {

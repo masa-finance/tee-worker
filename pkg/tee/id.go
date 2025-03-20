@@ -56,18 +56,15 @@ func LoadWorkerID(dataDir string) (string, error) {
 	// Read the encrypted worker ID
 	encryptedID, err := os.ReadFile(filePath)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to read worker ID: %w", err)
 	}
 
 	var workerID string
 	rawID, err := ecrypto.Unseal(encryptedID, []byte{})
 	if err != nil {
-		// If SGX unsealing fails in standalone mode, try to read as plain text
-		// This is a fallback for environments where SGX is not available
-		workerID = string(encryptedID)
-	} else {
-		workerID = string(rawID)
+		return "", fmt.Errorf("failed to unseal worker ID: %w", err)
 	}
+	workerID = string(rawID)
 
 	return workerID, nil
 }

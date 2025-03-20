@@ -3,7 +3,6 @@ package jobs
 import (
 	"github.com/masa-finance/tee-worker/api/types"
 	"github.com/masa-finance/tee-worker/internal/jobs/stats"
-	"github.com/masa-finance/tee-worker/pkg/tee"
 	"github.com/sirupsen/logrus"
 )
 
@@ -23,9 +22,6 @@ func (t TelemetryJob) ExecuteJob(j types.Job) (types.JobResult, error) {
 	if t.collector == nil {
 		return types.JobResult{Error: "No StatsCollector configured", Job: j}, nil
 	}
-
-	// Make sure WorkerID is set in stats collector
-	t.collector.SetWorkerID(tee.WorkerID)
 
 	// Get stats from the collector (now includes WorkerID)
 	data, err := t.collector.Json()

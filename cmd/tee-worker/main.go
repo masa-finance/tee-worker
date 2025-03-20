@@ -23,13 +23,12 @@ func main() {
 	// The worker ID is designed to be persistent across restarts
 	if err := tee.InitializeWorkerID(dataDir); err != nil {
 		logrus.Fatalf("Failed to initialize persistent worker ID: %v. Exiting...", err)
-	} else {
-		logrus.Infof("Worker initialized with persistent ID: %s", tee.WorkerID)
-
-		// Add WorkerID to the job configuration so it's available to all jobs
-		jc["worker_id"] = tee.WorkerID
 	}
 
+	// Set the worker ID in the job configuration
+	jc["worker_id"] = tee.WorkerID
+
+	// Start the API
 	if err := api.Start(context.Background(), listenAddress, dataDir, standalone, jc); err != nil {
 		panic(err)
 	}
