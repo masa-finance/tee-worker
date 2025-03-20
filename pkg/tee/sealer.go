@@ -15,6 +15,7 @@ import (
 	"fmt"
 
 	"github.com/edgelesssys/ego/ecrypto"
+	"github.com/sirupsen/logrus"
 )
 
 var SealStandaloneMode bool
@@ -45,11 +46,13 @@ func deriveKey(inputKey, salt string) string {
 }
 
 func SealWithKey(salt string, plaintext []byte) (string, error) {
+	// Always use the most recent key for encryption
 	key := SealingKey
 	if salt != "" {
 		key = deriveKey(SealingKey, salt)
 	}
 
+	// Check if we have a key to use
 	if SealingKey == "" && !SealStandaloneMode {
 		return "", fmt.Errorf("sealing key not set")
 	}
@@ -71,6 +74,17 @@ func SealWithKey(salt string, plaintext []byte) (string, error) {
 }
 
 func UnsealWithKey(salt string, encryptedText string) ([]byte, error) {
+	// If we have a key ring, try using all keys in the ring
+	if CurrentKeyRing != nil && len(CurrentKeyRing.Keys) > 0 {
+		result, err := TryDecryptWithKeyRing(CurrentKeyRing, salt, encryptedText)
+		if err == nil {
+			return result, nil
+		}
+		// Log error but continue with legacy approach as fallback
+		logrus.Debugf("Key ring decryption failed: %v. Trying with current key.", err)
+	}
+
+	// Legacy approach - try with current key only
 	if SealingKey == "" && !SealStandaloneMode {
 		return []byte{}, fmt.Errorf("sealing key not set")
 	}
