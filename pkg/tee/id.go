@@ -18,9 +18,9 @@ func GenerateWorkerID() string {
 	return uuid.New().String()
 }
 
-// SaveWorkerID saves the worker ID to a file in the data directory.
+// saveWorkerID saves the worker ID to a file in the data directory.
 // It uses the same encryption mechanism as the sealing key.
-func SaveWorkerID(dataDir, workerID string) error {
+func saveWorkerID(dataDir, workerID string) error {
 	// Create the full path
 	filePath := filepath.Join(dataDir, "worker_id")
 
@@ -111,7 +111,7 @@ func InitializeWorkerID(dataDir string) error {
 	// If the worker ID doesn't exist, generate a new one and save it
 	if existingID == "" {
 		newID := GenerateWorkerID()
-		if err := SaveWorkerID(dataDir, newID); err != nil {
+		if err := saveWorkerID(dataDir, newID); err != nil {
 			return fmt.Errorf("error saving worker ID: %w", err)
 		}
 		WorkerID = newID
