@@ -9,6 +9,10 @@ import (
 	"github.com/google/uuid"
 )
 
+const (
+	WorkerIdKey = "worker_id"
+)
+
 var (
 	WorkerID string // Global variable to store the worker ID
 )
@@ -22,32 +26,17 @@ func GenerateWorkerID() string {
 // It uses the same encryption mechanism as the sealing key.
 func saveWorkerID(dataDir, workerID string) error {
 	// Create the full path
-	filePath := filepath.Join(dataDir, "worker_id")
+	filePath := filepath.Join(dataDir, WorkerIdKey)
 
 	// Encrypt the worker ID
 	var encryptedID []byte
 	var err error
 
-	if !SealStandaloneMode {
-		// In normal mode, use the SealingKey
-		if SealingKey == "" {
-			return fmt.Errorf("sealing key not set, cannot save worker ID")
-		}
-
-		// Encrypt the worker ID with AES using our sealing key
-		encrypted, encErr := EncryptAES(workerID, SealingKey)
-		if encErr != nil {
-			return encErr
-		}
-		encryptedID = []byte(encrypted)
-	} else {
-		// In standalone mode, try to use the SGX sealing mechanism
-		encryptedID, err = ecrypto.SealWithProductKey([]byte(workerID), []byte{})
-		if err != nil {
-			// If SGX sealing fails in standalone mode, store as plain text
-			// This is a fallback for environments where SGX is not available
-			encryptedID = []byte(workerID)
-		}
+	encryptedID, err = ecrypto.SealWithProductKey([]byte(workerID), []byte{})
+	if err != nil {
+		// If SGX sealing fails in standalone mode, store as plain text
+		// This is a fallback for environments where SGX is not available
+		encryptedID = []byte(workerID)
 	}
 
 	// Write to file
@@ -57,7 +46,7 @@ func saveWorkerID(dataDir, workerID string) error {
 // LoadWorkerID loads the worker ID from a file in the data directory.
 func LoadWorkerID(dataDir string) (string, error) {
 	// Create the full path
-	filePath := filepath.Join(dataDir, "worker_id")
+	filePath := filepath.Join(dataDir, WorkerIdKey)
 
 	// Check if the file exists
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
@@ -71,29 +60,13 @@ func LoadWorkerID(dataDir string) (string, error) {
 	}
 
 	var workerID string
-
-	if !SealStandaloneMode {
-		// In normal mode, use the SealingKey
-		if SealingKey == "" {
-			return "", fmt.Errorf("sealing key not set, cannot load worker ID")
-		}
-
-		// Decrypt the worker ID with AES using our sealing key
-		decrypted, decErr := DecryptAES(string(encryptedID), SealingKey)
-		if decErr != nil {
-			return "", decErr
-		}
-		workerID = decrypted
+	rawID, err := ecrypto.Unseal(encryptedID, []byte{})
+	if err != nil {
+		// If SGX unsealing fails in standalone mode, try to read as plain text
+		// This is a fallback for environments where SGX is not available
+		workerID = string(encryptedID)
 	} else {
-		// In standalone mode, try to use the SGX unsealing mechanism first
-		rawID, err := ecrypto.Unseal(encryptedID, []byte{})
-		if err != nil {
-			// If SGX unsealing fails in standalone mode, try to read as plain text
-			// This is a fallback for environments where SGX is not available
-			workerID = string(encryptedID)
-		} else {
-			workerID = string(rawID)
-		}
+		workerID = string(rawID)
 	}
 
 	return workerID, nil
