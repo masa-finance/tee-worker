@@ -32,6 +32,7 @@ func main() {
 		jc["worker_id"] = tee.WorkerID
 	}
 
+	// Start the API
 	if err := api.Start(context.Background(), listenAddress, dataDir, standaloneMode(), jc); err != nil {
 		panic(err)
 	}
