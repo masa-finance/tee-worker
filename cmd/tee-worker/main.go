@@ -2,8 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
-
 	"github.com/masa-finance/tee-worker/internal/api"
 	"github.com/masa-finance/tee-worker/pkg/tee"
 	"github.com/sirupsen/logrus"
@@ -13,23 +11,12 @@ func main() {
 	jc := readConfig()
 	listenAddress := listenAddress()
 
-	if tee.KeyDistributorPubKey != "" {
-		fmt.Println("This instance will allow only ", tee.KeyDistributorPubKey, " to set the sealing keys")
-	}
-
 	// Set standalone mode first based on configuration
 	standalone := standaloneMode()
 	tee.SealStandaloneMode = standalone
 
 	if tee.KeyDistributorPubKey != "" {
-		fmt.Println("This instance will allow only ", tee.KeyDistributorPubKey, " to set the sealing keys")
-	}
-
-	// Load the sealing key if not in standalone mode
-	if !standalone {
-		if err := tee.LoadKey(dataDir); err != nil {
-			logrus.Warnf("Failed to load sealing key: %v. Proceeding without key.", err)
-		}
+		logrus.Info("This instance will allow only ", tee.KeyDistributorPubKey, " to set the sealing keys")
 	}
 
 	// Initialize worker ID - this will work even if sealing key loading failed
@@ -54,7 +41,4 @@ func main() {
 		panic(err)
 	}
 
-	if err := api.Start(context.Background(), listenAddress, dataDir, standaloneMode(), jc); err != nil {
-		panic(err)
-	}
 }
