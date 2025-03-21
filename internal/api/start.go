@@ -49,9 +49,12 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 	}()
 
 	if standalone {
+		e.Logger.Info(fmt.Sprintf("Starting server on %s", listenAddress))
 		tee.SealStandaloneMode = true
 		e.Logger.Error(e.Start(listenAddress))
 	} else {
+		e.Logger.Info("Starting server in enclave mode")
+		// Set the sealing key
 		e.POST("/setkey", setKey(dataDIR))
 
 		// Create a TLS config with a self-signed certificate and an embedded report.

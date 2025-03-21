@@ -36,7 +36,14 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 	if !ok {
 		bufSize = 128
 	}
+
+	// Start stats collector
 	s := stats.StartCollector(bufSize)
+
+	// Set worker ID in stats collector if available
+	if workerID, ok := jc["worker_id"].(string); ok && workerID != "" {
+		s.SetWorkerID(workerID)
+	}
 
 	jobworkers := map[string]*jobWorkerEntry{
 		jobs.WebScraperType: {

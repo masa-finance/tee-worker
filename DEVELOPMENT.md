@@ -10,7 +10,7 @@
 
 ## Build
 
-To build it is reccomended to use Docker. 
+To build it is recommended to use Docker. 
 
 ### Building the container image
 
