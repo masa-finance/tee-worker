@@ -15,11 +15,16 @@ require (
 	github.com/onsi/ginkgo/v2 v2.15.0
 	github.com/onsi/gomega v1.32.0
 	github.com/sirupsen/logrus v1.9.3
+	github.com/stretchr/testify v1.9.0
 )
 
 replace github.com/imperatrona/twitter-scraper => github.com/masa-finance/twitter-scraper v1.0.1
 
-require github.com/AlexEidt/Vidio v1.5.1 // indirect
+require (
+	github.com/AlexEidt/Vidio v1.5.1 // indirect
+	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
+)
 
 require (
 	github.com/PuerkitoBio/goquery v1.9.0 // indirect
