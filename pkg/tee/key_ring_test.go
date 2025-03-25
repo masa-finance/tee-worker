@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -48,7 +49,7 @@ func TestKeyRing(t *testing.T) {
 	t.Run("Add_Key", func(t *testing.T) {
 		kr := NewKeyRing()
 		testKey := "test-key-1"
-		
+
 		// Add new key
 		added := kr.Add(testKey)
 		assert.True(t, added)
@@ -69,7 +70,7 @@ func TestKeyRing(t *testing.T) {
 	t.Run("Save_and_Load_KeyRing", func(t *testing.T) {
 		kr := NewKeyRing()
 		testKeys := []string{"key1", "key2", "key3"}
-		
+
 		// Add multiple keys
 		for _, key := range testKeys {
 			kr.Add(key)
@@ -100,7 +101,7 @@ func TestKeyRing(t *testing.T) {
 	t.Run("GetMostRecentKey", func(t *testing.T) {
 		kr := NewKeyRing()
 		testKeys := []string{"key1", "key2", "key3"}
-		
+
 		// Add keys in sequence
 		for _, key := range testKeys {
 			kr.Add(key)
@@ -113,6 +114,52 @@ func TestKeyRing(t *testing.T) {
 	t.Run("Empty_KeyRing", func(t *testing.T) {
 		kr := NewKeyRing()
 		assert.Empty(t, kr.MostRecentKey())
+	})
+
+	t.Run("Multiple_Keys", func(t *testing.T) {
+		// Create a new key ring
+		kr := NewKeyRing()
+		require.NotNil(t, kr)
+
+		// Add multiple keys
+		keys := []string{"key1", "key2", "key3"}
+		timestamps := make([]time.Time, len(keys))
+
+		// Add keys with different timestamps
+		for i, key := range keys {
+			// Sleep briefly to ensure different timestamps
+			time.Sleep(time.Millisecond)
+			timestamps[i] = time.Now()
+			kr.Add(key)
+		}
+
+		// Verify all keys are present
+		require.Equal(t, len(keys), len(kr.Keys))
+
+		// Verify keys are stored in reverse order (most recent first)
+		for i := 0; i < len(keys); i++ {
+			require.Equal(t, keys[len(keys)-1-i], kr.Keys[i].Key)
+			require.False(t, kr.Keys[i].InsertedAt.IsZero())
+		}
+
+		// Test getting most recent key
+		mostRecent := kr.MostRecentKey()
+		require.Equal(t, keys[len(keys)-1], mostRecent)
+
+		// Save and load key ring
+		err := mockSaveKeyRing(tmpDir, kr)
+		require.NoError(t, err)
+
+		// Create new key ring and load data
+		kr2, err := mockLoadKeyRing(tmpDir)
+		require.NoError(t, err)
+
+		// Verify all keys are present in loaded key ring in same order
+		require.Equal(t, len(keys), len(kr2.Keys))
+		for i := 0; i < len(keys); i++ {
+			require.Equal(t, kr.Keys[i].Key, kr2.Keys[i].Key)
+			require.Equal(t, kr.Keys[i].InsertedAt.Unix(), kr2.Keys[i].InsertedAt.Unix())
+		}
 	})
 
 	t.Run("Invalid_Directory", func(t *testing.T) {
