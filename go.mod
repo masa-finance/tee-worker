@@ -9,7 +9,7 @@ require (
 	github.com/edgelesssys/ego v1.5.4
 	github.com/gocolly/colly v1.2.0
 	github.com/google/uuid v1.6.0
-	github.com/imperatrona/twitter-scraper v0.0.15
+	github.com/imperatrona/twitter-scraper v0.0.0-00010101000000-000000000000
 	github.com/joho/godotenv v1.5.1
 	github.com/labstack/echo/v4 v4.12.0
 	github.com/onsi/ginkgo/v2 v2.15.0
