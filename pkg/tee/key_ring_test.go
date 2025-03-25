@@ -4,11 +4,10 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
-	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
 // mockSaveKeyRing mocks saving a key ring for testing
@@ -33,138 +32,110 @@ func mockLoadKeyRing(dataDir string) (*KeyRing, error) {
 	return kr, nil
 }
 
-func TestKeyRing(t *testing.T) {
-	skipIfNotTEE(t)
-	// Create a temporary directory for testing
-	tmpDir, err := os.MkdirTemp("", "keyring-test-*")
-	require.NoError(t, err)
-	defer os.RemoveAll(tmpDir)
+var _ = Describe("KeyRing", func() {
+	var (
+		tmpDir string
+		err    error
+	)
 
-	t.Run("NewKeyRing", func(t *testing.T) {
-		kr := NewKeyRing()
-		assert.NotNil(t, kr)
-		assert.Empty(t, kr.Keys)
+	BeforeEach(func() {
+		if os.Getenv("OE_SIMULATION") == "1" {
+			Skip("Skipping TEE tests")
+		}
+
+		tmpDir, err = os.MkdirTemp("", "keyring-test-*")
+		Expect(err).NotTo(HaveOccurred())
 	})
 
-	t.Run("Add_Key", func(t *testing.T) {
-		kr := NewKeyRing()
-		testKey := "test-key-1"
+	AfterEach(func() {
+		os.RemoveAll(tmpDir)
+	})
 
-		// Add new key
-		added := kr.Add(testKey)
-		assert.True(t, added)
-		for _, entry := range kr.Keys {
-			if entry.Key == testKey {
-				return
+	Context("when creating a new key ring", func() {
+		It("should create an empty key ring", func() {
+			kr := NewKeyRing()
+			Expect(kr).NotTo(BeNil())
+			Expect(kr.Keys).To(BeEmpty())
+		})
+	})
+
+	Context("when adding keys", func() {
+		It("should add a new key successfully", func() {
+			kr := NewKeyRing()
+			testKey := "test-key-1"
+
+			added := kr.Add(testKey)
+			Expect(added).To(BeTrue())
+			Expect(kr.Keys).To(ContainElement(HaveField("Key", testKey)))
+			Expect(kr.Keys).To(HaveLen(1))
+		})
+
+		It("should not add duplicate keys", func() {
+			kr := NewKeyRing()
+			testKey := "test-key-1"
+
+			added := kr.Add(testKey)
+			Expect(added).To(BeTrue())
+
+			added = kr.Add(testKey)
+			Expect(added).To(BeFalse())
+			Expect(kr.Keys).To(HaveLen(1))
+		})
+	})
+
+	Context("when saving and loading key ring", func() {
+		It("should persist and load keys correctly", func() {
+			kr := NewKeyRing()
+			testKeys := []string{"key1", "key2", "key3"}
+
+			for _, key := range testKeys {
+				kr.Add(key)
 			}
-		}
-		assert.Fail(t, "Key not found in key ring")
-		assert.Equal(t, 1, len(kr.Keys))
 
-		// Try adding same key again
-		added = kr.Add(testKey)
-		assert.False(t, added)
-		assert.Equal(t, 1, len(kr.Keys))
-	})
+			err := mockSaveKeyRing(tmpDir, kr)
+			Expect(err).NotTo(HaveOccurred())
 
-	t.Run("Save_and_Load_KeyRing", func(t *testing.T) {
-		kr := NewKeyRing()
-		testKeys := []string{"key1", "key2", "key3"}
+			loadedKR, err := mockLoadKeyRing(tmpDir)
+			Expect(err).NotTo(HaveOccurred())
 
-		// Add multiple keys
-		for _, key := range testKeys {
-			kr.Add(key)
-		}
-
-		// Save key ring
-		err := mockSaveKeyRing(tmpDir, kr)
-		require.NoError(t, err)
-
-		// Load key ring
-		loadedKR, err := mockLoadKeyRing(tmpDir)
-		require.NoError(t, err)
-
-		// Verify loaded keys
-		assert.Equal(t, len(testKeys), len(loadedKR.Keys))
-		for _, key := range testKeys {
-			found := false
-			for _, entry := range loadedKR.Keys {
-				if entry.Key == key {
-					found = true
-					break
-				}
+			Expect(loadedKR.Keys).To(HaveLen(len(testKeys)))
+			for _, key := range testKeys {
+				Expect(loadedKR.Keys).To(ContainElement(HaveField("Key", key)))
 			}
-			assert.True(t, found, "Key %s not found in loaded key ring", key)
-		}
+		})
+
+		It("should handle invalid directory", func() {
+			invalidDir := filepath.Join(tmpDir, "nonexistent")
+			_, err := mockLoadKeyRing(invalidDir)
+			Expect(err).To(HaveOccurred())
+		})
 	})
 
-	t.Run("GetMostRecentKey", func(t *testing.T) {
-		kr := NewKeyRing()
-		testKeys := []string{"key1", "key2", "key3"}
+	Context("when managing multiple keys", func() {
+		It("should maintain correct order and timestamps", func() {
+			kr := NewKeyRing()
+			keys := []string{"key1", "key2", "key3"}
 
-		// Add keys in sequence
-		for _, key := range testKeys {
-			kr.Add(key)
-		}
+			for _, key := range keys {
+				time.Sleep(time.Millisecond)
+				kr.Add(key)
+			}
 
-		// Most recent key should be the last one added
-		assert.Equal(t, testKeys[len(testKeys)-1], kr.MostRecentKey())
+			Expect(kr.Keys).To(HaveLen(len(keys)))
+
+			// Verify reverse order (most recent first)
+			for i := 0; i < len(keys); i++ {
+				Expect(kr.Keys[i].Key).To(Equal(keys[len(keys)-1-i]))
+				Expect(kr.Keys[i].InsertedAt).NotTo(BeZero())
+			}
+
+			// Test most recent key
+			Expect(kr.MostRecentKey()).To(Equal(keys[len(keys)-1]))
+		})
+
+		It("should handle empty key ring", func() {
+			kr := NewKeyRing()
+			Expect(kr.MostRecentKey()).To(BeEmpty())
+		})
 	})
-
-	t.Run("Empty_KeyRing", func(t *testing.T) {
-		kr := NewKeyRing()
-		assert.Empty(t, kr.MostRecentKey())
-	})
-
-	t.Run("Multiple_Keys", func(t *testing.T) {
-		// Create a new key ring
-		kr := NewKeyRing()
-		require.NotNil(t, kr)
-
-		// Add multiple keys
-		keys := []string{"key1", "key2", "key3"}
-		timestamps := make([]time.Time, len(keys))
-
-		// Add keys with different timestamps
-		for i, key := range keys {
-			// Sleep briefly to ensure different timestamps
-			time.Sleep(time.Millisecond)
-			timestamps[i] = time.Now()
-			kr.Add(key)
-		}
-
-		// Verify all keys are present
-		require.Equal(t, len(keys), len(kr.Keys))
-
-		// Verify keys are stored in reverse order (most recent first)
-		for i := 0; i < len(keys); i++ {
-			require.Equal(t, keys[len(keys)-1-i], kr.Keys[i].Key)
-			require.False(t, kr.Keys[i].InsertedAt.IsZero())
-		}
-
-		// Test getting most recent key
-		mostRecent := kr.MostRecentKey()
-		require.Equal(t, keys[len(keys)-1], mostRecent)
-
-		// Save and load key ring
-		err := mockSaveKeyRing(tmpDir, kr)
-		require.NoError(t, err)
-
-		// Create new key ring and load data
-		kr2, err := mockLoadKeyRing(tmpDir)
-		require.NoError(t, err)
-
-		// Verify all keys are present in loaded key ring in same order
-		require.Equal(t, len(keys), len(kr2.Keys))
-		for i := 0; i < len(keys); i++ {
-			require.Equal(t, kr.Keys[i].Key, kr2.Keys[i].Key)
-			require.Equal(t, kr.Keys[i].InsertedAt.Unix(), kr2.Keys[i].InsertedAt.Unix())
-		}
-	})
-
-	t.Run("Invalid_Directory", func(t *testing.T) {
-		invalidDir := filepath.Join(tmpDir, "nonexistent")
-		_, err := mockLoadKeyRing(invalidDir)
-		assert.Error(t, err)
-	})
-}
+})

@@ -6,7 +6,7 @@ import (
 )
 
 func skipIfNotTEE(t *testing.T) {
-	if os.Getenv("TEE_ENABLED") != "true" {
-		t.Skip("Skipping test in non-TEE environment")
+	if os.Getenv("OE_SIMULATION") == "1" {
+		t.Skip("Skipping TEE tests")
 	}
 }

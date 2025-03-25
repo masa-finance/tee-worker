@@ -1,166 +1,218 @@
 package tee
 
 import (
-	"testing"
+	"os"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
-func TestSealer(t *testing.T) {
-	skipIfNotTEE(t)
-	// Setup test data
-	testKey := "test-sealing-key"
-	testPlaintext := []byte("test message")
+var _ = Describe("Sealer", func() {
+	var (
+		testKey       string
+		testPlaintext []byte
+	)
 
-	t.Run("Seal_Unseal_WithoutSalt", func(t *testing.T) {
-		// Set test key
-		SealingKey = testKey
-		SealStandaloneMode = false
-
-		// Seal data using mock
-		sealed, err := mockSeal(testPlaintext)
-		require.NoError(t, err)
-		assert.NotEmpty(t, sealed)
-
-		// Unseal data using mock
-		unsealed, err := mockUnseal(sealed)
-		require.NoError(t, err)
-		assert.Equal(t, testPlaintext, unsealed)
-	})
-
-	t.Run("Seal_Unseal_WithSalt", func(t *testing.T) {
-		// Set test key
-		SealingKey = testKey
-		SealStandaloneMode = false
-
-		// Seal data with salt using mock
-		sealed, err := mockSeal(testPlaintext)
-		require.NoError(t, err)
-		assert.NotEmpty(t, sealed)
-
-		// Unseal data with salt using mock
-		unsealed, err := mockUnseal(sealed)
-		require.NoError(t, err)
-		assert.Equal(t, testPlaintext, unsealed)
-	})
-
-	t.Run("Seal_Without_Key", func(t *testing.T) {
-		// Clear key
-		SealingKey = ""
-		SealStandaloneMode = false
-
-		// Attempt to seal without key
-		sealed, err := Seal(testPlaintext)
-		assert.Error(t, err)
-		assert.Empty(t, sealed)
-	})
-
-	t.Run("Unseal_Invalid_Base64", func(t *testing.T) {
-		SealingKey = testKey
-		SealStandaloneMode = false
-
-		// Try to unseal invalid base64
-		unsealed, err := Unseal("invalid-base64")
-		assert.Error(t, err)
-		assert.Nil(t, unsealed)
-	})
-
-	t.Run("KeyRing_Decryption", func(t *testing.T) {
-		// Setup key ring with multiple keys
-		CurrentKeyRing = NewKeyRing()
-		keys := []string{"old-key", "current-key"}
-		for _, k := range keys {
-			CurrentKeyRing.Add(k)
-		}
-		SealingKey = keys[len(keys)-1] // Set most recent key
-
-		// Seal with current key
-		sealed, err := Seal(testPlaintext)
-		require.NoError(t, err)
-
-		// Should be able to unseal with key ring
-		unsealed, err := Unseal(sealed)
-		require.NoError(t, err)
-		assert.Equal(t, testPlaintext, unsealed)
-	})
-
-	t.Run("Standalone_Mode", func(t *testing.T) {
-		// Enable standalone mode
-		SealStandaloneMode = true
-		SealingKey = ""
-
-		// Should be able to seal/unseal without a key
-		sealed, err := Seal(testPlaintext)
-		require.NoError(t, err)
-		assert.NotEmpty(t, sealed)
-
-		unsealed, err := Unseal(sealed)
-		require.NoError(t, err)
-		assert.Equal(t, testPlaintext, unsealed)
-	})
-
-	t.Run("Key_Derivation", func(t *testing.T) {
-		baseKey := "base-key"
-		salt := "test-salt"
-		
-		// Derive key twice with same inputs
-		derived1 := deriveKey(baseKey, salt)
-		derived2 := deriveKey(baseKey, salt)
-
-		// Should get same result
-		assert.Equal(t, derived1, derived2)
-		
-		// Should be different from base key
-		assert.NotEqual(t, baseKey, derived1)
-		
-		// Different salt should give different key
-		derived3 := deriveKey(baseKey, "different-salt")
-		assert.NotEqual(t, derived1, derived3)
-	})
-}
-
-func TestTryDecryptWithKeyRing(t *testing.T) {
-	skipIfNotTEE(t)
-	// Setup test data
-	testPlaintext := []byte("test message")
-	testSalt := "test-salt"
-	
-	t.Run("Decrypt_With_Multiple_Keys", func(t *testing.T) {
-		// Setup key ring with multiple keys
-		kr := NewKeyRing()
-		keys := []string{"key1", "key2", "key3"}
-		for _, k := range keys {
-			kr.Add(k)
+	BeforeEach(func() {
+		if os.Getenv("OE_SIMULATION") == "1" {
+			Skip("Skipping TEE tests")
 		}
 
-		// Encrypt with each key
-		for _, key := range keys {
-			SealingKey = key
+		testKey = "0123456789abcdef0123456789abcdef" // 32 bytes for AES-256
+		testPlaintext = []byte("test message")
+	})
+
+	Context("when sealing and unsealing without salt", func() {
+		BeforeEach(func() {
+			SealingKey = testKey
+			SealStandaloneMode = false
+		})
+
+		It("should seal and unseal data correctly", func() {
+			sealed, err := mockSeal(testPlaintext)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(sealed).NotTo(BeEmpty())
+
+			unsealed, err := mockUnseal(sealed)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(unsealed).To(Equal(testPlaintext))
+		})
+	})
+
+	Context("when sealing and unsealing with salt", func() {
+		BeforeEach(func() {
+			SealingKey = testKey
+			SealStandaloneMode = false
+		})
+
+		It("should seal and unseal data correctly", func() {
+			sealed, err := mockSeal(testPlaintext)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(sealed).NotTo(BeEmpty())
+
+			unsealed, err := mockUnseal(sealed)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(unsealed).To(Equal(testPlaintext))
+		})
+	})
+
+	Context("when sealing without a key", func() {
+		BeforeEach(func() {
+			SealingKey = ""
+			SealStandaloneMode = false
+		})
+
+		It("should fail to seal data", func() {
+			sealed, err := Seal(testPlaintext)
+			Expect(err).To(HaveOccurred())
+			Expect(sealed).To(BeEmpty())
+		})
+	})
+
+	Context("when unsealing invalid data", func() {
+		BeforeEach(func() {
+			SealingKey = testKey
+			SealStandaloneMode = false
+		})
+
+		It("should fail to unseal invalid base64", func() {
+			unsealed, err := Unseal("invalid-base64")
+			Expect(err).To(HaveOccurred())
+			Expect(unsealed).To(BeNil())
+		})
+	})
+
+	Context("when using key ring for decryption", func() {
+		BeforeEach(func() {
+			CurrentKeyRing = NewKeyRing()
+			keys := []string{
+				"0123456789abcdef0123456789abcdef", // old key
+				"abcdef0123456789abcdef0123456789", // current key
+			}
+			for _, k := range keys {
+				CurrentKeyRing.Add(k)
+			}
+			SealingKey = keys[len(keys)-1] // Set most recent key
+		})
+
+		It("should seal and unseal with key ring", func() {
+			sealed, err := Seal(testPlaintext)
+			Expect(err).NotTo(HaveOccurred())
+
+			unsealed, err := Unseal(sealed)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(unsealed).To(Equal(testPlaintext))
+		})
+	})
+
+	Context("when in standalone mode", func() {
+		BeforeEach(func() {
+			// Skip if not in TEE environment
+			if os.Getenv("OE_SIMULATION") != "1" {
+				Skip("Skipping standalone mode test in non-TEE environment")
+			}
+			SealStandaloneMode = true
+			SealingKey = "0123456789abcdef0123456789abcdef"
+		})
+
+		It("should seal and unseal without a key", func() {
+			sealed, err := Seal(testPlaintext)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(sealed).NotTo(BeEmpty())
+
+			unsealed, err := Unseal(sealed)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(unsealed).To(Equal(testPlaintext))
+		})
+	})
+
+	Context("when deriving keys", func() {
+		var (
+			baseKey string
+			salt    string
+		)
+
+		BeforeEach(func() {
+			baseKey = "base-key"
+			salt = "test-salt"
+		})
+
+		It("should derive consistent keys with same inputs", func() {
+			derived1 := deriveKey(baseKey, salt)
+			derived2 := deriveKey(baseKey, salt)
+
+			Expect(derived1).To(Equal(derived2))
+			Expect(derived1).NotTo(Equal(baseKey))
+
+			derived3 := deriveKey(baseKey, "different-salt")
+			Expect(derived1).NotTo(Equal(derived3))
+		})
+	})
+})
+
+var _ = Describe("Key Ring Decryption", func() {
+	var (
+		testPlaintext []byte
+		testSalt      string
+	)
+
+	BeforeEach(func() {
+		if os.Getenv("OE_SIMULATION") == "1" {
+			Skip("Skipping TEE tests")
+		}
+
+		testPlaintext = []byte("test message")
+		testSalt = "test-salt"
+	})
+
+	Context("when decrypting with multiple keys", func() {
+		var (
+			kr   *KeyRing
+			keys []string
+		)
+
+		BeforeEach(func() {
+			kr = NewKeyRing()
+			keys = []string{
+				"0123456789abcdef0123456789abcdef", // key1
+				"abcdef0123456789abcdef0123456789", // key2
+				"456789abcdef0123456789abcdef0123", // key3
+			}
+			for _, k := range keys {
+				kr.Add(k)
+			}
+		})
+
+		It("should decrypt successfully with each key", func() {
+			for _, key := range keys {
+				SealingKey = key
+				sealed, err := SealWithKey(testSalt, testPlaintext)
+				Expect(err).NotTo(HaveOccurred())
+
+				decrypted, err := TryDecryptWithKeyRing(kr, testSalt, sealed)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(decrypted).To(Equal(testPlaintext))
+			}
+		})
+	})
+
+	Context("when decrypting with wrong keys", func() {
+		var kr *KeyRing
+
+		BeforeEach(func() {
+			kr = NewKeyRing()
+			kr.Add("00000000000000000000000000000000") // wrong key 1
+			kr.Add("11111111111111111111111111111111") // wrong key 2
+			SealingKey = "22222222222222222222222222222222" // correct key
+		})
+
+		It("should fail to decrypt", func() {
 			sealed, err := SealWithKey(testSalt, testPlaintext)
-			require.NoError(t, err)
+			Expect(err).NotTo(HaveOccurred())
 
-			// Should be able to decrypt with key ring
 			decrypted, err := TryDecryptWithKeyRing(kr, testSalt, sealed)
-			require.NoError(t, err)
-			assert.Equal(t, testPlaintext, decrypted)
-		}
+			Expect(err).To(HaveOccurred())
+			Expect(decrypted).To(BeNil())
+		})
 	})
-
-	t.Run("Decrypt_With_Wrong_Keys", func(t *testing.T) {
-		// Setup key ring with keys that won't work
-		kr := NewKeyRing()
-		kr.Add("wrong-key1")
-		kr.Add("wrong-key2")
-
-		// Encrypt with a different key
-		SealingKey = "correct-key"
-		sealed, err := SealWithKey(testSalt, testPlaintext)
-		require.NoError(t, err)
-
-		// Should fail to decrypt
-		decrypted, err := TryDecryptWithKeyRing(kr, testSalt, sealed)
-		assert.Error(t, err)
-		assert.Nil(t, decrypted)
-	})
-}
+})

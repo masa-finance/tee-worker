@@ -8,14 +8,21 @@ import (
 	"io"
 )
 
+var (
+	testKey = []byte("0123456789abcdef0123456789abcdef") // 32 bytes for AES-256
+)
+
+// getTestKey returns the key to use for mock encryption/decryption
+func getTestKey() []byte {
+	if SealingKey != "" {
+		return []byte(SealingKey)
+	}
+	return testKey
+}
+
 // mockSeal provides a test implementation of sealing data
 func mockSeal(data []byte) ([]byte, error) {
-	key := make([]byte, 32)
-	if _, err := io.ReadFull(rand.Reader, key); err != nil {
-		return nil, err
-	}
-
-	block, err := aes.NewCipher(key)
+	block, err := aes.NewCipher(getTestKey())
 	if err != nil {
 		return nil, err
 	}
@@ -35,9 +42,25 @@ func mockSeal(data []byte) ([]byte, error) {
 
 // mockUnseal provides a test implementation of unsealing data
 func mockUnseal(data []byte) ([]byte, error) {
-	// For testing, just return the input data
-	// In real implementation, this would decrypt the data
-	return data, nil
+	block, err := aes.NewCipher(getTestKey())
+	if err != nil {
+		return nil, err
+	}
+
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, err
+	}
+
+	nonceSize := gcm.NonceSize()
+	if len(data) < nonceSize {
+		return nil, fmt.Errorf("ciphertext too short")
+	}
+
+	nonce := data[:nonceSize]
+	ciphertext := data[nonceSize:]
+
+	return gcm.Open(nil, nonce, ciphertext, nil)
 }
 
 // mockSaveLegacyKey mocks saving a legacy key
