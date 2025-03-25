@@ -36,63 +36,6 @@ There is an example docker compose file to run the container with the appropriat
 docker-compose up
 ```
 
-## Data Sealing
-
-The tee-worker uses a secure sealing mechanism to protect sensitive data within the TEE environment. The sealing process ensures that data can only be accessed within the trusted enclave.
-
-### Basic Sealing and Unsealing
-
-```go
-// Seal sensitive data
-sealed, err := tee.Seal([]byte("sensitive data"))
-if err != nil {
-    log.Fatal(err)
-}
-
-// Unseal data
-unsealed, err := tee.Unseal(sealed)
-if err != nil {
-    log.Fatal(err)
-}
-```
-
-### Key Ring Management
-
-The sealer supports multiple encryption keys through a key ring system:
-
-```go
-// Initialize key ring
-keyRing := tee.NewKeyRing()
-
-// Add keys to the ring (32-byte keys for AES-256)
-keyRing.Add("0123456789abcdef0123456789abcdef")
-keyRing.Add("abcdef0123456789abcdef0123456789")
-
-// Set as current key ring
-tee.CurrentKeyRing = keyRing
-
-// Set the sealing key (usually the most recent key)
-tee.SealingKey = "abcdef0123456789abcdef0123456789"
-```
-
-### Salt-Based Key Derivation
-
-For additional security, you can use salt-based key derivation:
-
-```go
-// Seal with salt
-sealed, err := tee.SealWithKey("my-salt", []byte("sensitive data"))
-if err != nil {
-    log.Fatal(err)
-}
-
-// Unseal with salt
-unsealed, err := tee.UnsealWithKey("my-salt", sealed)
-if err != nil {
-    log.Fatal(err)
-}
-```
-
 ### Testing Mode
 
 For testing outside a TEE environment:
