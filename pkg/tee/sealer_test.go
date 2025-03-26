@@ -24,7 +24,8 @@ var _ = Describe("Sealer", func() {
 
 	Context("when sealing and unsealing without salt", func() {
 		BeforeEach(func() {
-			SealingKey = testKey
+			CurrentKeyRing = NewKeyRing()
+			CurrentKeyRing.Add(testKey)
 			SealStandaloneMode = false
 		})
 
@@ -41,7 +42,8 @@ var _ = Describe("Sealer", func() {
 
 	Context("when sealing and unsealing with salt", func() {
 		BeforeEach(func() {
-			SealingKey = testKey
+			CurrentKeyRing = NewKeyRing()
+			CurrentKeyRing.Add(testKey)
 			SealStandaloneMode = false
 		})
 
@@ -58,7 +60,7 @@ var _ = Describe("Sealer", func() {
 
 	Context("when sealing without a key", func() {
 		BeforeEach(func() {
-			SealingKey = ""
+			CurrentKeyRing = NewKeyRing() // Empty key ring
 			SealStandaloneMode = false
 		})
 
@@ -71,7 +73,8 @@ var _ = Describe("Sealer", func() {
 
 	Context("when unsealing invalid data", func() {
 		BeforeEach(func() {
-			SealingKey = testKey
+			CurrentKeyRing = NewKeyRing()
+			CurrentKeyRing.Add(testKey)
 			SealStandaloneMode = false
 		})
 
@@ -92,7 +95,7 @@ var _ = Describe("Sealer", func() {
 			for _, k := range keys {
 				CurrentKeyRing.Add(k)
 			}
-			SealingKey = keys[len(keys)-1] // Set most recent key
+			// Key ring will manage the most recent key
 		})
 
 		It("should seal and unseal with key ring", func() {
@@ -112,7 +115,8 @@ var _ = Describe("Sealer", func() {
 				Skip("Skipping standalone mode test in non-TEE environment")
 			}
 			SealStandaloneMode = true
-			SealingKey = "0123456789abcdef0123456789abcdef"
+			CurrentKeyRing = NewKeyRing()
+			CurrentKeyRing.Add("0123456789abcdef0123456789abcdef")
 		})
 
 		It("should seal and unseal without a key", func() {
@@ -185,7 +189,11 @@ var _ = Describe("Key Ring Decryption", func() {
 
 		It("should decrypt successfully with each key", func() {
 			for _, key := range keys {
-				SealingKey = key
+				// Use a temporary key ring with just this key
+				tempKR := NewKeyRing()
+				tempKR.Add(key)
+				CurrentKeyRing = tempKR
+				
 				sealed, err := SealWithKey(testSalt, testPlaintext)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -200,10 +208,14 @@ var _ = Describe("Key Ring Decryption", func() {
 		var kr *KeyRing
 
 		BeforeEach(func() {
+			// Create a key ring with wrong keys for the test
 			kr = NewKeyRing()
 			kr.Add("00000000000000000000000000000000") // wrong key 1
 			kr.Add("11111111111111111111111111111111") // wrong key 2
-			SealingKey = "22222222222222222222222222222222" // correct key
+			
+			// Use a temporary keyring with the correct key for sealing
+			CurrentKeyRing = NewKeyRing()
+			CurrentKeyRing.Add("22222222222222222222222222222222") // correct key
 		})
 
 		It("should fail to decrypt", func() {

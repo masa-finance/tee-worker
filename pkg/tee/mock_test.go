@@ -14,8 +14,8 @@ var (
 
 // getTestKey returns the key to use for mock encryption/decryption
 func getTestKey() []byte {
-	if SealingKey != "" {
-		return []byte(SealingKey)
+	if CurrentKeyRing != nil && len(CurrentKeyRing.Keys) > 0 {
+		return []byte(CurrentKeyRing.MostRecentKey())
 	}
 	return testKey
 }
@@ -63,26 +63,19 @@ func mockUnseal(data []byte) ([]byte, error) {
 	return gcm.Open(nil, nonce, ciphertext, nil)
 }
 
-// mockSaveLegacyKey mocks saving a legacy key
-func mockSaveLegacyKey(datadir, key string) error {
-	sealed, err := mockSeal([]byte(key))
-	if err != nil {
-		return fmt.Errorf("failed to seal legacy key: %w", err)
+// mockSaveKeyRingEntry mocks saving a key to the keyring
+func mockSaveKeyRingEntry(datadir, key string) error {
+	// Create a keyring if none exists
+	keyRing := CurrentKeyRing
+	if keyRing == nil {
+		keyRing = NewKeyRing()
 	}
-	return saveLegacyKey(datadir, string(sealed))
-}
-
-// mockLoadLegacyKey mocks loading a legacy key
-func mockLoadLegacyKey(datadir string) (string, error) {
-	key, err := loadLegacyKey(datadir)
-	if err != nil {
-		return "", err
-	}
-	unsealed, err := mockUnseal([]byte(key))
-	if err != nil {
-		return "", err
-	}
-	return string(unsealed), nil
+	
+	// Add the key
+	keyRing.Add(key)
+	
+	// Save the keyring
+	return SaveKeyRing(datadir, keyRing)
 }
 
 // mockVerifySignature mocks signature verification for testing
