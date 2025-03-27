@@ -138,33 +138,40 @@ func SealWithKey(salt string, plaintext []byte) (string, error) {
 }
 
 func UnsealWithKey(salt string, encryptedText string) ([]byte, error) {
-	// Use key ring for decryption
+	// If we're not in standalone mode, we must use the keyring
+	if !SealStandaloneMode {
+		// Check if we have keys available
+		if CurrentKeyRing == nil || len(CurrentKeyRing.Keys) == 0 {
+			return nil, fmt.Errorf("no keys available in key ring")
+		}
+
+		// Try to decrypt with the keyring
+		result, err := TryDecryptWithKeyRing(CurrentKeyRing, salt, encryptedText)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decrypt with any key in the ring: %w", err)
+		}
+		return result, nil
+	}
+
+	// In standalone mode, we can try the keyring first
 	if CurrentKeyRing != nil && len(CurrentKeyRing.Keys) > 0 {
 		result, err := TryDecryptWithKeyRing(CurrentKeyRing, salt, encryptedText)
 		if err == nil {
 			return result, nil
 		}
-		if !SealStandaloneMode {
-			return nil, fmt.Errorf("failed to decrypt with any key in the ring: %w", err)
-		}
-	} else if !SealStandaloneMode {
-		return nil, fmt.Errorf("no keys available in key ring")
+		// If keyring fails in standalone mode, we continue to try with product key
 	}
 
+	// Decode base64 for product key decryption in standalone mode
 	b64, err := base64.StdEncoding.DecodeString(encryptedText)
 	if err != nil {
 		return nil, err
 	}
 
-	// Handle standalone mode directly with product key
-	if SealStandaloneMode {
-		resString, errUnseal := ecrypto.Unseal(b64, []byte(salt))
-		if errUnseal != nil {
-			return nil, errUnseal
-		}
-		return []byte(resString), nil
+	// Try with product key in standalone mode
+	resString, errUnseal := ecrypto.Unseal(b64, []byte(salt))
+	if errUnseal != nil {
+		return nil, errUnseal
 	}
-	
-	// We should not reach here if we're not in standalone mode
-	return nil, fmt.Errorf("failed to decrypt: no valid keys available")
+	return []byte(resString), nil
 }
