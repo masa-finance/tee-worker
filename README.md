@@ -36,6 +36,25 @@ There is an example docker compose file to run the container with the appropriat
 docker-compose up
 ```
 
+### Testing Mode
+
+For testing outside a TEE environment:
+
+```go
+// Enable standalone mode
+tee.SealStandaloneMode = true
+
+// Set a key for standalone mode (32 bytes for AES-256)
+tee.SealingKey = "0123456789abcdef0123456789abcdef"
+```
+
+### Important Notes
+
+1. All encryption keys must be exactly 32 bytes long for AES-256 encryption
+2. The sealing mechanism uses the TEE's product key in production mode
+3. Key rings help manage multiple encryption keys and support key rotation
+4. Salt-based key derivation adds an extra layer of security by deriving unique keys for different contexts
+
 ## API
 
 The tee-worker exposes a simple http API to submit jobs, retrieve results, and decrypt the results.
