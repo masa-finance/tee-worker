@@ -24,6 +24,7 @@ type Job struct {
 	Arguments JobArguments `json:"arguments"`
 	UUID      string       `json:"-"`
 	Nonce     string       `json:"quote"`
+	WorkerID  string       `json:"worker_id"`
 }
 
 var letterRunes = []rune("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()_+")
@@ -38,6 +39,7 @@ func randStringRunes(n int) string {
 
 // GenerateJobSignature generates a signature for the job.
 func (job *Job) GenerateJobSignature() (string, error) {
+
 	dat, err := json.Marshal(job)
 	if err != nil {
 		return "", err
