@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -251,7 +252,7 @@ func TryDecryptWithKeyRing(keyRing *KeyRing, salt string, encryptedText string) 
 	}
 
 	// Try each key, starting with the most recent
-	var lastErr error
+	var errors []error
 	for i, key := range keys {
 		// Derive the key with salt if needed
 		derivedKey := key
@@ -262,7 +263,7 @@ func TryDecryptWithKeyRing(keyRing *KeyRing, salt string, encryptedText string) 
 		// Decode the base64 encrypted text
 		b64, err := base64.StdEncoding.DecodeString(encryptedText)
 		if err != nil {
-			lastErr = err
+			errors = append(errors, fmt.Errorf("key %d: base64 decode error: %w", i+1, err))
 			continue
 		}
 
@@ -271,14 +272,14 @@ func TryDecryptWithKeyRing(keyRing *KeyRing, salt string, encryptedText string) 
 			// In standalone mode, try SGX unsealing
 			plaintext, err = ecrypto.Unseal(b64, []byte(salt))
 			if err != nil {
-				lastErr = err
+				errors = append(errors, fmt.Errorf("key %d: SGX unseal error: %w", i+1, err))
 				continue
 			}
 		} else {
 			// In normal mode, try AES decryption
 			plaintextStr, err := DecryptAES(string(b64), derivedKey)
 			if err != nil {
-				lastErr = err
+				errors = append(errors, fmt.Errorf("key %d: AES decrypt error: %w", i+1, err))
 				continue
 			}
 			plaintext = []byte(plaintextStr)
@@ -291,5 +292,14 @@ func TryDecryptWithKeyRing(keyRing *KeyRing, salt string, encryptedText string) 
 		return plaintext, nil
 	}
 
-	return nil, fmt.Errorf("failed to decrypt with any key: %v", lastErr)
+	// Format all collected errors
+	if len(errors) > 0 {
+		errMsgs := make([]string, len(errors))
+		for i, err := range errors {
+			errMsgs[i] = err.Error()
+		}
+		return nil, fmt.Errorf("failed to decrypt with any key. Errors: %s", strings.Join(errMsgs, "; "))
+	}
+
+	return nil, fmt.Errorf("failed to decrypt with any key due to unknown error")
 }

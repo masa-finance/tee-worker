@@ -44,8 +44,12 @@ For testing outside a TEE environment:
 // Enable standalone mode
 tee.SealStandaloneMode = true
 
-// Set a key for standalone mode (32 bytes for AES-256)
-tee.SealingKey = "0123456789abcdef0123456789abcdef"
+// Create a new key ring and add a key for standalone mode (32 bytes for AES-256)
+keyRing := tee.NewKeyRing()
+keyRing.Add("0123456789abcdef0123456789abcdef")
+
+// Set as the current key ring
+tee.CurrentKeyRing = keyRing
 ```
 
 ### Important Notes
