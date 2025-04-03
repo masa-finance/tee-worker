@@ -75,7 +75,7 @@ func SetKey(datadir, key, signature string) error {
 	}
 
 	// Save the key ring
-	if err := SaveKeyRing(datadir, CurrentKeyRing); err != nil {
+	if err := CurrentKeyRing.Save(datadir); err != nil {
 		return fmt.Errorf("failed to save key ring: %w", err)
 	}
 

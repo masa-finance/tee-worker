@@ -118,7 +118,7 @@ func LoadKeyRing(dataDir string) (*KeyRing, error) {
 			logrus.Info("Migrated legacy key to key ring")
 
 			// Save the new key ring
-			if err := SaveKeyRing(dataDir, keyRing); err != nil {
+			if err := keyRing.Save(dataDir); err != nil {
 				return nil, fmt.Errorf("failed to save migrated key ring: %w", err)
 			}
 
@@ -135,12 +135,9 @@ func LoadKeyRing(dataDir string) (*KeyRing, error) {
 		return nil, fmt.Errorf("failed to read key ring file: %w", err)
 	}
 
-	// Check if running in a test environment
-	isTesting := os.Getenv("GO_TESTING") == "1" || os.Getenv("GINKGO_TESTING") == "1"
-	
 	// Unseal the data
 	var data []byte
-	if isTesting || SealStandaloneMode {
+	if SealStandaloneMode {
 		// In test mode or standalone mode, read as plain text
 		data = encryptedData
 		logrus.Debug("Reading key ring as plain text in test/standalone mode")
@@ -168,19 +165,24 @@ func LoadKeyRing(dataDir string) (*KeyRing, error) {
 	return &keyRing, nil
 }
 
-// SaveKeyRing saves a key ring to disk
-func SaveKeyRing(dataDir string, keyRing *KeyRing) error {
-	if keyRing == nil {
+// Save saves the key ring to disk
+func (kr *KeyRing) Save(dataDir string) error {
+	if kr == nil {
 		return fmt.Errorf("key ring is nil")
 	}
 
 	// Create the file path
 	ringPath := filepath.Join(dataDir, keyRingFilename)
 
+	// Ensure the directory exists
+	if err := os.MkdirAll(dataDir, 0755); err != nil {
+		return fmt.Errorf("failed to create directory: %w", err)
+	}
+
 	// Marshal the key ring
-	keyRing.mu.RLock()
-	data, err := json.Marshal(keyRing)
-	keyRing.mu.RUnlock()
+	kr.mu.RLock()
+	data, err := json.Marshal(kr)
+	kr.mu.RUnlock()
 	if err != nil {
 		return fmt.Errorf("failed to marshal key ring: %w", err)
 	}
@@ -188,14 +190,11 @@ func SaveKeyRing(dataDir string, keyRing *KeyRing) error {
 	// Seal the data
 	var encryptedData []byte
 	
-	// Check if running in a test environment
-	isTesting := os.Getenv("GO_TESTING") == "1" || os.Getenv("GINKGO_TESTING") == "1"
-	
-	// In test mode or standalone mode, use plain text
-	if isTesting || SealStandaloneMode {
-		// Store as plain text for testing
+	// In standalone mode, use plain text
+	if SealStandaloneMode {
+		// Store as plain text for standalone mode
 		encryptedData = data
-		logrus.Debug("Using plain text storage for key ring in test/standalone mode")
+		logrus.Debug("Using plain text storage for key ring in standalone mode")
 	} else {
 		// In normal mode, use SGX sealing
 		encryptedData, err = ecrypto.SealWithProductKey(data, []byte{})
@@ -209,7 +208,7 @@ func SaveKeyRing(dataDir string, keyRing *KeyRing) error {
 		return fmt.Errorf("failed to write key ring file: %w", err)
 	}
 
-	logrus.Info("Saved key ring with ", len(keyRing.Keys), " keys")
+	logrus.Info("Saved key ring with ", len(kr.Keys), " keys")
 	return nil
 }
 
@@ -233,19 +232,19 @@ func loadLegacyKey(dataDir string) (string, error) {
 	return string(key), nil
 }
 
-// TryDecryptWithKeyRing attempts to decrypt with all keys in the ring
-func TryDecryptWithKeyRing(keyRing *KeyRing, salt string, encryptedText string) ([]byte, error) {
-	if keyRing == nil {
+// Decrypt attempts to decrypt with all keys in the ring
+func (kr *KeyRing) Decrypt(salt string, encryptedText string) ([]byte, error) {
+	if kr == nil {
 		return nil, fmt.Errorf("key ring is nil")
 	}
 
 	// Get all keys from the ring
-	keyRing.mu.RLock()
-	keys := make([]string, len(keyRing.Keys))
-	for i, entry := range keyRing.Keys {
+	kr.mu.RLock()
+	keys := make([]string, len(kr.Keys))
+	for i, entry := range kr.Keys {
 		keys[i] = entry.Key
 	}
-	keyRing.mu.RUnlock()
+	kr.mu.RUnlock()
 
 	if len(keys) == 0 {
 		return nil, fmt.Errorf("no keys in key ring")

@@ -82,7 +82,7 @@ var _ = Describe("Key Management", func() {
 			Expect(CurrentKeyRing.MostRecentKey()).To(Equal(testKey))
 			
 			// Save the keyring
-			err = SaveKeyRing(nonExistentDir, CurrentKeyRing)
+			err = CurrentKeyRing.Save(nonExistentDir)
 			Expect(err).NotTo(HaveOccurred())
 			
 			// Clean up - remove the directory after testing
@@ -98,7 +98,7 @@ var _ = Describe("Key Management", func() {
 			keyRing.Add(testKey)
 			
 			// Save the key ring
-			err := SaveKeyRing(tmpDir, keyRing)
+			err := keyRing.Save(tmpDir)
 			Expect(err).NotTo(HaveOccurred())
 
 			// Verify key ring contains the key
@@ -121,7 +121,7 @@ var _ = Describe("Key Management", func() {
 			// Create and save a key ring
 			keyRing := NewKeyRing()
 			keyRing.Add(testKey)
-			err := SaveKeyRing(tmpDir, keyRing)
+			err := keyRing.Save(tmpDir)
 			Expect(err).NotTo(HaveOccurred())
 
 			// Load key ring
