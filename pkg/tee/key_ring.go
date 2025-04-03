@@ -251,6 +251,12 @@ func TryDecryptWithKeyRing(keyRing *KeyRing, salt string, encryptedText string) 
 		return nil, fmt.Errorf("no keys in key ring")
 	}
 
+	// Decode the base64 encrypted text once before trying keys
+	b64, err := base64.StdEncoding.DecodeString(encryptedText)
+	if err != nil {
+		return nil, fmt.Errorf("base64 decode error: %w", err)
+	}
+
 	// Try each key, starting with the most recent
 	var errors []error
 	for i, key := range keys {
@@ -258,13 +264,6 @@ func TryDecryptWithKeyRing(keyRing *KeyRing, salt string, encryptedText string) 
 		derivedKey := key
 		if salt != "" {
 			derivedKey = deriveKey(key, salt)
-		}
-
-		// Decode the base64 encrypted text
-		b64, err := base64.StdEncoding.DecodeString(encryptedText)
-		if err != nil {
-			errors = append(errors, fmt.Errorf("key %d: base64 decode error: %w", i+1, err))
-			continue
 		}
 
 		var plaintext []byte
