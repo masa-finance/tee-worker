@@ -138,29 +138,27 @@ func SealWithKey(salt string, plaintext []byte) (string, error) {
 }
 
 func UnsealWithKey(salt string, encryptedText string) ([]byte, error) {
-	// If we're not in standalone mode, we must use the keyring
-	if !SealStandaloneMode {
-		// Check if we have keys available
-		if CurrentKeyRing == nil || len(CurrentKeyRing.Keys) == 0 {
-			return nil, fmt.Errorf("no keys available in key ring")
-		}
-
+	// Try decryption with the keyring if available
+	if CurrentKeyRing != nil && len(CurrentKeyRing.Keys) > 0 {
 		// Try to decrypt with the keyring
 		result, err := CurrentKeyRing.Decrypt(salt, encryptedText)
-		if err != nil {
-			return nil, fmt.Errorf("failed to decrypt with any key in the ring: %w", err)
-		}
-		return result, nil
-	}
-
-	// In standalone mode, we can try the keyring first
-	if CurrentKeyRing != nil && len(CurrentKeyRing.Keys) > 0 {
-		result, err := CurrentKeyRing.Decrypt(salt, encryptedText)
-		if err == nil {
+		
+		// In non-standalone mode, return whether success or failure
+		if !SealStandaloneMode || err == nil {
+			if err != nil {
+				return nil, fmt.Errorf("failed to decrypt with any key in the ring: %w", err)
+			}
 			return result, nil
 		}
-		// If keyring fails in standalone mode, we continue to try with product key
+		// In standalone mode with error, continue to try with product key
+	} else if !SealStandaloneMode {
+		// If we're not in standalone mode and no keyring is available, that's an error
+		return nil, fmt.Errorf("no keys available in key ring")
 	}
+	
+	// At this point, we are in standalone mode and either:
+	// 1. The keyring decryption failed, or
+	// 2. No keyring is available
 
 	// Decode base64 for product key decryption in standalone mode
 	b64, err := base64.StdEncoding.DecodeString(encryptedText)

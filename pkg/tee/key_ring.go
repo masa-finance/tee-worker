@@ -233,7 +233,13 @@ func loadLegacyKey(dataDir string) (string, error) {
 }
 
 // Decrypt attempts to decrypt with all keys in the ring
-func (kr *KeyRing) Decrypt(salt string, encryptedText string) ([]byte, error) {
+// Parameters:
+//   - salt: Optional salt for key derivation
+//   - encryptedBase64: The encrypted data as a base64-encoded string
+// Returns:
+//   - Decrypted plaintext as bytes
+//   - Error if decryption fails with all keys
+func (kr *KeyRing) Decrypt(salt string, encryptedBase64 string) ([]byte, error) {
 	if kr == nil {
 		return nil, fmt.Errorf("key ring is nil")
 	}
@@ -251,7 +257,8 @@ func (kr *KeyRing) Decrypt(salt string, encryptedText string) ([]byte, error) {
 	}
 
 	// Decode the base64 encrypted text once before trying keys
-	b64, err := base64.StdEncoding.DecodeString(encryptedText)
+	// This is more efficient than decoding inside the key loop
+	encryptedBytes, err := base64.StdEncoding.DecodeString(encryptedBase64)
 	if err != nil {
 		return nil, fmt.Errorf("base64 decode error: %w", err)
 	}
@@ -268,14 +275,14 @@ func (kr *KeyRing) Decrypt(salt string, encryptedText string) ([]byte, error) {
 		var plaintext []byte
 		if SealStandaloneMode {
 			// In standalone mode, try SGX unsealing
-			plaintext, err = ecrypto.Unseal(b64, []byte(salt))
+			plaintext, err = ecrypto.Unseal(encryptedBytes, []byte(salt))
 			if err != nil {
 				errors = append(errors, fmt.Errorf("key %d: SGX unseal error: %w", i+1, err))
 				continue
 			}
 		} else {
 			// In normal mode, try AES decryption
-			plaintextStr, err := DecryptAES(string(b64), derivedKey)
+			plaintextStr, err := DecryptAES(string(encryptedBytes), derivedKey)
 			if err != nil {
 				errors = append(errors, fmt.Errorf("key %d: AES decrypt error: %w", i+1, err))
 				continue
