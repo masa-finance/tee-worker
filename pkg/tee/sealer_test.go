@@ -197,7 +197,7 @@ var _ = Describe("Key Ring Decryption", func() {
 				sealed, err := SealWithKey(testSalt, testPlaintext)
 				Expect(err).NotTo(HaveOccurred())
 
-				decrypted, err := TryDecryptWithKeyRing(kr, testSalt, sealed)
+				decrypted, err := kr.Decrypt(testSalt, sealed)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(decrypted).To(Equal(testPlaintext))
 			}
@@ -222,7 +222,7 @@ var _ = Describe("Key Ring Decryption", func() {
 			sealed, err := SealWithKey(testSalt, testPlaintext)
 			Expect(err).NotTo(HaveOccurred())
 
-			decrypted, err := TryDecryptWithKeyRing(kr, testSalt, sealed)
+			decrypted, err := kr.Decrypt(testSalt, sealed)
 			Expect(err).To(HaveOccurred())
 			Expect(decrypted).To(BeNil())
 		})
