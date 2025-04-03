@@ -96,7 +96,7 @@ func deriveKey(inputKey, salt string) string {
 }
 
 func SealWithKey(salt string, plaintext []byte) (string, error) {
-	// Always use the most recent key for encryption from the keyring
+	// Check if the keyring is available and has keys
 	if CurrentKeyRing == nil || len(CurrentKeyRing.Keys) == 0 {
 		if !SealStandaloneMode {
 			return "", fmt.Errorf("no keys available in key ring")
@@ -116,7 +116,7 @@ func SealWithKey(salt string, plaintext []byte) (string, error) {
 
 	var res string
 	var err error
-	
+
 	// Handle standalone mode directly
 	if SealStandaloneMode {
 		resBytes, errSeal := ecrypto.SealWithProductKey(plaintext, []byte(salt))
@@ -142,7 +142,7 @@ func UnsealWithKey(salt string, encryptedText string) ([]byte, error) {
 	if CurrentKeyRing != nil && len(CurrentKeyRing.Keys) > 0 {
 		// Try to decrypt with the keyring
 		result, err := CurrentKeyRing.Decrypt(salt, encryptedText)
-		
+
 		// In non-standalone mode, return whether success or failure
 		if !SealStandaloneMode || err == nil {
 			if err != nil {
@@ -155,7 +155,7 @@ func UnsealWithKey(salt string, encryptedText string) ([]byte, error) {
 		// If we're not in standalone mode and no keyring is available, that's an error
 		return nil, fmt.Errorf("no keys available in key ring")
 	}
-	
+
 	// At this point, we are in standalone mode and either:
 	// 1. The keyring decryption failed, or
 	// 2. No keyring is available
