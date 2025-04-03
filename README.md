@@ -55,6 +55,9 @@ tee.CurrentKeyRing = keyRing
 ### Important Notes
 
 1. All encryption keys must be exactly 32 bytes long for AES-256 encryption
+   - The system validates that keys are exactly 32 bytes (256 bits) when added through the `SetKey` function
+   - An error will be returned if the key length is invalid
+   - Example valid key: `"0123456789abcdef0123456789abcdef"` (32 bytes)
 2. The sealing mechanism uses the TEE's product key in production mode
 3. Key rings help manage multiple encryption keys and support key rotation
 4. Salt-based key derivation adds an extra layer of security by deriving unique keys for different contexts
