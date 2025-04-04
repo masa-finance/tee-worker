@@ -275,13 +275,16 @@ func (kr *KeyRing) Decrypt(salt string, encryptedBase64 string) ([]byte, error) 
 		var plaintext []byte
 		if SealStandaloneMode {
 			// In standalone mode, try SGX unsealing
+			// Note: ecrypto.Unseal internally handles salt via its second parameter
+			// We pass the salt directly rather than trying to integrate with derivedKey
+			// because SGX unsealing has its own salt handling mechanism
 			plaintext, err = ecrypto.Unseal(encryptedBytes, []byte(salt))
 			if err != nil {
 				errors = append(errors, fmt.Errorf("key %d: SGX unseal error: %w", i+1, err))
 				continue
 			}
 		} else {
-			// In normal mode, try AES decryption
+			// In normal mode, try AES decryption with the derived key
 			plaintextStr, err := DecryptAES(string(encryptedBytes), derivedKey)
 			if err != nil {
 				errors = append(errors, fmt.Errorf("key %d: AES decrypt error: %w", i+1, err))
