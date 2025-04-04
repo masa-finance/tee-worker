@@ -138,35 +138,38 @@ func SealWithKey(salt string, plaintext []byte) (string, error) {
 }
 
 func UnsealWithKey(salt string, encryptedText string) ([]byte, error) {
-	// Try decryption with the keyring if available
-	if CurrentKeyRing != nil && len(CurrentKeyRing.Keys) > 0 {
+	// Handle non-standalone mode (keyring is required)
+	if !SealStandaloneMode {
+		// Require a valid keyring in non-standalone mode
+		if CurrentKeyRing == nil || len(CurrentKeyRing.Keys) == 0 {
+			return nil, fmt.Errorf("no keys available in key ring")
+		}
+		
 		// Try to decrypt with the keyring
 		result, err := CurrentKeyRing.Decrypt(salt, encryptedText)
-
-		// In non-standalone mode, return whether success or failure
-		if !SealStandaloneMode || err == nil {
-			if err != nil {
-				return nil, fmt.Errorf("failed to decrypt with any key in the ring: %w", err)
-			}
+		if err != nil {
+			return nil, fmt.Errorf("failed to decrypt with any key in the ring: %w", err)
+		}
+		return result, nil
+	}
+	
+	// Handle standalone mode (try keyring first, then fallback to product key)
+	
+	// 1. Try keyring if available
+	if CurrentKeyRing != nil && len(CurrentKeyRing.Keys) > 0 {
+		result, err := CurrentKeyRing.Decrypt(salt, encryptedText)
+		if err == nil {
 			return result, nil
 		}
-		// In standalone mode with error, continue to try with product key
-	} else if !SealStandaloneMode {
-		// If we're not in standalone mode and no keyring is available, that's an error
-		return nil, fmt.Errorf("no keys available in key ring")
+		// On error, fall through to product key method
 	}
-
-	// At this point, we are in standalone mode and either:
-	// 1. The keyring decryption failed, or
-	// 2. No keyring is available
-
-	// Decode base64 for product key decryption in standalone mode
+	
+	// 2. Fallback to product key decryption
 	b64, err := base64.StdEncoding.DecodeString(encryptedText)
 	if err != nil {
 		return nil, err
 	}
-
-	// Try with product key in standalone mode
+	
 	resString, errUnseal := ecrypto.Unseal(b64, []byte(salt))
 	if errUnseal != nil {
 		return nil, errUnseal

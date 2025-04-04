@@ -42,6 +42,11 @@ func LoadKey(datadir string) error {
 
 // SetKey sets a new key, verifying the signature and adding it to the key ring.
 func SetKey(datadir, key, signature string) error {
+	// Validate key length early - must be exactly 32 bytes for AES-256
+	if len(key) != 32 {
+		return fmt.Errorf("invalid key length: got %d bytes, expected 32 bytes for AES-256 encryption", len(key))
+	}
+
 	// Verify the signature
 	dkey, err := base64.StdEncoding.DecodeString(KeyDistributorPubKey)
 	if err != nil {
@@ -50,11 +55,6 @@ func SetKey(datadir, key, signature string) error {
 
 	if err := VerifySignature([]byte(key), []byte(signature), dkey); err != nil {
 		return fmt.Errorf("invalid signature: %w", err)
-	}
-
-	// Validate key length - must be exactly 32 bytes for AES-256
-	if len(key) != 32 {
-		return fmt.Errorf("invalid key length: got %d bytes, expected 32 bytes for AES-256 encryption", len(key))
 	}
 
 	// Initialize or load the key ring if needed

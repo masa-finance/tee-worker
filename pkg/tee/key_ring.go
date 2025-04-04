@@ -208,7 +208,7 @@ func (kr *KeyRing) Save(dataDir string) error {
 		return fmt.Errorf("failed to write key ring file: %w", err)
 	}
 
-	logrus.Info("Saved key ring with ", len(kr.Keys), " keys")
+	logrus.Infof("Saved key ring with %d keys", len(kr.Keys))
 	return nil
 }
 
