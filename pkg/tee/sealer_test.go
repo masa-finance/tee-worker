@@ -110,10 +110,6 @@ var _ = Describe("Sealer", func() {
 
 	Context("when in standalone mode", func() {
 		BeforeEach(func() {
-			// Skip if not in TEE environment
-			if os.Getenv("OE_SIMULATION") != "1" {
-				Skip("Skipping standalone mode test in non-TEE environment")
-			}
 			SealStandaloneMode = true
 			CurrentKeyRing = NewKeyRing()
 			CurrentKeyRing.Add("0123456789abcdef0123456789abcdef")
@@ -193,7 +189,7 @@ var _ = Describe("Key Ring Decryption", func() {
 				tempKR := NewKeyRing()
 				tempKR.Add(key)
 				CurrentKeyRing = tempKR
-				
+
 				sealed, err := SealWithKey(testSalt, testPlaintext)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -212,7 +208,7 @@ var _ = Describe("Key Ring Decryption", func() {
 			kr = NewKeyRing()
 			kr.Add("00000000000000000000000000000000") // wrong key 1
 			kr.Add("11111111111111111111111111111111") // wrong key 2
-			
+
 			// Use a temporary keyring with the correct key for sealing
 			CurrentKeyRing = NewKeyRing()
 			CurrentKeyRing.Add("22222222222222222222222222222222") // correct key

@@ -11,10 +11,10 @@ import (
 
 var _ = Describe("Key Management", func() {
 	var (
-		tmpDir string
-		testKey string
+		tmpDir        string
+		testKey       string
 		testSignature string
-		err error
+		err           error
 	)
 
 	BeforeEach(func() {
@@ -35,9 +35,6 @@ var _ = Describe("Key Management", func() {
 
 	Context("when setting keys", func() {
 		It("should fail without key distributor", func() {
-			if os.Getenv("OE_SIMULATION") != "1" {
-				Skip("Skipping key distributor test in non-TEE environment")
-			}
 			// Clear key distributor
 			KeyDistributorPubKey = ""
 
@@ -65,26 +62,26 @@ var _ = Describe("Key Management", func() {
 			err := LoadKey(nonExistentDir)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("directory does not exist"))
-			
+
 			// Now create the directory
 			err = os.MkdirAll(nonExistentDir, 0755)
 			Expect(err).NotTo(HaveOccurred())
-			
+
 			// Test that LoadKey now works with the created directory
 			err = LoadKey(nonExistentDir)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(CurrentKeyRing).NotTo(BeNil())
 			Expect(CurrentKeyRing.Keys).To(BeEmpty())
-			
+
 			// Add a key to test saving works
 			testKey := "test-key-for-created-dir"
 			CurrentKeyRing.Add(testKey)
 			Expect(CurrentKeyRing.MostRecentKey()).To(Equal(testKey))
-			
+
 			// Save the keyring
 			err = CurrentKeyRing.Save(nonExistentDir)
 			Expect(err).NotTo(HaveOccurred())
-			
+
 			// Clean up - remove the directory after testing
 			err = os.RemoveAll(nonExistentDir)
 			Expect(err).NotTo(HaveOccurred())
@@ -96,7 +93,7 @@ var _ = Describe("Key Management", func() {
 			// Create and add a key to the ring
 			keyRing := NewKeyRing()
 			keyRing.Add(testKey)
-			
+
 			// Save the key ring
 			err := keyRing.Save(tmpDir)
 			Expect(err).NotTo(HaveOccurred())
