@@ -176,7 +176,8 @@ func (kr *KeyRing) Save(dataDir string) error {
 
 	// Ensure the directory exists
 	if err := os.MkdirAll(dataDir, 0755); err != nil {
-		return fmt.Errorf("failed to create directory: %w", err)
+		logrus.Errorf("failed to create directory, %s: %v", dataDir, err)
+		return fmt.Errorf("failed to create directory, %s: %w", dataDir, err)
 	}
 
 	// Marshal the key ring
@@ -184,12 +185,13 @@ func (kr *KeyRing) Save(dataDir string) error {
 	data, err := json.Marshal(kr)
 	kr.mu.RUnlock()
 	if err != nil {
-		return fmt.Errorf("failed to marshal key ring: %w", err)
+		logrus.Errorf("failed to marshal key ring to JSON: %v", err)
+		return fmt.Errorf("failed to marshal key ring to JSON: %w", err)
 	}
 
 	// Seal the data
 	var encryptedData []byte
-	
+
 	// In standalone mode, use plain text
 	if SealStandaloneMode {
 		// Store as plain text for standalone mode
@@ -199,12 +201,14 @@ func (kr *KeyRing) Save(dataDir string) error {
 		// In normal mode, use SGX sealing
 		encryptedData, err = ecrypto.SealWithProductKey(data, []byte{})
 		if err != nil {
-			return fmt.Errorf("failed to seal key ring: %w", err)
+			logrus.Errorf("failed to seal key ring, %v", err)
+			return fmt.Errorf("failed to seal key ring, %w", err)
 		}
 	}
 
 	// Write the file
 	if err := os.WriteFile(ringPath, encryptedData, 0600); err != nil {
+		logrus.Errorf("failed to write key ring file: %v", err)
 		return fmt.Errorf("failed to write key ring file: %w", err)
 	}
 
@@ -217,6 +221,7 @@ func loadLegacyKey(dataDir string) (string, error) {
 	legacyPath := filepath.Join(dataDir, "sealing_key")
 	encryptedKey, err := os.ReadFile(legacyPath)
 	if err != nil {
+		logrus.Errorf("failed to read legacy key file: %v", err)
 		return "", fmt.Errorf("failed to read legacy key: %w", err)
 	}
 
@@ -226,6 +231,7 @@ func loadLegacyKey(dataDir string) (string, error) {
 		if SealStandaloneMode {
 			return string(encryptedKey), nil
 		}
+		logrus.Errorf("failed to unseal legacy key: %v", err)
 		return "", fmt.Errorf("failed to unseal legacy key: %w", err)
 	}
 
@@ -236,11 +242,13 @@ func loadLegacyKey(dataDir string) (string, error) {
 // Parameters:
 //   - salt: Optional salt for key derivation
 //   - encryptedBase64: The encrypted data as a base64-encoded string
+//
 // Returns:
 //   - Decrypted plaintext as bytes
 //   - Error if decryption fails with all keys
 func (kr *KeyRing) Decrypt(salt string, encryptedBase64 string) ([]byte, error) {
 	if kr == nil {
+		logrus.Error("key ring is nil")
 		return nil, fmt.Errorf("key ring is nil")
 	}
 
@@ -253,6 +261,7 @@ func (kr *KeyRing) Decrypt(salt string, encryptedBase64 string) ([]byte, error) 
 	kr.mu.RUnlock()
 
 	if len(keys) == 0 {
+		logrus.Error("no keys in key ring")
 		return nil, fmt.Errorf("no keys in key ring")
 	}
 
@@ -260,6 +269,7 @@ func (kr *KeyRing) Decrypt(salt string, encryptedBase64 string) ([]byte, error) 
 	// This is more efficient than decoding inside the key loop
 	encryptedBytes, err := base64.StdEncoding.DecodeString(encryptedBase64)
 	if err != nil {
+		logrus.Errorf("base64 decode error: %v", err)
 		return nil, fmt.Errorf("base64 decode error: %w", err)
 	}
 
@@ -306,8 +316,9 @@ func (kr *KeyRing) Decrypt(salt string, encryptedBase64 string) ([]byte, error) 
 		for i, err := range errors {
 			errMsgs[i] = err.Error()
 		}
+		logrus.Errorf("failed to decrypt with any key. Errors: %s", strings.Join(errMsgs, "; "))
 		return nil, fmt.Errorf("failed to decrypt with any key. Errors: %s", strings.Join(errMsgs, "; "))
 	}
-
+	logrus.Error("failed to decrypt with any key due to unknown error")
 	return nil, fmt.Errorf("failed to decrypt with any key due to unknown error")
 }
