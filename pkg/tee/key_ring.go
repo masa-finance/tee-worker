@@ -42,14 +42,11 @@ func NewKeyRing() *KeyRing {
 	}
 }
 
-// Add adds a new key to the ring, pushing out the oldest if at capacity
+// AddBytes adds a new binary key to the ring, pushing out the oldest if at capacity
 // It returns true if the key was newly added, false if it was already present
-func (kr *KeyRing) Add(key string) bool {
+func (kr *KeyRing) AddBytes(keyBytes []byte) bool {
 	kr.mu.Lock()
 	defer kr.mu.Unlock()
-
-	// Convert string key to []byte
-	keyBytes := []byte(key)
 
 	// Check if key already exists to avoid duplicates
 	for _, entry := range kr.Keys {
@@ -73,9 +70,15 @@ func (kr *KeyRing) Add(key string) bool {
 		kr.Keys = kr.Keys[:MaxKeysInRing]
 	}
 
-	// Keys are now maintained only in the ring
-
 	return true
+}
+
+// Add adds a new key to the ring, pushing out the oldest if at capacity
+// It returns true if the key was newly added, false if it was already present
+// This method provides backward compatibility by converting the string to []byte
+func (kr *KeyRing) Add(key string) bool {
+	// Convert string key to []byte and delegate to AddBytes
+	return kr.AddBytes([]byte(key))
 }
 
 // GetAllKeys returns all keys in the ring, most recent first
