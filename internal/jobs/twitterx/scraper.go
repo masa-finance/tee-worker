@@ -86,6 +86,20 @@ type TwitterMeta struct {
 	OldestID    string `json:"oldest_id"`
 	ResultCount int    `json:"result_count"`
 }
+
+// UserLookupResponse structure for the user lookup endpoint
+type UserLookupResponse struct {
+	Data struct {
+		ID       string `json:"id"`
+		Name     string `json:"name"`
+		Username string `json:"username"`
+	} `json:"data"`
+	Errors []struct {
+		Message string `json:"message"`
+		Code    int    `json:"code"`
+		Title   string `json:"title"`
+	} `json:"errors,omitempty"`
+}
 type TwitterXSearchQueryResult struct {
 	Data   []TwitterXData `json:"data"`
 	Meta   TwitterMeta    `json:"meta"`
@@ -270,14 +284,13 @@ func (s *TwitterXScraper) fetchUsernames(result *TwitterXSearchQueryResult) erro
 		}
 		
 		// Look up the user by ID
-		userResp, err := s.twitterXClient.LookupUserByID(tweet.AuthorID)
+		username, err := s.lookupUserByID(tweet.AuthorID)
 		if err != nil {
 			logrus.Warnf("Failed to lookup user ID %s: %v", tweet.AuthorID, err)
 			continue
 		}
 		
 		// Store the username in the tweet data
-		username := userResp.Data.Username
 		result.Data[i].Username = username
 		
 		// Cache the username for potential reuse
@@ -292,6 +305,56 @@ func (s *TwitterXScraper) fetchUsernames(result *TwitterXSearchQueryResult) erro
 }
 
 // ScrapeTweetsByQueryExtended Example extended version that supports pagination and additional parameters
+// lookupUserByID fetches user information by user ID
+func (s *TwitterXScraper) lookupUserByID(userID string) (string, error) {
+	logrus.Infof("Looking up user with ID: %s", userID)
+	
+	// Construct endpoint URL
+	endpoint := fmt.Sprintf("users/%s", userID)
+	
+	// Make the request
+	resp, err := s.twitterXClient.Get(endpoint)
+	if err != nil {
+		logrus.Errorf("Error looking up user: %v", err)
+		return "", fmt.Errorf("error looking up user: %w", err)
+	}
+	defer resp.Body.Close()
+	
+	// Read response body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		logrus.Errorf("Error reading response body: %v", err)
+		return "", fmt.Errorf("error reading response body: %w", err)
+	}
+	
+	// Parse response
+	var userResp UserLookupResponse
+	if err := json.Unmarshal(body, &userResp); err != nil {
+		logrus.Errorf("Error parsing response: %v", err)
+		return "", fmt.Errorf("error parsing response: %w", err)
+	}
+	
+	// Check for errors
+	if len(userResp.Errors) > 0 {
+		logrus.Errorf("API error: %s (code: %d)", userResp.Errors[0].Message, userResp.Errors[0].Code)
+		return "", fmt.Errorf("API error: %s (code: %d)", userResp.Errors[0].Message, userResp.Errors[0].Code)
+	}
+	
+	// Check response status
+	switch resp.StatusCode {
+	case http.StatusOK:
+		return userResp.Data.Username, nil
+	case http.StatusUnauthorized:
+		return "", fmt.Errorf("invalid API key")
+	case http.StatusTooManyRequests:
+		return "", fmt.Errorf("rate limit exceeded")
+	case http.StatusNotFound:
+		return "", fmt.Errorf("user not found")
+	default:
+		return "", fmt.Errorf("API user lookup failed with status: %d", resp.StatusCode)
+	}
+}
+
 func (s *TwitterXScraper) ScrapeTweetsByQueryExtended(params SearchParams) (*TwitterXSearchQueryResult, error) {
 	// initialize the client
 	client := s.twitterXClient
