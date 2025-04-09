@@ -66,7 +66,8 @@ var _ = Describe("KeyRing", func() {
 
 			added := kr.Add(testKey)
 			Expect(added).To(BeTrue())
-			Expect(kr.Keys).To(ContainElement(HaveField("Key", testKey)))
+			// For []byte fields, we need to use []byte in the HaveField matcher
+			Expect(kr.Keys).To(ContainElement(HaveField("Key", []byte(testKey))))
 			Expect(kr.Keys).To(HaveLen(1))
 		})
 
@@ -100,7 +101,8 @@ var _ = Describe("KeyRing", func() {
 
 			Expect(loadedKR.Keys).To(HaveLen(len(testKeys)))
 			for _, key := range testKeys {
-				Expect(loadedKR.Keys).To(ContainElement(HaveField("Key", key)))
+				// For []byte fields, we need to use []byte in the HaveField matcher
+				Expect(loadedKR.Keys).To(ContainElement(HaveField("Key", []byte(key))))
 			}
 		})
 
@@ -125,7 +127,9 @@ var _ = Describe("KeyRing", func() {
 
 			// Verify reverse order (most recent first)
 			for i := 0; i < len(keys); i++ {
-				Expect(kr.Keys[i].Key).To(Equal(keys[len(keys)-1-i]))
+				// Compare the string representation of the Key bytes with the expected key
+				expectedKey := keys[len(keys)-1-i]
+				Expect(string(kr.Keys[i].Key)).To(Equal(expectedKey))
 				Expect(kr.Keys[i].InsertedAt).NotTo(BeZero())
 			}
 

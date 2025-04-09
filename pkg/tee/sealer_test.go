@@ -215,6 +215,13 @@ var _ = Describe("Key Ring Decryption", func() {
 		})
 
 		It("should fail to decrypt", func() {
+			// Save previous standalone mode setting and restore at the end
+			prevStandaloneMode := SealStandaloneMode
+			defer func() { SealStandaloneMode = prevStandaloneMode }()
+
+			// Force non-standalone mode for this test to ensure key comparison works correctly
+			SealStandaloneMode = false
+
 			sealed, err := SealWithKey(testSalt, testPlaintext)
 			Expect(err).NotTo(HaveOccurred())
 
