@@ -23,8 +23,9 @@ type TwitterXScraper struct {
 }
 
 type TwitterXData struct {
-	AuthorID string `json:"author_id"`
-	Entities struct {
+	AuthorID  string `json:"author_id"`
+	Username  string `json:"username,omitempty"` // Added username field
+	Entities  struct {
 		Urls []struct {
 			Start       int    `json:"start"`
 			End         int    `json:"end"`
@@ -201,6 +202,14 @@ func (s *TwitterXScraper) scrapeTweetsByQuery(baseQueryEndpoint string, query st
 		logrus.WithError(err).Error("failed to unmarshal response")
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
+	
+	// Fetch usernames for each tweet author if there are results
+	if len(result.Data) > 0 {
+		if err := s.fetchUsernames(&result); err != nil {
+			logrus.WithError(err).Warn("failed to fetch some usernames")
+			// We'll continue even if username lookup fails for some users
+		}
+	}
 
 	logrus.WithFields(logrus.Fields{
 		"result_count": result.Meta.ResultCount,
@@ -231,6 +240,55 @@ func (s *TwitterXScraper) containsSpecialChars(str string) bool {
 	}
 
 	return false
+}
+
+// fetchUsernames retrieves the username for each author_id in the search results
+func (s *TwitterXScraper) fetchUsernames(result *TwitterXSearchQueryResult) error {
+	// Early return if no results
+	if len(result.Data) == 0 {
+		return nil
+	}
+	
+	logrus.Infof("Fetching usernames for %d tweets", len(result.Data))
+	
+	// Create a map to track which author IDs we've already processed
+	// to avoid duplicate lookups for the same author
+	processedAuthors := make(map[string]string)
+	
+	// For each tweet in the result
+	for i, tweet := range result.Data {
+		// Skip if author ID is empty
+		if tweet.AuthorID == "" {
+			continue
+		}
+		
+		// Check if we've already looked up this author
+		if username, exists := processedAuthors[tweet.AuthorID]; exists {
+			// Use the cached username
+			result.Data[i].Username = username
+			continue
+		}
+		
+		// Look up the user by ID
+		userResp, err := s.twitterXClient.LookupUserByID(tweet.AuthorID)
+		if err != nil {
+			logrus.Warnf("Failed to lookup user ID %s: %v", tweet.AuthorID, err)
+			continue
+		}
+		
+		// Store the username in the tweet data
+		username := userResp.Data.Username
+		result.Data[i].Username = username
+		
+		// Cache the username for potential reuse
+		processedAuthors[tweet.AuthorID] = username
+		
+		// Add a small delay to avoid hitting rate limits
+		time.Sleep(50 * time.Millisecond)
+	}
+	
+	logrus.Infof("Successfully fetched usernames for tweets")
+	return nil
 }
 
 // ScrapeTweetsByQueryExtended Example extended version that supports pagination and additional parameters
