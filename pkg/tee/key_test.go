@@ -1,6 +1,7 @@
 package tee
 
 import (
+	"bytes"
 	"encoding/base64"
 	"os"
 	"path/filepath"
@@ -41,8 +42,8 @@ var _ = Describe("Key Management", func() {
 			// Attempt to set key
 			err := SetKey(tmpDir, testKey, testSignature)
 			Expect(err).To(HaveOccurred())
-			// When KeyDistributorPubKey is empty, the actual error is about failing to decode PEM block
-			Expect(err.Error()).To(ContainSubstring("invalid signature"))
+			// When KeyDistributorPubKey is empty, we now get a clear error about that
+			Expect(err.Error()).To(ContainSubstring("failed to decode key distributor public key"))
 		})
 
 		It("should fail with invalid signature", func() {
@@ -103,7 +104,7 @@ var _ = Describe("Key Management", func() {
 			Expect(keyRing).NotTo(BeNil())
 			found := false
 			for _, entry := range keyRing.Keys {
-				if entry.Key == testKey {
+				if bytes.Equal(entry.Key, []byte(testKey)) {
 					found = true
 					break
 				}
@@ -130,7 +131,7 @@ var _ = Describe("Key Management", func() {
 			Expect(CurrentKeyRing).NotTo(BeNil())
 			found := false
 			for _, entry := range CurrentKeyRing.Keys {
-				if entry.Key == testKey {
+				if bytes.Equal(entry.Key, []byte(testKey)) {
 					found = true
 					break
 				}

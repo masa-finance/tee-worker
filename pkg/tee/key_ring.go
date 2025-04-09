@@ -1,6 +1,7 @@
 package tee
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -23,7 +24,8 @@ const (
 
 // KeyEntry represents a single key in the key ring with metadata
 type KeyEntry struct {
-	Key        string    `json:"key"`
+	// Key is stored as []byte to properly handle arbitrary binary data
+	Key        []byte    `json:"key"`
 	InsertedAt time.Time `json:"inserted_at"`
 }
 
@@ -46,9 +48,12 @@ func (kr *KeyRing) Add(key string) bool {
 	kr.mu.Lock()
 	defer kr.mu.Unlock()
 
+	// Convert string key to []byte
+	keyBytes := []byte(key)
+
 	// Check if key already exists to avoid duplicates
 	for _, entry := range kr.Keys {
-		if entry.Key == key {
+		if bytes.Equal(entry.Key, keyBytes) {
 			// Key already exists, don't add it again
 			return false
 		}
@@ -56,7 +61,7 @@ func (kr *KeyRing) Add(key string) bool {
 
 	// Create a new entry with the current time
 	newEntry := KeyEntry{
-		Key:        key,
+		Key:        keyBytes,
 		InsertedAt: time.Now(),
 	}
 
@@ -80,7 +85,8 @@ func (kr *KeyRing) GetAllKeys() []string {
 
 	keys := make([]string, len(kr.Keys))
 	for i, entry := range kr.Keys {
-		keys[i] = entry.Key
+		// Convert []byte to string for compatibility
+		keys[i] = string(entry.Key)
 	}
 	return keys
 }
@@ -93,7 +99,8 @@ func (kr *KeyRing) MostRecentKey() string {
 	if len(kr.Keys) == 0 {
 		return ""
 	}
-	return kr.Keys[0].Key
+	// Convert the []byte key to string for backwards compatibility
+	return string(kr.Keys[0].Key)
 }
 
 // LoadKeyRing loads a key ring from disk
@@ -256,7 +263,8 @@ func (kr *KeyRing) Decrypt(salt string, encryptedBase64 string) ([]byte, error) 
 	kr.mu.RLock()
 	keys := make([]string, len(kr.Keys))
 	for i, entry := range kr.Keys {
-		keys[i] = entry.Key
+		// Convert []byte to string for compatibility
+		keys[i] = string(entry.Key)
 	}
 	kr.mu.RUnlock()
 
