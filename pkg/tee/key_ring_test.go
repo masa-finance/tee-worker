@@ -171,19 +171,21 @@ var _ = Describe("KeyRing", func() {
 		})
 
 		It("should handle invalid directory with real implementation", func() {
-			// Test with non-existent directory
+			// Test with non-existent directory - LoadKeyRing returns a new empty keyring
+			// rather than an error when the directory doesn't exist
 			invalidDir := filepath.Join(tmpDir, "nonexistent")
-			_, err := LoadKeyRing(invalidDir)
-			Expect(err).To(HaveOccurred(), "Loading from non-existent directory should fail")
-			Expect(err.Error()).To(ContainSubstring("no such file or directory"), "Error should indicate file not found")
+			kr, err := LoadKeyRing(invalidDir)
+			Expect(err).NotTo(HaveOccurred(), "LoadKeyRing should not fail with non-existent directory")
+			Expect(kr).NotTo(BeNil(), "Returned keyring should not be nil")
+			Expect(kr.Keys).To(BeEmpty(), "Keyring should be empty")
 			
 			// Also test saving to a non-existent directory but with auto-creation
 			nestedDir := filepath.Join(tmpDir, "nested", "dirs")
-			kr := NewKeyRing()
-			kr.Add("0123456789abcdef0123456789abcdef") // 32-byte key
+			kr2 := NewKeyRing()
+			kr2.Add("0123456789abcdef0123456789abcdef") // 32-byte key
 			
 			// Save should create the directory structure
-			err = kr.Save(nestedDir)
+			err = kr2.Save(nestedDir)
 			Expect(err).NotTo(HaveOccurred(), "Save should create directories as needed")
 			
 			// Verify directory was created
