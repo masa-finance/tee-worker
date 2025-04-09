@@ -40,8 +40,9 @@ func LoadKey(datadir string) error {
 	return nil
 }
 
-// SetKey sets a new key, verifying the signature and adding it to the key ring.
-func SetKey(datadir, key, signature string) error {
+// SetKeyBytes sets a new binary key, verifying the signature and adding it to the key ring.
+// The key must be exactly 32 bytes long for AES-256 encryption.
+func SetKeyBytes(datadir string, keyBytes []byte, signatureBytes []byte) error {
 	// Check if key distributor public key is available
 	if KeyDistributorPubKey == "" {
 		return fmt.Errorf("failed to decode key distributor public key: no key provided")
@@ -53,13 +54,13 @@ func SetKey(datadir, key, signature string) error {
 		return fmt.Errorf("failed to decode key distributor public key: %w", err)
 	}
 
-	if err := VerifySignature([]byte(key), []byte(signature), dkey); err != nil {
+	if err := VerifySignature(keyBytes, signatureBytes, dkey); err != nil {
 		return fmt.Errorf("invalid signature: %w", err)
 	}
 
 	// Validate key length - must be exactly 32 bytes for AES-256
-	if len(key) != 32 {
-		return fmt.Errorf("invalid key length: got %d bytes, expected 32 bytes for AES-256 encryption", len(key))
+	if len(keyBytes) != 32 {
+		return fmt.Errorf("invalid key length: got %d bytes, expected 32 bytes for AES-256 encryption", len(keyBytes))
 	}
 
 	// Initialize or load the key ring if needed
@@ -72,17 +73,21 @@ func SetKey(datadir, key, signature string) error {
 	}
 
 	// Add the key to the ring
-	added := CurrentKeyRing.Add(key)
-	if added {
-		logrus.Info("Added new key to key ring")
-	} else {
-		logrus.Info("Key already present in key ring, not adding again")
-	}
+	added := CurrentKeyRing.AddBytes(keyBytes)
 
-	// Save the key ring
-	if err := CurrentKeyRing.Save(datadir); err != nil {
-		return fmt.Errorf("failed to save key ring: %w", err)
+	// Save the key ring to persist the change
+	if added {
+		if err := CurrentKeyRing.Save(datadir); err != nil {
+			return fmt.Errorf("failed to save key ring: %w", err)
+		}
 	}
 
 	return nil
+}
+
+// SetKey sets a new key, verifying the signature and adding it to the key ring.
+// This is a convenience wrapper around SetKeyBytes that accepts string parameters.
+func SetKey(datadir, key, signature string) error {
+	// Delegate to SetKeyBytes which handles all the logic
+	return SetKeyBytes(datadir, []byte(key), []byte(signature))
 }
