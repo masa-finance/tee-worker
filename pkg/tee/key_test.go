@@ -1,7 +1,6 @@
 package tee
 
 import (
-	"bytes"
 	"encoding/base64"
 	"os"
 	"path/filepath"
@@ -102,14 +101,8 @@ var _ = Describe("Key Management", func() {
 
 			// Verify key ring contains the key
 			Expect(keyRing).NotTo(BeNil())
-			found := false
-			for _, entry := range keyRing.Keys {
-				if bytes.Equal(entry.Key, []byte(testKey)) {
-					found = true
-					break
-				}
-			}
-			Expect(found).To(BeTrue(), "Key not found in key ring")
+			// Use Gomega matcher for cleaner test code
+			Expect(keyRing.Keys).To(ContainElement(HaveField("Key", []byte(testKey))), "Key not found in key ring")
 			Expect(keyRing.MostRecentKey()).To(Equal(testKey))
 		})
 
@@ -129,14 +122,8 @@ var _ = Describe("Key Management", func() {
 
 			// Verify key ring was loaded
 			Expect(CurrentKeyRing).NotTo(BeNil())
-			found := false
-			for _, entry := range CurrentKeyRing.Keys {
-				if bytes.Equal(entry.Key, []byte(testKey)) {
-					found = true
-					break
-				}
-			}
-			Expect(found).To(BeTrue(), "Key not found in key ring")
+			// Use Gomega matcher for cleaner test code
+			Expect(CurrentKeyRing.Keys).To(ContainElement(HaveField("Key", []byte(testKey))), "Key not found in key ring")
 			Expect(CurrentKeyRing.MostRecentKey()).To(Equal(testKey))
 		})
 	})
