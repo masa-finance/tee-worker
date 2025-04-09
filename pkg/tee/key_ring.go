@@ -218,8 +218,8 @@ func (kr *KeyRing) Save(dataDir string) error {
 
 	// Write the file
 	if err := os.WriteFile(ringPath, encryptedData, 0600); err != nil {
-		logrus.Errorf("failed to write key ring file: %v", err)
-		return fmt.Errorf("failed to write key ring file: %w", err)
+		logrus.Errorf("failed to write the key ring file at path '%s': %v", ringPath, err)
+		return fmt.Errorf("failed to write the key ring file at path '%s': %w", ringPath, err)
 	}
 
 	logrus.Infof("Saved key ring with %d keys", len(kr.Keys))
@@ -231,8 +231,8 @@ func loadLegacyKey(dataDir string) (string, error) {
 	legacyPath := filepath.Join(dataDir, "sealing_key")
 	encryptedKey, err := os.ReadFile(legacyPath)
 	if err != nil {
-		logrus.Errorf("failed to read legacy key file: %v", err)
-		return "", fmt.Errorf("failed to read legacy key: %w", err)
+		logrus.Errorf("failed to read legacy key file at path %q: %v", legacyPath, err)
+		return "", fmt.Errorf("failed to read legacy key from file %q: %w", legacyPath, err)
 	}
 
 	key, err := ecrypto.Unseal(encryptedKey, []byte{})
