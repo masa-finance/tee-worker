@@ -11,6 +11,7 @@ import (
 
 func generate(c echo.Context) error {
 	job := &types.Job{}
+	job.WorkerID = tee.WorkerID // attach worker ID to job
 	if err := c.Bind(job); err != nil {
 		return err
 	}

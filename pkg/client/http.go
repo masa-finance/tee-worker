@@ -23,8 +23,8 @@ type Client struct {
 func NewClient(baseURL string, opts ...Option) *Client {
 	options := NewOptions(opts...)
 	c := &Client{
-		BaseURL:    baseURL,
-		options:    options,
+		BaseURL: baseURL,
+		options: options,
 		HTTPClient: &http.Client{
 			//Timeout: options.timeout,
 		},
@@ -38,7 +38,8 @@ func NewClient(baseURL string, opts ...Option) *Client {
 	return c
 }
 
-// SubmitJob submits a new job to the server and returns the job result.
+// CreateJobSignature sends a job to the server to generate a job signature.
+// The server will attach its worker ID to the job before generating the signature.
 func (c *Client) CreateJobSignature(job types.Job) (JobSignature, error) {
 	jobJSON, err := json.Marshal(job)
 	if err != nil {
