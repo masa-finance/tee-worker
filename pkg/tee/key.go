@@ -42,6 +42,11 @@ func LoadKey(datadir string) error {
 
 // SetKey sets a new key, verifying the signature and adding it to the key ring.
 func SetKey(datadir, key, signature string) error {
+	// Check if key distributor public key is available
+	if KeyDistributorPubKey == "" {
+		return fmt.Errorf("failed to decode key distributor public key: no key provided")
+	}
+
 	// Verify the signature
 	dkey, err := base64.StdEncoding.DecodeString(KeyDistributorPubKey)
 	if err != nil {

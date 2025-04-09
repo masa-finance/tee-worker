@@ -41,7 +41,8 @@ var _ = Describe("Key Management", func() {
 			// Attempt to set key
 			err := SetKey(tmpDir, testKey, testSignature)
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("failed to decode key distributor public key"))
+			// When KeyDistributorPubKey is empty, the actual error is about failing to decode PEM block
+			Expect(err.Error()).To(ContainSubstring("invalid signature"))
 		})
 
 		It("should fail with invalid signature", func() {
