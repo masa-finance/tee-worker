@@ -94,8 +94,8 @@ func (kr *KeyRing) GetAllKeys() []string {
 	return keys
 }
 
-// MostRecentKey returns the most recent key, or empty string if no keys
-func (kr *KeyRing) MostRecentKey() string {
+// LatestKey returns the most recent key, or empty string if no keys
+func (kr *KeyRing) LatestKey() string {
 	kr.mu.RLock()
 	defer kr.mu.RUnlock()
 
@@ -104,6 +104,13 @@ func (kr *KeyRing) MostRecentKey() string {
 	}
 	// Convert the []byte key to string for backwards compatibility
 	return string(kr.Keys[0].Key)
+}
+
+// MostRecentKey returns the most recent key, or empty string if no keys
+// Deprecated: Use LatestKey instead
+func (kr *KeyRing) MostRecentKey() string {
+	// For backward compatibility
+	return kr.LatestKey()
 }
 
 // LoadKeyRing loads a key ring from disk
