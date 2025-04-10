@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -102,9 +103,10 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 	return nil
 }
 
-var profilingRegistered bool
+var profilingRegistered bool = false
 
 func enableProfiling(e *echo.Echo) {
+	e.Logger.Info("Enabling profiling")
 	// TODO These values should probably come from configuration, and/or be settable at runtime when enabling profiling
 	// Sample time in nanoseconds, see https://github.com/DataDog/go-profiler-notes/blob/main/block.md#usage
 	runtime.SetBlockProfileRate(500)
@@ -119,7 +121,8 @@ func enableProfiling(e *echo.Echo) {
 	profilingRegistered = true
 }
 
-func disableProfiling(_ *echo.Echo) {
+func disableProfiling(e *echo.Echo) {
+	e.Logger.Info("Disabling profiling")
 	// Sample time in nanoseconds, see https://github.com/DataDog/go-profiler-notes/blob/main/block.md#usage
 	runtime.SetBlockProfileRate(0)
 	// Fraction of contention events that are reported https://gist.github.com/andrewhodel/ed7625a14eb87404cafd37493849d1ba
