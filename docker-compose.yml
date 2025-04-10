@@ -1,16 +1,19 @@
 services:
   masa-tee-worker:
     network_mode: "host"
-    image: masaengineering/tee-worker:main
+    # image: masaengineering/tee-worker:main
     # Uncomment to build from source
-    # build: .
+    build: .
     ports:
        - "8080:8080"
     environment:
       LISTEN_ADDRESS: ":8080"
       # uncomment if not running with Intel SGX HW
-      # OE_SIMULATION: "1"
-      LOG_LEVEL: "info"
+      OE_SIMULATION: "1"
+      # NONE/ FATAL / ERROR / WARNING / INFO / VERBOSE
+      OE_LOG_LEVEL: VERBOSE
+      STANDALONE: "true"
+      LOG_LEVEL: "debug"
     volumes:
       - ./.env:/home/masa/.env
     restart: always

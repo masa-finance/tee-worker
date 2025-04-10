@@ -70,10 +70,10 @@ func mockSaveKeyRingEntry(datadir, key string) error {
 	if keyRing == nil {
 		keyRing = NewKeyRing()
 	}
-	
+
 	// Add the key
 	keyRing.Add(key)
-	
+
 	// Save the keyring
 	return keyRing.Save(datadir)
 }

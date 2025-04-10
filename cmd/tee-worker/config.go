@@ -12,6 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// TODO: Revamp the whole config, using a Map and having multiple global functions to get the config is not nice
 var dataDir = os.Getenv("DATA_DIR")
 
 func readConfig() types.JobConfiguration {
@@ -76,6 +77,8 @@ func readConfig() types.JobConfiguration {
 	default:
 		logrus.SetLevel(logrus.InfoLevel)
 	}
+
+	jc["profiling_enabled"] = os.Getenv("ENABLE_PPROF") == "true"
 
 	return jc
 }

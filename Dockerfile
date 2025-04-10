@@ -26,9 +26,11 @@ FROM ${baseimage} AS base
 ARG pccs_server=https://pccs.dev.masalabs.ai
 
 # Install Intel SGX DCAP driver
-RUN mkdir -p /etc/apt/keyrings && \
+RUN apt-get update && \
+    apt-get install -y lsb-core && \
+    mkdir -p /etc/apt/keyrings && \
     wget -qO- https://download.01.org/intel-sgx/sgx_repo/ubuntu/intel-sgx-deb.key | tee /etc/apt/keyrings/intel-sgx-keyring.asc > /dev/null && \
-    /bin/bash -c 'echo "deb [signed-by=/etc/apt/keyrings/intel-sgx-keyring.asc arch=amd64] https://download.01.org/intel-sgx/sgx_repo/ubuntu $(lsb_release -cs) main' | tee /etc/apt/sources.list.d/intel-sgx.list && \
+    echo "deb [signed-by=/etc/apt/keyrings/intel-sgx-keyring.asc arch=amd64] https://download.01.org/intel-sgx/sgx_repo/ubuntu $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/intel-sgx.list && \
     apt-get update && \
     apt-get install -y libsgx-dcap-default-qpl
 RUN sed -i 's#"pccs_url": *"[^"]*"#"pccs_url": "'${pccs_server}'/sgx/certification/v4/"#' /etc/sgx_default_qcnl.conf
@@ -46,4 +48,4 @@ ENV DATA_DIR=/home/masa
 EXPOSE 8080
 
 # Set default command to start the Go application
-CMD ego run /usr/bin/masa-tee-worker
+CMD ["sh", "-c", "echo ---- pwd; pwd; echo ---- /home/masa; ls -a /home/masa; echo ---- .env; cat .env; echo ------------------------; ego run /usr/bin/masa-tee-worker"]
