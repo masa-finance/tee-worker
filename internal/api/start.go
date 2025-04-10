@@ -7,12 +7,14 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
+	"strings"
 	"syscall"
 
 	"github.com/edgelesssys/ego/enclave"
 	"github.com/labstack/echo-contrib/pprof"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/labstack/gommon/log"
 	"github.com/masa-finance/tee-worker/api/types"
 	"github.com/masa-finance/tee-worker/internal/jobserver"
 	"github.com/masa-finance/tee-worker/pkg/tee"
@@ -22,6 +24,20 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 
 	// Echo instance
 	e := echo.New()
+
+	logLevel := os.Getenv("LOG_LEVEL")
+	switch strings.ToLower(logLevel) {
+	case "debug":
+		e.Logger.SetLevel(log.DEBUG)
+	case "info":
+		e.Logger.SetLevel(log.INFO)
+	case "warn":
+		e.Logger.SetLevel(log.WARN)
+	case "error":
+		e.Logger.SetLevel(log.ERROR)
+	default:
+		e.Logger.SetLevel(log.INFO)
+	}
 
 	// Set up profiling
 	e.Logger.Debug("Configuration", config)
