@@ -172,7 +172,6 @@ func (s *TwitterXScraper) scrapeTweetsByQuery(baseQueryEndpoint string, query st
 	// Add the query parameter (will be properly encoded)
 	params.Add("query", query)
 
-
 	params.Add("max_results", strconv.Itoa(count))
 
 	// Add tweet fields
