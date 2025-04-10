@@ -24,6 +24,8 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 	e := echo.New()
 
 	// Set up profiling
+	e.Logger.Debug("Configuration", config)
+	e.Logger.Debug("Profiling enabled", config["profiling_enabled"])
 	if ok, p := config["profiling_enabled"].(bool); ok && p {
 		enableProfiling(e)
 	}
@@ -32,6 +34,7 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 	signal.Notify(sig, syscall.SIGUSR1)
 	go func(e *echo.Echo) {
 		s := <-sig
+		e.Logger.Info("Received signal", s)
 		switch s {
 		case syscall.SIGUSR1:
 			enableProfiling(e)
@@ -102,8 +105,6 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 	return nil
 }
 
-var profilingRegistered bool = false
-
 func enableProfiling(e *echo.Echo) {
 	e.Logger.Info("Enabling profiling")
 	// TODO These values should probably come from configuration, and/or be settable at runtime when enabling profiling
@@ -114,10 +115,8 @@ func enableProfiling(e *echo.Echo) {
 	// CPU profiling rate samples per second https://gist.github.com/andrewhodel/ed7625a14eb87404cafd37493849d1ba
 	runtime.SetCPUProfileRate(30)
 
-	if !profilingRegistered {
-		pprof.Register(e)
-	}
-	profilingRegistered = true
+	e.Logger.Info("Registering pprof")
+	pprof.Register(e)
 }
 
 func disableProfiling(e *echo.Echo) {
