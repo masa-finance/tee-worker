@@ -5,10 +5,8 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"os/signal"
 	"runtime"
 	"strings"
-	"syscall"
 
 	"github.com/edgelesssys/ego/enclave"
 	"github.com/labstack/echo-contrib/pprof"
@@ -44,12 +42,12 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 		enableProfiling(e)
 	}
 
-	debug := e.Group("/debug/pprof")
-	debug.POST("/enable", func(c echo.Context) error {
+	cfg := e.Group("/config/pprof")
+	cfg.POST("/enable", func(c echo.Context) error {
 		enableProfiling(e)
 		return nil
 	})
-	debug.POST("/disable", func(c echo.Context) error {
+	cfg.POST("/disable", func(c echo.Context) error {
 		disableProfiling(e)
 		return nil
 	})
