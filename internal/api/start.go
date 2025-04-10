@@ -4,8 +4,13 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
+	"os/signal"
+	"runtime"
+	"syscall"
 
 	"github.com/edgelesssys/ego/enclave"
+	"github.com/labstack/echo-contrib/pprof"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/masa-finance/tee-worker/api/types"
@@ -17,6 +22,23 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 
 	// Echo instance
 	e := echo.New()
+
+	// Set up profiling
+	if ok, p := config["profiling_enabled"].(bool); ok && p {
+		enableProfiling(e)
+	}
+
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, syscall.SIGUSR1)
+	go func(e *echo.Echo) {
+		s := <-sig
+		switch s {
+		case syscall.SIGUSR1:
+			enableProfiling(e)
+		case syscall.SIGUSR2:
+			disableProfiling(e)
+		}
+	}(e)
 
 	// Jobserver instance
 	jobServer := jobserver.NewJobServer(2, config)
@@ -78,4 +100,32 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 	}
 
 	return nil
+}
+
+var profilingRegistered bool
+
+func enableProfiling(e *echo.Echo) {
+	// TODO These values should probably come from configuration, and/or be settable at runtime when enabling profiling
+	// Sample time in nanoseconds, see https://github.com/DataDog/go-profiler-notes/blob/main/block.md#usage
+	runtime.SetBlockProfileRate(500)
+	// Fraction of contention events that are reported https://gist.github.com/andrewhodel/ed7625a14eb87404cafd37493849d1ba
+	runtime.SetMutexProfileFraction(1)
+	// CPU profiling rate samples per second https://gist.github.com/andrewhodel/ed7625a14eb87404cafd37493849d1ba
+	runtime.SetCPUProfileRate(30)
+
+	if !profilingRegistered {
+		pprof.Register(e)
+	}
+	profilingRegistered = true
+}
+
+func disableProfiling(_ *echo.Echo) {
+	// Sample time in nanoseconds, see https://github.com/DataDog/go-profiler-notes/blob/main/block.md#usage
+	runtime.SetBlockProfileRate(0)
+	// Fraction of contention events that are reported https://gist.github.com/andrewhodel/ed7625a14eb87404cafd37493849d1ba
+	runtime.SetMutexProfileFraction(0)
+	// CPU profiling rate samples per second https://gist.github.com/andrewhodel/ed7625a14eb87404cafd37493849d1ba
+	runtime.SetCPUProfileRate(0)
+
+	// TODO: Figure out how to completely unregister (and ideally disable stats gathering)
 }

@@ -23,8 +23,8 @@ type Client struct {
 func NewClient(baseURL string, opts ...Option) *Client {
 	options := NewOptions(opts...)
 	c := &Client{
-		BaseURL: baseURL,
-		options: options,
+		BaseURL:    baseURL,
+		options:    options,
 		HTTPClient: &http.Client{
 			//Timeout: options.timeout,
 		},

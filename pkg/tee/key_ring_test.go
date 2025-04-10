@@ -153,7 +153,7 @@ var _ = Describe("KeyRing", func() {
 
 			// Verify the keys were preserved
 			Expect(loadedKR.Keys).To(HaveLen(len(testKeys)), "Should have the same number of keys")
-			
+
 			// Check that the loaded key ring has all the original keys
 			for _, key := range testKeys {
 				Found := false
@@ -165,7 +165,7 @@ var _ = Describe("KeyRing", func() {
 				}
 				Expect(Found).To(BeTrue(), "Key should be found in loaded key ring: "+key)
 			}
-			
+
 			// Verify that the first (most recent) key is available through LatestKey()
 			Expect(loadedKR.LatestKey()).To(Equal(testKeys[len(testKeys)-1]), "Latest key should match the last added key")
 		})
@@ -178,27 +178,27 @@ var _ = Describe("KeyRing", func() {
 			Expect(err).NotTo(HaveOccurred(), "LoadKeyRing should not fail with non-existent directory")
 			Expect(kr).NotTo(BeNil(), "Returned keyring should not be nil")
 			Expect(kr.Keys).To(BeEmpty(), "Keyring should be empty")
-			
+
 			// Also test saving to a non-existent directory but with auto-creation
 			nestedDir := filepath.Join(tmpDir, "nested", "dirs")
 			kr2 := NewKeyRing()
 			kr2.Add("0123456789abcdef0123456789abcdef") // 32-byte key
-			
+
 			// Save should create the directory structure
 			err = kr2.Save(nestedDir)
 			Expect(err).NotTo(HaveOccurred(), "Save should create directories as needed")
-			
+
 			// Verify directory was created
 			fileInfo, err := os.Stat(nestedDir)
 			Expect(err).NotTo(HaveOccurred(), "Directory should exist after save")
 			Expect(fileInfo.IsDir()).To(BeTrue(), "Created path should be a directory")
-			
+
 			// Verify key ring file was created
 			keyRingPath := filepath.Join(nestedDir, keyRingFilename)
 			fileInfo, err = os.Stat(keyRingPath)
 			Expect(err).NotTo(HaveOccurred(), "Key ring file should exist")
 			Expect(fileInfo.IsDir()).To(BeFalse(), "Key ring file should be a file, not directory")
-			
+
 			// Clean up
 			os.RemoveAll(filepath.Join(tmpDir, "nested"))
 		})

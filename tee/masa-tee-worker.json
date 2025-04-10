@@ -30,6 +30,10 @@
         {
             "name": "HOME",
             "fromHost": true
+        },
+        {
+            "name": "STANDALONE",
+            "fromHost": true
         }
     ],
  "files": [
