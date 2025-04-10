@@ -205,9 +205,9 @@ These are the fields in the response:
 The tee-worker supports profiling via `pprof`. There are two ways to enable profiling:
 
 * Set `ENABLE_PPROF` to `true`.
-* Send the `SIGUSR1` signal too the tee-worker. This enables you to enable profiling without having to restart.
+* Send a POST request to `/debug/enable_pprof` (no body necessary)
 
-There is currently no way to completely disable profiling short of restarting the tee-worker. However, you can send the `SIGUSR2` signal, which will disable the most resource-intensive probes (goroutine blocking, mutexes and CPU)
+There is currently no way to completely disable profiling short of restarting the tee-worker. However, you can send a POST request to `/debug/disable_pprof` which will disable the most resource-intensive probes (goroutine blocking, mutexes and CPU)
 
 When profiling is enabled you will have access to the following endpoints, which can be accessed via the `go tool pprof` command:
 

@@ -39,25 +39,19 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 		e.Logger.SetLevel(log.INFO)
 	}
 
+	e.POST("/debug/enable_pprof", func(c echo.Context) error {
+		enableProfiling(e)
+		return nil
+	})
+	e.POST("/debug/disable_pprof", func(c echo.Context) error {
+		disableProfiling(e)
+		return nil
+	})
+
 	// Set up profiling
-	e.Logger.Debug("Configuration", config)
-	e.Logger.Debug("Profiling enabled", config["profiling_enabled"])
 	if ok, p := config["profiling_enabled"].(bool); ok && p {
 		enableProfiling(e)
 	}
-
-	sig := make(chan os.Signal, 1)
-	signal.Notify(sig, syscall.SIGUSR1)
-	go func(e *echo.Echo) {
-		s := <-sig
-		e.Logger.Info("Received signal", s)
-		switch s {
-		case syscall.SIGUSR1:
-			enableProfiling(e)
-		case syscall.SIGUSR2:
-			disableProfiling(e)
-		}
-	}(e)
 
 	// Jobserver instance
 	jobServer := jobserver.NewJobServer(2, config)
