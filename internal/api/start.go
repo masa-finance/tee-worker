@@ -39,6 +39,11 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 		e.Logger.SetLevel(log.INFO)
 	}
 
+	// Set up profiling
+	if ok, p := config["profiling_enabled"].(bool); ok && p {
+		enableProfiling(e)
+	}
+
 	e.POST("/debug/enable_pprof", func(c echo.Context) error {
 		enableProfiling(e)
 		return nil
@@ -47,11 +52,6 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 		disableProfiling(e)
 		return nil
 	})
-
-	// Set up profiling
-	if ok, p := config["profiling_enabled"].(bool); ok && p {
-		enableProfiling(e)
-	}
 
 	// Jobserver instance
 	jobServer := jobserver.NewJobServer(2, config)
@@ -127,6 +127,11 @@ func enableProfiling(e *echo.Echo) {
 
 	e.Logger.Info("Registering pprof")
 	pprof.Register(e)
+
+	e.POST("/debug/enable_pprof", func(c echo.Context) error {
+		enableProfiling(e)
+		return nil
+	})
 }
 
 func disableProfiling(e *echo.Echo) {
