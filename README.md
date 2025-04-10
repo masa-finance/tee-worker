@@ -199,3 +199,27 @@ These are the fields in the response:
 * `stats.web_success` - Number of successful web scrapes.
 * `stats.web_errors` - Number of web scrapes that resulted in an error.
 * `stats.web_invalid` - Number of invalid web scrape requests (at the moment, blacklisted domains).
+
+## Profiling
+
+The tee-worker supports profiling via `pprof`. There are two ways to enable profiling:
+
+* Set `ENABLE_PPROF` to `true`.
+* Send the `SIGUSR1` signal too the tee-worker. This enables you to enable profiling without having to restart.
+
+There is currently no way to completely disable profiling short of restarting the tee-worker. However, you can send the `SIGUSR2` signal, which will disable the most resource-intensive probes (goroutine blocking, mutexes and CPU)
+
+When profiling is enabled you will have access to the following endpoints, which can be accessed via the `go tool pprof` command:
+
+`/debug/pprof` - Index page
+`/debug/pprof/heap` - Heap profile
+`/debug/pprof/goroutine` - Goroutine profile
+`/debug/pprof/profile?seconds=XX` - CPU profile during XX seconds
+`/debug/pprof/block` - Goroutine blocking
+`/debug/pprof/mutex` - Holders of contended mutexes
+
+There are others, see the `/debug/pprof` index page for a complete list.
+
+The `/debug/pprof/trace?seconds=XX` will give you an XX-second execution trace, which can be accessed via the `go tool trace` command.
+
+For more information, see [the official docs](https://pkg.go.dev/net/http/pprof). [This link](https://gist.github.com/andrewhodel/ed7625a14eb87404cafd37493849d1ba) also contains useful information.

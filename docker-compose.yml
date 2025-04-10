@@ -10,11 +10,13 @@ services:
       LISTEN_ADDRESS: ":8080"
       # uncomment if not running with Intel SGX HW
       # OE_SIMULATION: "1"
-      LOG_LEVEL: "info"
+      # SGX library logging level: NONE/ FATAL / ERROR / WARNING / INFO / VERBOSE
+      OE_LOG_LEVEL: INFO
+      LOG_LEVEL: info
     volumes:
       - ./.env:/home/masa/.env
     restart: always
     # uncomment if running with Intel SGX
     # devices:
-    # - /dev/sgx_enclave 
+    # - /dev/sgx_enclave
     # - /dev/sgx_provision

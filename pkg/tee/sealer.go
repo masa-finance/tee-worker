@@ -144,7 +144,7 @@ func UnsealWithKey(salt string, encryptedText string) ([]byte, error) {
 		if CurrentKeyRing == nil || len(CurrentKeyRing.Keys) == 0 {
 			return nil, fmt.Errorf("no keys available in key ring")
 		}
-		
+
 		// Try to decrypt with the keyring
 		result, err := CurrentKeyRing.Decrypt(salt, encryptedText)
 		if err != nil {
@@ -152,9 +152,9 @@ func UnsealWithKey(salt string, encryptedText string) ([]byte, error) {
 		}
 		return result, nil
 	}
-	
+
 	// Handle standalone mode (try keyring first, then fallback to product key)
-	
+
 	// 1. Try keyring if available
 	if CurrentKeyRing != nil && len(CurrentKeyRing.Keys) > 0 {
 		result, err := CurrentKeyRing.Decrypt(salt, encryptedText)
@@ -163,13 +163,13 @@ func UnsealWithKey(salt string, encryptedText string) ([]byte, error) {
 		}
 		// On error, fall through to product key method
 	}
-	
+
 	// 2. Fallback to product key decryption
 	b64, err := base64.StdEncoding.DecodeString(encryptedText)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	resString, errUnseal := ecrypto.Unseal(b64, []byte(salt))
 	if errUnseal != nil {
 		return nil, errUnseal
