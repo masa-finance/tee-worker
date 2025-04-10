@@ -48,4 +48,4 @@ ENV DATA_DIR=/home/masa
 EXPOSE 8080
 
 # Set default command to start the Go application
-CMD ["sh", "-c", "echo ---- pwd; pwd; echo ---- /home/masa; ls -a /home/masa; echo ---- .env; cat .env; echo ------------------------; ego run /usr/bin/masa-tee-worker"]
+CMD ego run /usr/bin/masa-tee-worker
