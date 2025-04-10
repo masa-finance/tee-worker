@@ -44,12 +44,12 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 		enableProfiling(e)
 	}
 
-	debug := e.Group("/debug")
-	debug.POST("/enable_pprof", func(c echo.Context) error {
+	debug := e.Group("/debug/pprof")
+	debug.POST("/enable", func(c echo.Context) error {
 		enableProfiling(e)
 		return nil
 	})
-	debug.POST("/disable_pprof", func(c echo.Context) error {
+	debug.POST("/disable", func(c echo.Context) error {
 		disableProfiling(e)
 		return nil
 	})
