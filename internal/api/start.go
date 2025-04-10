@@ -59,11 +59,11 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 	debug := e.Group("/debug/pprof")
 	debug.POST("/enable", func(c echo.Context) error {
 		enableProfiling(e)
-		return nil
+		return c.String(http.StatusOK, "pprof enabled")
 	})
 	debug.POST("/disable", func(c echo.Context) error {
 		disableProfiling(e)
-		return nil
+		return c.String(http.StatusOK, "pprof disabled")
 	})
 
 	/*
