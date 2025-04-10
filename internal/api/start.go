@@ -37,21 +37,6 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 		e.Logger.SetLevel(log.INFO)
 	}
 
-	// Set up profiling
-	if ok, p := config["profiling_enabled"].(bool); ok && p {
-		enableProfiling(e)
-	}
-
-	cfg := e.Group("/config/pprof")
-	cfg.POST("/enable", func(c echo.Context) error {
-		enableProfiling(e)
-		return nil
-	})
-	cfg.POST("/disable", func(c echo.Context) error {
-		disableProfiling(e)
-		return nil
-	})
-
 	// Jobserver instance
 	jobServer := jobserver.NewJobServer(2, config)
 
@@ -65,6 +50,22 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 	tee.LoadKey(dataDIR)
 
 	// Routes
+
+	// Set up profiling
+	if ok, p := config["profiling_enabled"].(bool); ok && p {
+		enableProfiling(e)
+	}
+
+	debug := e.Group("/debug/pprof")
+	debug.POST("/enable", func(c echo.Context) error {
+		enableProfiling(e)
+		return nil
+	})
+	debug.POST("/disable", func(c echo.Context) error {
+		disableProfiling(e)
+		return nil
+	})
+
 	/*
 		- POST /job/generate: Generate a job payload
 		- POST /job/add: Add a job to the queue
