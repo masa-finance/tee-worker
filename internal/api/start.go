@@ -39,7 +39,7 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 
 	// Set up profiling only if not in an enclave/TEE environment
 	if ok, p := config["profiling_enabled"].(bool); ok && p {
-		enableProfiling(e, standalone)
+		_ = enableProfiling(e, standalone)
 	}
 
 	// Jobserver instance
@@ -58,17 +58,23 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 
 	// Set up profiling
 	if ok, p := config["profiling_enabled"].(bool); ok && p {
-		enableProfiling(e, standalone)
+		_ = enableProfiling(e, standalone)
 	}
 
 	debug := e.Group("/debug/pprof")
+
 	debug.POST("/enable", func(c echo.Context) error {
-		enableProfiling(e, standalone)
-		return c.String(http.StatusOK, "pprof enabled")
+		if enableProfiling(e, standalone) {
+			return c.String(http.StatusOK, "pprof enabled")
+		}
+		return c.String(http.StatusBadRequest, "pprof not supported")
 	})
+
 	debug.POST("/disable", func(c echo.Context) error {
-		disableProfiling(e)
-		return c.String(http.StatusOK, "pprof disabled")
+		if disableProfiling(e, standalone) {
+			return c.String(http.StatusOK, "pprof disabled")
+		}
+		return c.String(http.StatusBadRequest, "pprof not supported")
 	})
 
 	/*
@@ -122,12 +128,11 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 
 // enableProfiling enables pprof profiling
 // In TEE/enclave mode, a warning is displayed but profiling is still enabled
-func enableProfiling(e *echo.Echo, standaloneMode bool) {
+func enableProfiling(e *echo.Echo, standaloneMode bool) bool {
 	// Warning if using profiling in TEE mode
 	if !standaloneMode {
-		e.Logger.Warn("⚠️ WARNING: Enabling profiling in TEE/enclave mode. " +
-			"This may cause crashes, instability, or security vulnerabilities. " +
-			"Use only for debugging critical issues.")
+		e.Logger.Warn("Profiling is not supported in TEE/enclave mode. Not enabling.")
+		return false
 	}
 
 	e.Logger.Info("Enabling profiling - this may impact performance")
@@ -141,9 +146,16 @@ func enableProfiling(e *echo.Echo, standaloneMode bool) {
 	runtime.SetCPUProfileRate(30)
 
 	pprof.Register(e)
+
+	return true
 }
 
-func disableProfiling(e *echo.Echo) {
+func disableProfiling(e *echo.Echo, standaloneMode bool) bool {
+	if !standaloneMode {
+		e.Logger.Warn("Profiling is not supported in TEE/enclave mode.")
+		return false
+	}
+
 	e.Logger.Info("Disabling performance-intensive profiling probes")
 
 	// Sample time in nanoseconds, see https://github.com/DataDog/go-profiler-notes/blob/main/block.md#usage
@@ -153,8 +165,7 @@ func disableProfiling(e *echo.Echo) {
 	// CPU profiling rate samples per second https://gist.github.com/andrewhodel/ed7625a14eb87404cafd37493849d1ba
 	runtime.SetCPUProfileRate(0)
 
-	// Note: The endpoints remain registered, but the most resource-intensive
-	// profiling data collection is disabled
+	// TODO: The endpoints remain registered, but the most resource-intensive profiling data collection is disabled. Figure out how to completely unregister (and ideally disable stats gathering)
 
-	// TODO: Figure out how to completely unregister (and ideally disable stats gathering)
+	return true
 }
