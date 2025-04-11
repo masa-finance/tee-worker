@@ -24,6 +24,7 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 	e := echo.New()
 
 	logLevel := os.Getenv("LOG_LEVEL")
+	e.Logger.Warn("Setting log level", logLevel)
 	switch strings.ToLower(logLevel) {
 	case "debug":
 		e.Logger.SetLevel(log.DEBUG)
