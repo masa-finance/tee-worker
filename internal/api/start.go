@@ -23,20 +23,22 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 	// Echo instance
 	e := echo.New()
 
-	// Set up profiling
+	// Set up profiling only if not in an enclave/TEE environment
 	if ok, p := config["profiling_enabled"].(bool); ok && p {
-		enableProfiling(e)
+		enableProfiling(e, standalone)
 	}
 
 	sig := make(chan os.Signal, 1)
-	signal.Notify(sig, syscall.SIGUSR1)
+	signal.Notify(sig, syscall.SIGUSR1, syscall.SIGUSR2)
 	go func(e *echo.Echo) {
-		s := <-sig
-		switch s {
-		case syscall.SIGUSR1:
-			enableProfiling(e)
-		case syscall.SIGUSR2:
-			disableProfiling(e)
+		for {
+			s := <-sig
+			switch s {
+			case syscall.SIGUSR1:
+				enableProfiling(e, standalone)
+			case syscall.SIGUSR2:
+				disableProfiling(e)
+			}
 		}
 	}(e)
 
@@ -104,7 +106,18 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 
 var profilingRegistered bool
 
-func enableProfiling(e *echo.Echo) {
+// enableProfiling enables pprof profiling
+// In TEE/enclave mode, a warning is displayed but profiling is still enabled
+func enableProfiling(e *echo.Echo, standaloneMode bool) {
+	// Warning if using profiling in TEE mode
+	if !standaloneMode {
+		e.Logger.Warn("⚠️ WARNING: Enabling profiling in TEE/enclave mode. " +
+			"This may cause crashes, instability, or security vulnerabilities. " +
+			"Use only for debugging critical issues.")
+	}
+
+	e.Logger.Info("Enabling profiling - this may impact performance")
+	
 	// TODO These values should probably come from configuration, and/or be settable at runtime when enabling profiling
 	// Sample time in nanoseconds, see https://github.com/DataDog/go-profiler-notes/blob/main/block.md#usage
 	runtime.SetBlockProfileRate(500)
@@ -119,7 +132,9 @@ func enableProfiling(e *echo.Echo) {
 	profilingRegistered = true
 }
 
-func disableProfiling(_ *echo.Echo) {
+func disableProfiling(e *echo.Echo) {
+	e.Logger.Info("Disabling performance-intensive profiling probes")
+	
 	// Sample time in nanoseconds, see https://github.com/DataDog/go-profiler-notes/blob/main/block.md#usage
 	runtime.SetBlockProfileRate(0)
 	// Fraction of contention events that are reported https://gist.github.com/andrewhodel/ed7625a14eb87404cafd37493849d1ba
@@ -127,5 +142,8 @@ func disableProfiling(_ *echo.Echo) {
 	// CPU profiling rate samples per second https://gist.github.com/andrewhodel/ed7625a14eb87404cafd37493849d1ba
 	runtime.SetCPUProfileRate(0)
 
+	// Note: The endpoints remain registered, but the most resource-intensive
+	// profiling data collection is disabled
+	
 	// TODO: Figure out how to completely unregister (and ideally disable stats gathering)
 }

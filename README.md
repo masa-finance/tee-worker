@@ -202,10 +202,12 @@ These are the fields in the response:
 
 ## Profiling
 
-The tee-worker supports profiling via `pprof`. There are two ways to enable profiling:
+The tee-worker supports profiling via `pprof`. In TEE/enclave mode, profiling comes with a warning as it may cause crashes due to restricted system calls in the secure environment. **Use profiling in TEE mode with caution** as it may cause instability or security vulnerabilities.
+
+There are two ways to enable profiling:
 
 * Set `ENABLE_PPROF` to `true`.
-* Send the `SIGUSR1` signal too the tee-worker. This enables you to enable profiling without having to restart.
+* Send the `SIGUSR1` signal to the tee-worker. This enables you to enable profiling without having to restart.
 
 There is currently no way to completely disable profiling short of restarting the tee-worker. However, you can send the `SIGUSR2` signal, which will disable the most resource-intensive probes (goroutine blocking, mutexes and CPU)
 
