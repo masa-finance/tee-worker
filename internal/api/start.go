@@ -37,6 +37,11 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 		e.Logger.SetLevel(log.INFO)
 	}
 
+	// Set up profiling only if not in an enclave/TEE environment
+	if ok, p := config["profiling_enabled"].(bool); ok && p {
+		enableProfiling(e, standalone)
+	}
+
 	// Jobserver instance
 	jobServer := jobserver.NewJobServer(2, config)
 
@@ -53,12 +58,12 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 
 	// Set up profiling
 	if ok, p := config["profiling_enabled"].(bool); ok && p {
-		enableProfiling(e)
+		enableProfiling(e, standalone)
 	}
 
 	debug := e.Group("/debug/pprof")
 	debug.POST("/enable", func(c echo.Context) error {
-		enableProfiling(e)
+		enableProfiling(e, standalone)
 		return c.String(http.StatusOK, "pprof enabled")
 	})
 	debug.POST("/disable", func(c echo.Context) error {
@@ -115,8 +120,18 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 	return nil
 }
 
-func enableProfiling(e *echo.Echo) {
-	e.Logger.Info("Enabling profiling")
+// enableProfiling enables pprof profiling
+// In TEE/enclave mode, a warning is displayed but profiling is still enabled
+func enableProfiling(e *echo.Echo, standaloneMode bool) {
+	// Warning if using profiling in TEE mode
+	if !standaloneMode {
+		e.Logger.Warn("⚠️ WARNING: Enabling profiling in TEE/enclave mode. " +
+			"This may cause crashes, instability, or security vulnerabilities. " +
+			"Use only for debugging critical issues.")
+	}
+
+	e.Logger.Info("Enabling profiling - this may impact performance")
+
 	// TODO These values should probably come from configuration, and/or be settable at runtime when enabling profiling
 	// Sample time in nanoseconds, see https://github.com/DataDog/go-profiler-notes/blob/main/block.md#usage
 	runtime.SetBlockProfileRate(500)
@@ -125,18 +140,21 @@ func enableProfiling(e *echo.Echo) {
 	// CPU profiling rate samples per second https://gist.github.com/andrewhodel/ed7625a14eb87404cafd37493849d1ba
 	runtime.SetCPUProfileRate(30)
 
-	e.Logger.Info("Registering pprof")
 	pprof.Register(e)
 }
 
 func disableProfiling(e *echo.Echo) {
-	e.Logger.Info("Disabling profiling")
+	e.Logger.Info("Disabling performance-intensive profiling probes")
+
 	// Sample time in nanoseconds, see https://github.com/DataDog/go-profiler-notes/blob/main/block.md#usage
 	runtime.SetBlockProfileRate(0)
 	// Fraction of contention events that are reported https://gist.github.com/andrewhodel/ed7625a14eb87404cafd37493849d1ba
 	runtime.SetMutexProfileFraction(0)
 	// CPU profiling rate samples per second https://gist.github.com/andrewhodel/ed7625a14eb87404cafd37493849d1ba
 	runtime.SetCPUProfileRate(0)
+
+	// Note: The endpoints remain registered, but the most resource-intensive
+	// profiling data collection is disabled
 
 	// TODO: Figure out how to completely unregister (and ideally disable stats gathering)
 }

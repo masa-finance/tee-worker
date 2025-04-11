@@ -202,7 +202,9 @@ These are the fields in the response:
 
 ## Profiling
 
-The tee-worker supports profiling via `pprof`. There are two ways to enable profiling:
+The tee-worker supports profiling via `pprof`. The TEE does not allow for profiling, so it can only be enabled when running in standalone mode.
+
+There are two ways to enable profiling:
 
 * Set `ENABLE_PPROF` to `true`.
 * Send a POST request to `/debug/enable_pprof` (no body necessary)
