@@ -24,7 +24,6 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 	e := echo.New()
 
 	logLevel := os.Getenv("LOG_LEVEL")
-	e.Logger.Warn("Setting log level", logLevel)
 
 	switch strings.ToLower(logLevel) {
 	case "debug":
@@ -37,11 +36,6 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 		e.Logger.SetLevel(log.ERROR)
 	default:
 		e.Logger.SetLevel(log.INFO)
-	}
-
-	// Set up profiling only if not in an enclave/TEE environment
-	if ok, p := config["profiling_enabled"].(bool); ok && p {
-		_ = enableProfiling(e, standalone)
 	}
 
 	// Jobserver instance
@@ -58,23 +52,23 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 
 	// Routes
 
-	// Set up profiling
+	// Set up profiling if allowed
 	if ok, p := config["profiling_enabled"].(bool); ok && p {
 		_ = enableProfiling(e, standalone)
 	}
 
 	if standalone {
 		e.Logger.Info("Enabling profiling control endpoints")
-		debug := e.Group("/debug")
+		debug := e.Group("/debug/pprof")
 
-		debug.POST("/enable_pprof", func(c echo.Context) error {
+		debug.POST("/enable", func(c echo.Context) error {
 			if enableProfiling(e, standalone) {
 				return c.String(http.StatusOK, "pprof enabled")
 			}
 			return c.String(http.StatusBadRequest, "pprof not supported")
 		})
 
-		debug.POST("/disable_pprof", func(c echo.Context) error {
+		debug.POST("/disable", func(c echo.Context) error {
 			if disableProfiling(e, standalone) {
 				return c.String(http.StatusOK, "pprof disabled")
 			}
