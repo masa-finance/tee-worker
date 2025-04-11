@@ -61,21 +61,24 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 		_ = enableProfiling(e, standalone)
 	}
 
-	debug := e.Group("/debug/pprof")
+	if standalone {
+		e.Logger.Info("Enabling profiling control endpoints")
+		debug := e.Group("/debug")
 
-	debug.POST("/enable", func(c echo.Context) error {
-		if enableProfiling(e, standalone) {
-			return c.String(http.StatusOK, "pprof enabled")
-		}
-		return c.String(http.StatusBadRequest, "pprof not supported")
-	})
+		debug.POST("/enable_pprof", func(c echo.Context) error {
+			if enableProfiling(e, standalone) {
+				return c.String(http.StatusOK, "pprof enabled")
+			}
+			return c.String(http.StatusBadRequest, "pprof not supported")
+		})
 
-	debug.POST("/disable", func(c echo.Context) error {
-		if disableProfiling(e, standalone) {
-			return c.String(http.StatusOK, "pprof disabled")
-		}
-		return c.String(http.StatusBadRequest, "pprof not supported")
-	})
+		debug.POST("/disable_pprof", func(c echo.Context) error {
+			if disableProfiling(e, standalone) {
+				return c.String(http.StatusOK, "pprof disabled")
+			}
+			return c.String(http.StatusBadRequest, "pprof not supported")
+		})
+	}
 
 	/*
 		- POST /job/generate: Generate a job payload
