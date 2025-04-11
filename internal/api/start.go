@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"os/signal"
 	"runtime"
-	"syscall"
+	"strings"
 
 	"github.com/edgelesssys/ego/enclave"
 	"github.com/labstack/echo-contrib/pprof"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/labstack/gommon/log"
 	"github.com/masa-finance/tee-worker/api/types"
 	"github.com/masa-finance/tee-worker/internal/jobserver"
 	"github.com/masa-finance/tee-worker/pkg/tee"
@@ -23,22 +23,20 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 	// Echo instance
 	e := echo.New()
 
-	// Set up profiling
-	if ok, p := config["profiling_enabled"].(bool); ok && p {
-		enableProfiling(e)
-	}
+	logLevel := os.Getenv("LOG_LEVEL")
 
-	sig := make(chan os.Signal, 1)
-	signal.Notify(sig, syscall.SIGUSR1)
-	go func(e *echo.Echo) {
-		s := <-sig
-		switch s {
-		case syscall.SIGUSR1:
-			enableProfiling(e)
-		case syscall.SIGUSR2:
-			disableProfiling(e)
-		}
-	}(e)
+	switch strings.ToLower(logLevel) {
+	case "debug":
+		e.Logger.SetLevel(log.DEBUG)
+	case "info":
+		e.Logger.SetLevel(log.INFO)
+	case "warn":
+		e.Logger.SetLevel(log.WARN)
+	case "error":
+		e.Logger.SetLevel(log.ERROR)
+	default:
+		e.Logger.SetLevel(log.INFO)
+	}
 
 	// Jobserver instance
 	jobServer := jobserver.NewJobServer(2, config)
@@ -53,6 +51,31 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 	tee.LoadKey(dataDIR)
 
 	// Routes
+
+	// Set up profiling if allowed
+	if ok, p := config["profiling_enabled"].(bool); ok && p {
+		_ = enableProfiling(e, standalone)
+	}
+
+	if standalone {
+		e.Logger.Info("Enabling profiling control endpoints")
+		debug := e.Group("/debug/pprof")
+
+		debug.POST("/enable", func(c echo.Context) error {
+			if enableProfiling(e, standalone) {
+				return c.String(http.StatusOK, "pprof enabled")
+			}
+			return c.String(http.StatusBadRequest, "pprof not supported")
+		})
+
+		debug.POST("/disable", func(c echo.Context) error {
+			if disableProfiling(e, standalone) {
+				return c.String(http.StatusOK, "pprof disabled")
+			}
+			return c.String(http.StatusBadRequest, "pprof not supported")
+		})
+	}
+
 	/*
 		- POST /job/generate: Generate a job payload
 		- POST /job/add: Add a job to the queue
@@ -102,9 +125,17 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 	return nil
 }
 
-var profilingRegistered bool
+// enableProfiling enables pprof profiling
+// In TEE/enclave mode, a warning is displayed but profiling is still enabled
+func enableProfiling(e *echo.Echo, standaloneMode bool) bool {
+	// Warning if using profiling in TEE mode
+	if !standaloneMode {
+		e.Logger.Warn("Profiling is not supported in TEE/enclave mode. Not enabling.")
+		return false
+	}
 
-func enableProfiling(e *echo.Echo) {
+	e.Logger.Info("Enabling profiling - this may impact performance")
+
 	// TODO These values should probably come from configuration, and/or be settable at runtime when enabling profiling
 	// Sample time in nanoseconds, see https://github.com/DataDog/go-profiler-notes/blob/main/block.md#usage
 	runtime.SetBlockProfileRate(500)
@@ -113,13 +144,19 @@ func enableProfiling(e *echo.Echo) {
 	// CPU profiling rate samples per second https://gist.github.com/andrewhodel/ed7625a14eb87404cafd37493849d1ba
 	runtime.SetCPUProfileRate(30)
 
-	if !profilingRegistered {
-		pprof.Register(e)
-	}
-	profilingRegistered = true
+	pprof.Register(e)
+
+	return true
 }
 
-func disableProfiling(_ *echo.Echo) {
+func disableProfiling(e *echo.Echo, standaloneMode bool) bool {
+	if !standaloneMode {
+		e.Logger.Warn("Profiling is not supported in TEE/enclave mode.")
+		return false
+	}
+
+	e.Logger.Info("Disabling performance-intensive profiling probes")
+
 	// Sample time in nanoseconds, see https://github.com/DataDog/go-profiler-notes/blob/main/block.md#usage
 	runtime.SetBlockProfileRate(0)
 	// Fraction of contention events that are reported https://gist.github.com/andrewhodel/ed7625a14eb87404cafd37493849d1ba
@@ -127,5 +164,7 @@ func disableProfiling(_ *echo.Echo) {
 	// CPU profiling rate samples per second https://gist.github.com/andrewhodel/ed7625a14eb87404cafd37493849d1ba
 	runtime.SetCPUProfileRate(0)
 
-	// TODO: Figure out how to completely unregister (and ideally disable stats gathering)
+	// TODO: The endpoints remain registered, but the most resource-intensive profiling data collection is disabled. Figure out how to completely unregister (and ideally disable stats gathering)
+
+	return true
 }

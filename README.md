@@ -202,14 +202,16 @@ These are the fields in the response:
 
 ## Profiling
 
-The tee-worker supports profiling via `pprof`. There are two ways to enable profiling:
+The tee-worker supports profiling via `pprof`. The TEE does not allow for profiling, so it can only be enabled when running in standalone mode.
+
+There are two ways to enable profiling:
 
 * Set `ENABLE_PPROF` to `true`.
-* Send the `SIGUSR1` signal too the tee-worker. This enables you to enable profiling without having to restart.
+* Send a POST request to `/debug/pprof/enable` (no body necessary)
 
-There is currently no way to completely disable profiling short of restarting the tee-worker. However, you can send the `SIGUSR2` signal, which will disable the most resource-intensive probes (goroutine blocking, mutexes and CPU)
+There is currently no way to completely disable profiling short of restarting the tee-worker. However, you can send a POST request to `/debug/pprof/disable` which will disable the most resource-intensive probes (goroutine blocking, mutexes and CPU).
 
-When profiling is enabled you will have access to the following endpoints, which can be accessed via the `go tool pprof` command:
+When profiling is enabled you will have access to the following endpoints, which you can use with the `go tool pprof` command:
 
 `/debug/pprof` - Index page
 `/debug/pprof/heap` - Heap profile
@@ -220,6 +222,6 @@ When profiling is enabled you will have access to the following endpoints, which
 
 There are others, see the `/debug/pprof` index page for a complete list.
 
-The `/debug/pprof/trace?seconds=XX` will give you an XX-second execution trace, which can be accessed via the `go tool trace` command.
+The `/debug/pprof/trace?seconds=XX` will give you an XX-second execution trace, which you can use via the `go tool trace` command.
 
 For more information, see [the official docs](https://pkg.go.dev/net/http/pprof). [This link](https://gist.github.com/andrewhodel/ed7625a14eb87404cafd37493849d1ba) also contains useful information.

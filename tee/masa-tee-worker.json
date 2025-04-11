@@ -34,6 +34,10 @@
         {
             "name": "STANDALONE",
             "fromHost": true
+        },
+        {
+            "name": "LOG_LEVEL",
+            "fromHost": true
         }
     ],
  "files": [
