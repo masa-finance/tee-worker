@@ -15,7 +15,7 @@ var statsCollector *stats.StatsCollector
 
 var _ = Describe("Webscraper", func() {
 	BeforeEach(func() {
-		statsCollector = stats.StartCollector(128)
+		statsCollector = stats.StartCollector(128, types.JobConfiguration{})
 	})
 
 	It("should scrape now", func() {

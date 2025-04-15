@@ -79,6 +79,7 @@ func readConfig() types.JobConfiguration {
 	}
 
 	jc["profiling_enabled"] = os.Getenv("ENABLE_PPROF") == "true"
+	jc["capabilities"] = os.Getenv("CAPABILITIES")
 
 	return jc
 }
