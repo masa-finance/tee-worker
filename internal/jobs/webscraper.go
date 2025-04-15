@@ -246,7 +246,7 @@ func scrapeWeb(uri []string, depth int) ([]byte, error) {
 	for _, u := range uri {
 		err := c.Visit(u)
 		logrus.Infof("Visiting URL: %s", u)
-		err := c.Visit(u)
+		err = c.Visit(u)
 		if err != nil {
 			logrus.Errorf("Failed to visit URL: %s. Error: %v", u, err)
 			return nil, err
