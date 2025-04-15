@@ -38,7 +38,7 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 	}
 
 	// Start stats collector
-	s := stats.StartCollector(bufSize)
+	s := stats.StartCollector(bufSize, jc)
 
 	// Set worker ID in stats collector if available
 	if workerID, ok := jc["worker_id"].(string); ok && workerID != "" {

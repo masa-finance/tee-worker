@@ -34,7 +34,7 @@ var _ = Describe("Twitter Scraper", func() {
 			Skip("TWITTER_TEST_ACCOUNT is not set")
 		}
 
-		statsCollector = stats.StartCollector(128)
+		statsCollector = stats.StartCollector(128, types.JobConfiguration{})
 
 		twitterScraper = NewTwitterScraper(types.JobConfiguration{
 			"twitter_accounts": []string{account},

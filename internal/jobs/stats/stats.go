@@ -2,9 +2,11 @@ package stats
 
 import (
 	"encoding/json"
+	"strings"
 	"sync"
 	"time"
 
+	"github.com/masa-finance/tee-worker/api/types"
 	"github.com/sirupsen/logrus"
 )
 
@@ -48,22 +50,24 @@ type AddStat struct {
 
 // stats is the structure we use to store the statistics
 type stats struct {
-	BootTimeUnix      int64             `json:"boot_time"`
-	LastOperationUnix int64             `json:"last_operation_time"`
-	CurrentTimeUnix   int64             `json:"current_time"`
-	WorkerID          string            `json:"worker_id"`
-	Stats             map[statType]uint `json:"stats"`
+	BootTimeUnix         int64             `json:"boot_time"`
+	LastOperationUnix    int64             `json:"last_operation_time"`
+	CurrentTimeUnix      int64             `json:"current_time"`
+	WorkerID             string            `json:"worker_id"`
+	Stats                map[statType]uint `json:"stats"`
+	ReportedCapabilities []string          `json:"reported_capabilities"`
 	sync.Mutex
 }
 
 // StatsCollector is the object used to collect statistics
 type StatsCollector struct {
 	Stats *stats
+	jc    types.JobConfiguration
 	Chan  chan AddStat
 }
 
 // StartCollector starts a goroutine that listens to a channel for AddStat messages and updates the stats accordingly.
-func StartCollector(bufSize uint) *StatsCollector {
+func StartCollector(bufSize uint, jc types.JobConfiguration) *StatsCollector {
 	logrus.Info("Starting stats collector")
 
 	s := stats{
@@ -72,6 +76,16 @@ func StartCollector(bufSize uint) *StatsCollector {
 	}
 	for _, t := range allStats {
 		s.Stats[t] = 0
+	}
+
+	capabilities, isString := jc["capabilities"].(string)
+	if isString {
+		if strings.Contains(capabilities, ",") {
+			s.ReportedCapabilities = strings.Split(capabilities, ",")
+		} else {
+			s.ReportedCapabilities = []string{capabilities}
+		}
+		logrus.Infof("Capabilities: %v", s.ReportedCapabilities)
 	}
 
 	ch := make(chan AddStat, bufSize)
