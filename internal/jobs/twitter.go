@@ -1068,8 +1068,6 @@ func (ts *TwitterScraper) GetSpace(baseDir, spaceID string) (*twitterscraper.Spa
 	return space, nil
 }
 
-const TwitterScraperType = "twitter-scraper"
-
 // Job type constants
 const (
 	// TwitterScraperType is the original job type that can use either credentials or API keys
@@ -1129,29 +1127,29 @@ func NewTwitterScraper(jc types.JobConfiguration, c *stats.StatsCollector) *Twit
 		accountManager: accountManager,
 		statsCollector: c,
 		capabilities: map[string]bool{
-			"searchbyquery":        true,
-			"searchbyfullarchive":   true,
-			"searchbyprofile":      true,
-			"searchfollowers":      true,
-			"getbyid":              true,
-			"getreplies":           true,
-			"getretweeters":        true,
-			"gettweets":            true,
-			"getmedia":             true,
-			"gethometweets":        true,
-			"getforyoutweets":      true,
-			"getbookmarks":         true,
-			"getprofilebyid":       true,
-			"gettrends":            true,
-			"getfollowing":         true,
-			"getfollowers":         true,
-			"getspace":             true,
-			"fetchhometweets":      true,
-			"fetchforyoutweets":    true,
-			"fetchbookmarks":       true,
-			"fetchfollowing":       true,
-			"fetchfollowers":       true,
-			"searchprofile":        true,
+			"searchbyquery":       true,
+			"searchbyfullarchive": true,
+			"searchbyprofile":     true,
+			"searchfollowers":     true,
+			"getbyid":             true,
+			"getreplies":          true,
+			"getretweeters":       true,
+			"gettweets":           true,
+			"getmedia":            true,
+			"gethometweets":       true,
+			"getforyoutweets":     true,
+			"getbookmarks":        true,
+			"getprofilebyid":      true,
+			"gettrends":           true,
+			"getfollowing":        true,
+			"getfollowers":        true,
+			"getspace":            true,
+			"fetchhometweets":     true,
+			"fetchforyoutweets":   true,
+			"fetchbookmarks":      true,
+			"fetchfollowing":      true,
+			"fetchfollowers":      true,
+			"searchprofile":       true,
 		},
 	}
 }
@@ -1162,23 +1160,23 @@ func (ws *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 
 	// Determine which implementation to use based on job type
 	var jobImplementation string
-	
+
 	// Default to regular job type
 	jobImplementation = TwitterScraperType
-	
+
 	// Check for specialized job types
 	if j.Type == TwitterCredentialScraperType {
 		jobImplementation = TwitterCredentialScraperType
 	} else if j.Type == TwitterApiScraperType {
 		jobImplementation = TwitterApiScraperType
 	}
-	
+
 	// Dispatch based on search type
 	switch strings.ToLower(args.SearchType) {
 	case "searchbyquery":
 		var tweets []*TweetResult
 		var err error
-		
+
 		switch jobImplementation {
 		case TwitterCredentialScraperType:
 			// Use credential-only implementation
@@ -1190,7 +1188,7 @@ func (ws *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 			// Use the standard implementation that can use either credentials or API keys
 			tweets, err = ws.ScrapeTweetsByRecentSearchQuery(ws.configuration.DataDir, args.Query, args.MaxResults)
 		}
-		
+
 		if err != nil {
 			return types.JobResult{Error: err.Error()}, err
 		}
@@ -1202,7 +1200,7 @@ func (ws *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 	case "searchbyfullarchive":
 		var tweets []*TweetResult
 		var err error
-		
+
 		switch jobImplementation {
 		case TwitterCredentialScraperType:
 			// Credential-only implementation (not ideal for full archive which should use API)
@@ -1215,7 +1213,7 @@ func (ws *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 			// Standard implementation
 			tweets, err = ws.ScrapeTweetsByFullArchiveSearchQuery(ws.configuration.DataDir, args.Query, args.MaxResults)
 		}
-		
+
 		if err != nil {
 			return types.JobResult{Error: err.Error()}, err
 		}
