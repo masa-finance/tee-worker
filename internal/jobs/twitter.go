@@ -875,7 +875,16 @@ func (ts *TwitterScraper) GetBookmarks(baseDir string, count int, cursor string)
 	var bookmarks []TweetResult
 
 	ctx := context.Background()
-	for tweet := range scraper.GetBookmarks(ctx, cursor) {
+	// Convert cursor to integer if it's not empty
+	var cursorInt int = 0
+	if cursor != "" {
+		var err error
+		cursorInt, err = strconv.Atoi(cursor)
+		if err != nil {
+			logrus.Warnf("Invalid cursor value '%s', using default: %v", cursor, err)
+		}
+	}
+	for tweet := range scraper.GetBookmarks(ctx, cursorInt) {
 		if tweet.Error != nil {
 			_ = ts.handleError(tweet.Error, account)
 			return nil, "", tweet.Error
@@ -1297,40 +1306,6 @@ func (ws *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 	}, fmt.Errorf("invalid search type")
 }
 
-func (ts *TwitterScraper) GetBookmarks(baseDir string, count int, cursor string) ([]TweetResult, string, error) {
-	scraper, account, _, err := ts.getAuthenticatedScraper(baseDir, TwitterScraperType)
-	if err != nil {
-		return nil, "", err
-	}
-
-	ts.statsCollector.Add(stats.TwitterScrapes, 1)
-	var bookmarks []TweetResult
-
-	ctx := context.Background()
-	for tweet := range scraper.GetBookmarks(ctx, cursor) {
-		if tweet.Error != nil {
-			_ = ts.handleError(tweet.Error, account)
-			return nil, "", tweet.Error
-		}
-
-		if len(bookmarks) >= count {
-			break
-		}
-
-		newTweetResult := ts.convertTwitterScraperTweetToTweetResult(tweet.Tweet)
-		bookmarks = append(bookmarks, newTweetResult)
-	}
-
-	var nextCursor string
-	if len(bookmarks) > 0 {
-		nextCursor = bookmarks[len(bookmarks)-1].TweetID
-	}
-
-	ts.statsCollector.Add(stats.TwitterTweets, uint(len(bookmarks)))
-	return bookmarks, nextCursor, nil
-}
-
-// FetchHomeTweets retrieves tweets from user's home timeline
 func (ts *TwitterScraper) FetchHomeTweets(baseDir string, count int, cursor string) ([]*twitterscraper.Tweet, string, error) {
 	scraper, account, _, err := ts.getAuthenticatedScraper(baseDir, TwitterScraperType)
 	if err != nil {
@@ -1348,7 +1323,6 @@ func (ts *TwitterScraper) FetchHomeTweets(baseDir string, count int, cursor stri
 	return tweets, nextCursor, nil
 }
 
-// FetchForYouTweets retrieves tweets from For You timeline
 func (ts *TwitterScraper) FetchForYouTweets(baseDir string, count int, cursor string) ([]*twitterscraper.Tweet, string, error) {
 	scraper, account, _, err := ts.getAuthenticatedScraper(baseDir, TwitterScraperType)
 	if err != nil {
