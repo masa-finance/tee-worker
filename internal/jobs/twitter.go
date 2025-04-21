@@ -199,10 +199,13 @@ func (ts *TwitterScraper) getAuthenticatedScraper(baseDir string, jobType string
 	default:
 		// Standard Twitter scraper - prefer credentials if available
 		account = ts.accountManager.GetNextAccount()
-		apiKey = ts.accountManager.GetNextApiKey()
-		if account == nil && apiKey == nil {
-			ts.statsCollector.Add(stats.TwitterAuthErrors, 1)
-			return nil, nil, nil, fmt.Errorf("no Twitter accounts or API keys available")
+		// Only get API key if no credential is available
+		if account == nil {
+			apiKey = ts.accountManager.GetNextApiKey()
+			if apiKey == nil {
+				ts.statsCollector.Add(stats.TwitterAuthErrors, 1)
+				return nil, nil, nil, fmt.Errorf("no Twitter accounts or API keys available")
+			}
 		}
 	}
 
@@ -219,6 +222,13 @@ func (ts *TwitterScraper) getAuthenticatedScraper(baseDir string, jobType string
 			logrus.Errorf("Authentication failed for %s", account.Username)
 			return nil, account, nil, fmt.Errorf("twitter authentication failed for %s", account.Username)
 		}
+	} else if apiKey != nil {
+		// If we're using API key only (no credentials), we don't initialize the scraper here
+		// The TwitterX client will be created in the appropriate method
+		logrus.Info("Using API key only for this request")
+	} else {
+		// This shouldn't happen due to our earlier checks, but just in case
+		return nil, nil, nil, fmt.Errorf("no authentication method available")
 	}
 
 	return scraper, account, apiKey, nil
@@ -523,7 +533,7 @@ func (ts *TwitterScraper) scrapeTweetsByQueryWithApiKey(baseQueryEndpoint string
 
 		tweets = append(tweets, &newTweetResult)
 	}
-	
+
 	logrus.Infof("Scraped %d tweets using API key", len(tweets))
 	ts.statsCollector.Add(stats.TwitterTweets, uint(len(tweets)))
 
@@ -920,7 +930,7 @@ func (ts *TwitterScraper) GetProfileByID(baseDir, userID string) (*twitterscrape
 		return nil, err
 	}
 
-	ts.statsCollector.Add(stats.TwitterOther, 1)
+	ts.statsCollector.Add(stats.TwitterProfiles, 1)
 	return &profile, nil
 }
 
@@ -1084,15 +1094,15 @@ func NewTwitterScraper(jc types.JobConfiguration, c *stats.StatsCollector) *Twit
 func (ws *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 	args := &TwitterScraperArgs{}
 	j.Arguments.Unmarshal(args)
-	
+
 	// Determine which implementation to use based on job type
 	var jobType string = j.Type
-	
+
 	switch strings.ToLower(args.SearchType) {
 	case "searchbyquery":
 		var tweets []*TweetResult
 		var err error
-		
+
 		// Select implementation based on job type
 		switch jobType {
 		case TwitterCredentialScraperType:
@@ -1108,7 +1118,7 @@ func (ws *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 			logrus.Infof("Using standard implementation for query: %s", args.Query)
 			tweets, err = ws.ScrapeTweetsByRecentSearchQuery(ws.configuration.DataDir, args.Query, args.MaxResults)
 		}
-		
+
 		if err != nil {
 			return types.JobResult{Error: err.Error()}, err
 		}
@@ -1120,7 +1130,7 @@ func (ws *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 	case "searchbyfullarchive":
 		var tweets []*TweetResult
 		var err error
-		
+
 		// Select implementation based on job type
 		switch jobType {
 		case TwitterCredentialScraperType:
@@ -1134,7 +1144,7 @@ func (ws *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 			// Use standard implementation
 			tweets, err = ws.ScrapeTweetsByFullArchiveSearchQuery(ws.configuration.DataDir, args.Query, args.MaxResults)
 		}
-		
+
 		if err != nil {
 			return types.JobResult{Error: err.Error()}, err
 		}
