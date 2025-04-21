@@ -2,6 +2,8 @@ package jobserver_test
 
 import (
 	"context"
+	_ "os"
+	_ "time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
