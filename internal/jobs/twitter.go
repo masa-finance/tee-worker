@@ -1091,229 +1091,212 @@ func NewTwitterScraper(jc types.JobConfiguration, c *stats.StatsCollector) *Twit
 	}
 }
 
-func (ws *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
-	args := &TwitterScraperArgs{}
-	j.Arguments.Unmarshal(args)
+// TwitterScrapeStrategy defines the interface for scrape strategy
+// Each job type (credential, api, default) implements this
+//
+type TwitterScrapeStrategy interface {
+	Execute(ts *TwitterScraper, args *TwitterScraperArgs) (types.JobResult, error)
+}
 
-	// Determine which implementation to use based on job type
-	var jobType string = j.Type
+// Factory for strategy
+func getScrapeStrategy(jobType string) TwitterScrapeStrategy {
+	switch jobType {
+	case TwitterCredentialScraperType:
+		return &CredentialScrapeStrategy{}
+	case TwitterApiScraperType:
+		return &ApiKeyScrapeStrategy{}
+	default:
+		return &DefaultScrapeStrategy{}
+	}
+}
 
+// Credential-only
+type CredentialScrapeStrategy struct{}
+func (s *CredentialScrapeStrategy) Execute(ts *TwitterScraper, args *TwitterScraperArgs) (types.JobResult, error) {
 	switch strings.ToLower(args.SearchType) {
 	case "searchbyquery":
-		var tweets []*TweetResult
-		var err error
-
-		// Select implementation based on job type
-		switch jobType {
-		case TwitterCredentialScraperType:
-			// Use credential-only implementation
-			logrus.Infof("Using credential-only implementation for query: %s", args.Query)
-			tweets, err = ws.scrapeTweetsByQueryWithCredentials(ws.configuration.DataDir, args.Query, args.MaxResults)
-		case TwitterApiScraperType:
-			// Use API key-only implementation
-			logrus.Infof("Using API key-only implementation for query: %s", args.Query)
-			tweets, err = ws.scrapeTweetsByQueryWithApiKey(twitterx.TweetsSearchRecent, ws.configuration.DataDir, args.Query, args.MaxResults)
-		default:
-			// Use standard implementation that can use either credentials or API keys
-			logrus.Infof("Using standard implementation for query: %s", args.Query)
-			tweets, err = ws.ScrapeTweetsByRecentSearchQuery(ws.configuration.DataDir, args.Query, args.MaxResults)
-		}
-
+		tweets, err := ts.scrapeTweetsByQueryWithCredentials(ts.configuration.DataDir, args.Query, args.MaxResults)
 		if err != nil {
 			return types.JobResult{Error: err.Error()}, err
 		}
 		dat, err := json.Marshal(tweets)
-		return types.JobResult{
-			Data: dat,
-		}, err
-
+		return types.JobResult{Data: dat}, err
 	case "searchbyfullarchive":
-		var tweets []*TweetResult
-		var err error
-
-		// Select implementation based on job type
-		switch jobType {
-		case TwitterCredentialScraperType:
-			// Use credential-only implementation (though not ideal for full archive)
-			logrus.Warn("Full archive search with credential-only implementation may have limited results")
-			tweets, err = ws.scrapeTweetsByQueryWithCredentials(ws.configuration.DataDir, args.Query, args.MaxResults)
-		case TwitterApiScraperType:
-			// Use API key-only implementation
-			tweets, err = ws.scrapeTweetsByQueryWithApiKey(twitterx.TweetsAll, ws.configuration.DataDir, args.Query, args.MaxResults)
-		default:
-			// Use standard implementation
-			tweets, err = ws.ScrapeTweetsByFullArchiveSearchQuery(ws.configuration.DataDir, args.Query, args.MaxResults)
-		}
-
+		logrus.Warn("Full archive search with credential-only implementation may have limited results")
+		tweets, err := ts.scrapeTweetsByQueryWithCredentials(ts.configuration.DataDir, args.Query, args.MaxResults)
 		if err != nil {
 			return types.JobResult{Error: err.Error()}, err
 		}
 		dat, err := json.Marshal(tweets)
-		return types.JobResult{
-			Data: dat,
-		}, err
+		return types.JobResult{Data: dat}, err
+	default:
+		return defaultStrategyFallback(ts, args)
+	}
+}
+
+// API key-only
+type ApiKeyScrapeStrategy struct{}
+func (s *ApiKeyScrapeStrategy) Execute(ts *TwitterScraper, args *TwitterScraperArgs) (types.JobResult, error) {
+	switch strings.ToLower(args.SearchType) {
+	case "searchbyquery":
+		tweets, err := ts.scrapeTweetsByQueryWithApiKey(twitterx.TweetsSearchRecent, ts.configuration.DataDir, args.Query, args.MaxResults)
+		if err != nil {
+			return types.JobResult{Error: err.Error()}, err
+		}
+		dat, err := json.Marshal(tweets)
+		return types.JobResult{Data: dat}, err
+	case "searchbyfullarchive":
+		tweets, err := ts.scrapeTweetsByQueryWithApiKey(twitterx.TweetsAll, ts.configuration.DataDir, args.Query, args.MaxResults)
+		if err != nil {
+			return types.JobResult{Error: err.Error()}, err
+		}
+		dat, err := json.Marshal(tweets)
+		return types.JobResult{Data: dat}, err
+	default:
+		return defaultStrategyFallback(ts, args)
+	}
+}
+
+// Default (legacy, prefers credentials if both present)
+type DefaultScrapeStrategy struct{}
+func (s *DefaultScrapeStrategy) Execute(ts *TwitterScraper, args *TwitterScraperArgs) (types.JobResult, error) {
+	switch strings.ToLower(args.SearchType) {
+	case "searchbyquery":
+		tweets, err := ts.ScrapeTweetsByRecentSearchQuery(ts.configuration.DataDir, args.Query, args.MaxResults)
+		if err != nil {
+			return types.JobResult{Error: err.Error()}, err
+		}
+		dat, err := json.Marshal(tweets)
+		return types.JobResult{Data: dat}, err
+	case "searchbyfullarchive":
+		tweets, err := ts.ScrapeTweetsByFullArchiveSearchQuery(ts.configuration.DataDir, args.Query, args.MaxResults)
+		if err != nil {
+			return types.JobResult{Error: err.Error()}, err
+		}
+		dat, err := json.Marshal(tweets)
+		return types.JobResult{Data: dat}, err
+	default:
+		return defaultStrategyFallback(ts, args)
+	}
+}
+
+// fallback for all strategies for non-query types
+func defaultStrategyFallback(ts *TwitterScraper, args *TwitterScraperArgs) (types.JobResult, error) {
+	switch strings.ToLower(args.SearchType) {
 	case "searchbyprofile":
-		profile, err := ws.ScrapeTweetsProfile(ws.configuration.DataDir, args.Query)
+		profile, err := ts.ScrapeTweetsProfile(ts.configuration.DataDir, args.Query)
 		if err != nil {
 			return types.JobResult{Error: err.Error()}, err
 		}
 		dat, err := json.Marshal(profile)
-		return types.JobResult{
-			Data: dat,
-		}, err
-
+		return types.JobResult{Data: dat}, err
 	case "searchfollowers":
-		followers, err := ws.ScrapeFollowersForProfile(ws.configuration.DataDir, args.Query, args.Count)
+		followers, err := ts.ScrapeFollowersForProfile(ts.configuration.DataDir, args.Query, args.Count)
 		if err != nil {
 			return types.JobResult{Error: err.Error()}, err
 		}
 		dat, err := json.Marshal(followers)
-		return types.JobResult{
-			Data: dat,
-		}, err
-
+		return types.JobResult{Data: dat}, err
 	case "getbyid":
-		tweet, err := ws.ScrapeTweetByID(ws.configuration.DataDir, args.Query)
+		tweet, err := ts.ScrapeTweetByID(ts.configuration.DataDir, args.Query)
 		if err != nil {
 			return types.JobResult{Error: err.Error()}, err
 		}
 		dat, err := json.Marshal(tweet)
-		return types.JobResult{
-			Data: dat,
-		}, err
-
+		return types.JobResult{Data: dat}, err
 	case "getreplies":
-		replies, err := ws.GetTweetReplies(ws.configuration.DataDir, args.Query, "")
+		replies, err := ts.GetTweetReplies(ts.configuration.DataDir, args.Query, "")
 		if err != nil {
 			return types.JobResult{Error: err.Error()}, err
 		}
 		dat, err := json.Marshal(replies)
-		return types.JobResult{
-			Data: dat,
-		}, err
-
+		return types.JobResult{Data: dat}, err
 	case "getretweeters":
-		retweeters, err := ws.GetTweetRetweeters(ws.configuration.DataDir, args.Query, args.Count, "")
+		retweeters, err := ts.GetTweetRetweeters(ts.configuration.DataDir, args.Query, args.Count, "")
 		if err != nil {
 			return types.JobResult{Error: err.Error()}, err
 		}
 		dat, err := json.Marshal(retweeters)
-		return types.JobResult{
-			Data: dat,
-		}, err
-
+		return types.JobResult{Data: dat}, err
 	case "gettweets":
-		tweets, nextCursor, err := ws.GetUserTweets(ws.configuration.DataDir, args.Query, args.Count, args.NextCursor)
+		tweets, nextCursor, err := ts.GetUserTweets(ts.configuration.DataDir, args.Query, args.Count, args.NextCursor)
 		if err != nil {
 			return types.JobResult{Error: err.Error()}, err
 		}
 		dat, err := json.Marshal(tweets)
-		return types.JobResult{
-			Data:       dat,
-			NextCursor: nextCursor,
-		}, err
-
+		return types.JobResult{Data: dat, NextCursor: nextCursor}, err
 	case "getmedia":
-		media, nextCursor, err := ws.GetUserMedia(ws.configuration.DataDir, args.Query, args.Count, args.NextCursor)
+		media, nextCursor, err := ts.GetUserMedia(ts.configuration.DataDir, args.Query, args.Count, args.NextCursor)
 		if err != nil {
 			return types.JobResult{Error: err.Error()}, err
 		}
 		dat, err := json.Marshal(media)
-		return types.JobResult{
-			Data:       dat,
-			NextCursor: nextCursor,
-		}, err
-
+		return types.JobResult{Data: dat, NextCursor: nextCursor}, err
 	case "gethometweets":
-		tweets, nextCursor, err := ws.GetHomeTweets(ws.configuration.DataDir, args.Count, args.NextCursor)
+		tweets, nextCursor, err := ts.GetHomeTweets(ts.configuration.DataDir, args.Count, args.NextCursor)
 		if err != nil {
 			return types.JobResult{Error: err.Error()}, err
 		}
 		dat, err := json.Marshal(tweets)
-		return types.JobResult{
-			Data:       dat,
-			NextCursor: nextCursor,
-		}, err
-
+		return types.JobResult{Data: dat, NextCursor: nextCursor}, err
 	case "getforyoutweets":
-		tweets, nextCursor, err := ws.GetForYouTweets(ws.configuration.DataDir, args.Count, args.NextCursor)
+		tweets, nextCursor, err := ts.GetForYouTweets(ts.configuration.DataDir, args.Count, args.NextCursor)
 		if err != nil {
 			return types.JobResult{Error: err.Error()}, err
 		}
 		dat, err := json.Marshal(tweets)
-		return types.JobResult{
-			Data:       dat,
-			NextCursor: nextCursor,
-		}, err
-
+		return types.JobResult{Data: dat, NextCursor: nextCursor}, err
 	case "getbookmarks":
-		bookmarks, nextCursor, err := ws.GetBookmarks(ws.configuration.DataDir, args.Count, args.NextCursor)
+		bookmarks, nextCursor, err := ts.GetBookmarks(ts.configuration.DataDir, args.Count, args.NextCursor)
 		if err != nil {
 			return types.JobResult{Error: err.Error()}, err
 		}
 		dat, err := json.Marshal(bookmarks)
-		return types.JobResult{
-			Data:       dat,
-			NextCursor: nextCursor,
-		}, err
-
+		return types.JobResult{Data: dat, NextCursor: nextCursor}, err
 	case "getprofilebyid":
-		profile, err := ws.GetProfileByID(ws.configuration.DataDir, args.Query)
+		profile, err := ts.GetProfileByID(ts.configuration.DataDir, args.Query)
 		if err != nil {
 			return types.JobResult{Error: err.Error()}, err
 		}
 		dat, err := json.Marshal(profile)
-		return types.JobResult{
-			Data: dat,
-		}, err
-
+		return types.JobResult{Data: dat}, err
 	case "gettrends":
-		trends, err := ws.GetTrends(ws.configuration.DataDir)
+		trends, err := ts.GetTrends(ts.configuration.DataDir)
 		if err != nil {
 			return types.JobResult{Error: err.Error()}, err
 		}
 		dat, err := json.Marshal(trends)
-		return types.JobResult{
-			Data: dat,
-		}, err
-
+		return types.JobResult{Data: dat}, err
 	case "getfollowing":
-		following, err := ws.GetFollowing(ws.configuration.DataDir, args.Query, args.Count)
+		following, err := ts.GetFollowing(ts.configuration.DataDir, args.Query, args.Count)
 		if err != nil {
 			return types.JobResult{Error: err.Error()}, err
 		}
 		dat, err := json.Marshal(following)
-		return types.JobResult{
-			Data: dat,
-		}, err
-
+		return types.JobResult{Data: dat}, err
 	case "getfollowers":
-		followers, nextCursor, err := ws.GetFollowers(ws.configuration.DataDir, args.Query, args.Count, "")
+		followers, nextCursor, err := ts.GetFollowers(ts.configuration.DataDir, args.Query, args.Count, "")
 		if err != nil {
 			return types.JobResult{Error: err.Error()}, err
-
 		}
 		dat, err := json.Marshal(followers)
-		return types.JobResult{
-			Data:       dat,
-			NextCursor: nextCursor,
-		}, err
-
+		return types.JobResult{Data: dat, NextCursor: nextCursor}, err
 	case "getspace":
-		space, err := ws.GetSpace(ws.configuration.DataDir, args.Query)
+		space, err := ts.GetSpace(ts.configuration.DataDir, args.Query)
 		if err != nil {
 			return types.JobResult{Error: err.Error()}, err
 		}
 		dat, err := json.Marshal(space)
-		return types.JobResult{
-			Data: dat,
-		}, err
-
+		return types.JobResult{Data: dat}, err
 	}
+	return types.JobResult{Error: "invalid search type"}, fmt.Errorf("invalid search type")
+}
 
-	return types.JobResult{
-		Error: "invalid search type",
-	}, fmt.Errorf("invalid search type")
+func (ts *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
+	args := &TwitterScraperArgs{}
+	j.Arguments.Unmarshal(args)
+	strategy := getScrapeStrategy(j.Type)
+	return strategy.Execute(ts, args)
 }
 
 func (ts *TwitterScraper) FetchHomeTweets(baseDir string, count int, cursor string) ([]*twitterscraper.Tweet, string, error) {
