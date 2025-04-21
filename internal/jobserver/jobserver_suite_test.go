@@ -10,4 +10,5 @@ import (
 func TestJobServer(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "JobServer test suite")
+	RunSpecs(t, "ResultCache Suite")
 }

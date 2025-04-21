@@ -1,18 +1,18 @@
 package jobserver
 
 import (
+	"container/list"
+	"github.com/masa-finance/tee-worker/api/types"
 	"os"
 	"strconv"
 	"sync"
 	"time"
-	"container/list"
-	"github.com/masa-finance/tee-worker/api/types"
 )
 
 // Default values
 const (
-	defaultMaxSize      = 1000
-	defaultMaxAgeSecs   = 600
+	defaultMaxSize    = 1000
+	defaultMaxAgeSecs = 600
 )
 
 type cacheEntry struct {
@@ -23,11 +23,11 @@ type cacheEntry struct {
 }
 
 type ResultCache struct {
-	lock     sync.Mutex
-	entries  map[string]*cacheEntry
-	order    *list.List // oldest at Front, newest at Back
-	maxSize  int
-	maxAge   time.Duration
+	lock    sync.Mutex
+	entries map[string]*cacheEntry
+	order   *list.List // oldest at Front, newest at Back
+	maxSize int
+	maxAge  time.Duration
 }
 
 func NewResultCacheFromEnv() *ResultCache {

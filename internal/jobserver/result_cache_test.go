@@ -1,11 +1,11 @@
 package jobserver
 
 import (
-	"os"
-	"time"
+	"github.com/masa-finance/tee-worker/api/types"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/masa-finance/tee-worker/api/types"
+	"os"
+	"time"
 )
 
 var _ = Describe("ResultCache", func() {
