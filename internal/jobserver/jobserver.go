@@ -17,7 +17,7 @@ type JobServer struct {
 	jobChan chan types.Job
 	workers int
 
-	results          map[string]types.JobResult
+	results          *ResultCache
 	jobConfiguration types.JobConfiguration
 
 	jobWorkers map[string]*jobWorkerEntry
@@ -86,7 +86,7 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 	logrus.Info("JobServer initialization complete.")
 	return &JobServer{
 		jobChan:          make(chan types.Job),
-		results:          make(map[string]types.JobResult),
+		results:          NewResultCacheFromEnv(),
 		workers:          workers,
 		jobConfiguration: jc,
 		jobWorkers:       jobworkers,
@@ -112,9 +112,5 @@ func (js *JobServer) AddJob(j types.Job) string {
 }
 
 func (js *JobServer) GetJobResult(uuid string) (types.JobResult, bool) {
-	js.Lock()
-	defer js.Unlock()
-
-	result, ok := js.results[uuid]
-	return result, ok
+	return js.results.Get(uuid)
 }
