@@ -21,6 +21,27 @@ wget https://raw.githubusercontent.com/masa-finance/tee-worker/refs/heads/main/.
 docker run --device /dev/sgx_enclave --device /dev/sgx_provision --net host --rm -v $(PWD)/.masa:/home/masa -ti masaengineering/tee-worker:main
 ```
 
+## Credentials & Environment Variables
+
+The tee-worker requires various environment variables for operation. These should be set in `.masa/.env` (for Docker) or exported in your shell (for local runs).
+
+Key variables include:
+
+- `WEBSCRAPER_BLACKLIST` — Comma-separated list of domains to block for web scraping.
+- `TWITTER_ACCOUNTS` — Comma-separated list of Twitter credentials in `username:password` format.
+- `TWITTER_API_KEYS` — Comma-separated list of Twitter Bearer API tokens (takes precedence over `TWITTER_ACCOUNTS`).
+- `LISTEN_ADDRESS` — The address the service listens on (default: `:8080`).
+
+**Example:**
+```env
+WEBSCRAPER_BLACKLIST="google.com,google.be"
+TWITTER_ACCOUNTS="foo:bar,foo:baz"
+TWITTER_API_KEYS="apikey1,apikey2"
+LISTEN_ADDRESS=":8080"
+```
+
+See `.env.example` for more details.
+
 ## Container images
 
 All tagged images are available here: https://hub.docker.com/r/masaengineering/tee-worker/tags
@@ -177,6 +198,22 @@ Some job types now support cursor-based pagination. For these jobs:
 * `getmedia` - Returns info about all the photos and videos for a given user. The `query` parameter is the profile to search.
 * `gettrends`- Returns a list of all the trending topics. The `query` parameter is ignored.
 * `getspace`- Returns info regarding a Twitter Space given its ID. The `query` parameter is the space ID.
+
+#### `twitter-credential-scraper`
+- **Description:**
+  - Like `twitter-scraper`, but **forces the use of Twitter credentials** (username/password) for scraping. Twitter API keys will not be used for these jobs.
+- **Arguments:**
+  - Same as `twitter-scraper`.
+- **Returns:**
+  - Same as `twitter-scraper`.
+
+#### `twitter-api-scraper`
+- **Description:**
+  - Like `twitter-scraper`, but **forces the use of Twitter API keys** for scraping. Twitter credentials will not be used for these jobs.
+- **Arguments:**
+  - Same as `twitter-scraper`.
+- **Returns:**
+  - Same as `twitter-scraper`.
 
 #### `telemetry`
 
