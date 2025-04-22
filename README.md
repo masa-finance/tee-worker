@@ -25,12 +25,16 @@ docker run --device /dev/sgx_enclave --device /dev/sgx_provision --net host --rm
 
 The tee-worker requires various environment variables for operation. These should be set in `.masa/.env` (for Docker) or exported in your shell (for local runs).
 
-Key variables include:
+- `WEBSCRAPER_BLACKLIST`: Comma-separated list of domains to block for web scraping.
+- `TWITTER_ACCOUNTS`: Comma-separated list of Twitter credentials in `username:password` format.
+- `TWITTER_API_KEYS`: Comma-separated list of Twitter Bearer API tokens.
+- `LISTEN_ADDRESS`: The address the service listens on (default: `:8080`).
+- `RESULT_CACHE_MAX_SIZE`: Maximum number of job results to keep in the result cache (default: `1000`).
+- `RESULT_CACHE_MAX_AGE_SECONDS`: Maximum age (in seconds) to keep a result in the cache (default: `600`).
 
-- `WEBSCRAPER_BLACKLIST` — Comma-separated list of domains to block for web scraping.
-- `TWITTER_ACCOUNTS` — Comma-separated list of Twitter credentials in `username:password` format.
-- `TWITTER_API_KEYS` — Comma-separated list of Twitter Bearer API tokens (takes precedence over `TWITTER_ACCOUNTS`).
-- `LISTEN_ADDRESS` — The address the service listens on (default: `:8080`).
+These cache-related variables are now part of the JobConfiguration and can be set for different environments or for testing purposes.
+
+See `.env.example` for more details.
 
 **Example:**
 ```env

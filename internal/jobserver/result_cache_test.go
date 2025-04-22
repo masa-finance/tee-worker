@@ -1,19 +1,14 @@
 package jobserver
 
 import (
+	"time"
+
 	"github.com/masa-finance/tee-worker/api/types"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"os"
-	"time"
 )
 
 var _ = Describe("ResultCache", func() {
-	BeforeEach(func() {
-		os.Unsetenv("RESULT_CACHE_MAX_SIZE")
-		os.Unsetenv("RESULT_CACHE_MAX_AGE_SECONDS")
-	})
-
 	It("should set and get values", func() {
 		cache := NewResultCache(1000, 600)
 		key := "abc"
@@ -25,8 +20,7 @@ var _ = Describe("ResultCache", func() {
 	})
 
 	It("should evict oldest when max size is reached", func() {
-		os.Setenv("RESULT_CACHE_MAX_SIZE", "3")
-		cache := NewResultCache(1000, 600)
+		cache := NewResultCache(3, 600)
 		for i := 0; i < 5; i++ {
 			key := string(rune('a' + i))
 			cache.Set(key, types.JobResult{Job: types.Job{UUID: key}})
@@ -37,9 +31,7 @@ var _ = Describe("ResultCache", func() {
 	})
 
 	It("should evict by age", func() {
-		os.Setenv("RESULT_CACHE_MAX_SIZE", "10")
-		os.Setenv("RESULT_CACHE_MAX_AGE_SECONDS", "1")
-		cache := NewResultCache(1000, 600)
+		cache := NewResultCache(10, 1)
 		key := "expireme"
 		cache.Set(key, types.JobResult{Job: types.Job{UUID: key}})
 		time.Sleep(1100 * time.Millisecond)
@@ -48,9 +40,7 @@ var _ = Describe("ResultCache", func() {
 	})
 
 	It("should clean up expired entries periodically", func() {
-		os.Setenv("RESULT_CACHE_MAX_SIZE", "10")
-		os.Setenv("RESULT_CACHE_MAX_AGE_SECONDS", "1")
-		cache := NewResultCache(1000, 600)
+		cache := NewResultCache(10, 1)
 		key := "periodic"
 		cache.Set(key, types.JobResult{Job: types.Job{UUID: key}})
 		time.Sleep(2200 * time.Millisecond)
