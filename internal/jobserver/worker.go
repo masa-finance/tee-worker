@@ -30,11 +30,9 @@ func (js *JobServer) doWork(j types.Job) error {
 	w, exists := js.jobWorkers[j.Type]
 
 	if !exists {
-		js.Lock()
-		js.results[j.UUID] = types.JobResult{
+		js.results.Set(j.UUID, types.JobResult{
 			Error: fmt.Sprintf("unknown job type: %s", j.Type),
-		}
-		js.Unlock()
+		})
 		return fmt.Errorf("unknown job type: %s", j.Type)
 	}
 
@@ -49,10 +47,8 @@ func (js *JobServer) doWork(j types.Job) error {
 		result.Error = err.Error()
 	}
 
-	js.Lock()
 	result.Job = j
-	js.results[j.UUID] = result
-	js.Unlock()
+	js.results.Set(j.UUID, result)
 
 	return nil
 }
