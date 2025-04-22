@@ -33,6 +33,23 @@ func readConfig() types.JobConfiguration {
 		panic(err)
 	}
 
+	// Result cache config
+	resultCacheMaxSize := 1000
+	if s := os.Getenv("RESULT_CACHE_MAX_SIZE"); s != "" {
+		if v, err := strconv.Atoi(s); err == nil && v > 0 {
+			resultCacheMaxSize = v
+		}
+	}
+	jc["result_cache_max_size"] = resultCacheMaxSize
+
+	resultCacheMaxAge := 600
+	if s := os.Getenv("RESULT_CACHE_MAX_AGE_SECONDS"); s != "" {
+		if v, err := strconv.Atoi(s); err == nil && v > 0 {
+			resultCacheMaxAge = v
+		}
+	}
+	jc["result_cache_max_age_seconds"] = resultCacheMaxAge
+
 	webScraperBlacklist := os.Getenv("WEBSCRAPER_BLACKLIST")
 	if webScraperBlacklist != "" {
 		blacklistURLs := strings.Split(webScraperBlacklist, ",")
