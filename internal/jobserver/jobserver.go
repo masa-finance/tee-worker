@@ -63,21 +63,27 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 
 	// Initialize job workers
 	logrus.Info("Setting up job workers...")
-	jobworkers := make(map[string]*jobWorkerEntry)
-
-	jobworkers[jobs.WebScraperType] = &jobWorkerEntry{
-		w: jobs.NewWebScraper(jc, s),
+	jobworkers := map[string]*jobWorkerEntry{
+		jobs.WebScraperType: {
+			w: jobs.NewWebScraper(jc, s),
+		},
+		jobs.TwitterScraperType: {
+			w: jobs.NewTwitterScraper(jc, s),
+		},
+		jobs.TwitterCredentialScraperType: {
+			w: jobs.NewTwitterScraper(jc, s), // Uses the same implementation as standard Twitter scraper
+		},
+		jobs.TwitterApiScraperType: {
+			w: jobs.NewTwitterScraper(jc, s), // Uses the same implementation as standard Twitter scraper
+		},
+		jobs.TelemetryJobType: {
+			w: jobs.NewTelemetryJob(jc, s),
+		},
 	}
 	logrus.Infof("Initialized job worker for: %s", jobs.WebScraperType)
-
-	jobworkers[jobs.TwitterScraperType] = &jobWorkerEntry{
-		w: jobs.NewTwitterScraper(jc, s),
-	}
 	logrus.Infof("Initialized job worker for: %s", jobs.TwitterScraperType)
-
-	jobworkers[jobs.TelemetryJobType] = &jobWorkerEntry{
-		w: jobs.NewTelemetryJob(jc, s),
-	}
+	logrus.Infof("Initialized job worker for: %s", jobs.TwitterCredentialScraperType)
+	logrus.Infof("Initialized job worker for: %s", jobs.TwitterApiScraperType)
 	logrus.Infof("Initialized job worker for: %s", jobs.TelemetryJobType)
 
 	logrus.Info("Job workers setup completed.")
