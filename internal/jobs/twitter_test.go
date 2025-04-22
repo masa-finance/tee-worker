@@ -14,6 +14,143 @@ import (
 
 var _ = Describe("Twitter Scraper", func() {
 
+	// --- New tests for specialized job types ---
+	Context("Specialized Twitter Scraper Job Types", func() {
+		var statsCollector *stats.StatsCollector
+		var tempDir string
+		var err error
+		var credentialAccount string
+		var apiKey string
+
+		BeforeEach(func() {
+			CIDir := os.Getenv("TEST_COOKIE_DIR")
+			if CIDir != "" {
+				tempDir = CIDir
+			} else {
+				tempDir, err = os.MkdirTemp("", "twitter")
+				Expect(err).NotTo(HaveOccurred())
+			}
+			credentialAccount = os.Getenv("TWITTER_TEST_ACCOUNT")
+			apiKey = os.Getenv("TWITTER_TEST_API_KEY")
+			statsCollector = stats.StartCollector(128, types.JobConfiguration{})
+		})
+
+		AfterEach(func() {
+			os.RemoveAll(tempDir)
+		})
+
+		It("should use credentials for twitter-credential-scraper", func() {
+			if credentialAccount == "" {
+				Skip("TWITTER_TEST_ACCOUNT is not set")
+			}
+			scraper := NewTwitterScraper(types.JobConfiguration{
+				"twitter_accounts": []string{credentialAccount},
+				"data_dir":         tempDir,
+			}, statsCollector)
+			res, err := scraper.ExecuteJob(types.Job{
+				Type: TwitterCredentialScraperType,
+				Arguments: map[string]interface{}{
+					"type":  "searchbyquery",
+					"query": "NASA",
+					"count": 1,
+				},
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(res.Error).To(BeEmpty())
+			var results []*TweetResult
+			err = res.Unmarshal(&results)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(results).ToNot(BeEmpty())
+		})
+
+		It("should use API key for twitter-api-scraper", func() {
+			if apiKey == "" {
+				Skip("TWITTER_TEST_API_KEY is not set")
+			}
+			scraper := NewTwitterScraper(types.JobConfiguration{
+				"twitter_api_keys": []string{apiKey},
+				"data_dir":         tempDir,
+			}, statsCollector)
+			res, err := scraper.ExecuteJob(types.Job{
+				Type: TwitterApiScraperType,
+				Arguments: map[string]interface{}{
+					"type":  "searchbyquery",
+					"query": "NASA",
+					"count": 1,
+				},
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(res.Error).To(BeEmpty())
+			var results []*TweetResult
+			err = res.Unmarshal(&results)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(results).ToNot(BeEmpty())
+		})
+
+		It("should error if wrong auth method for job type", func() {
+			if apiKey == "" {
+				Skip("TWITTER_TEST_API_KEY is not set")
+			}
+			scraper := NewTwitterScraper(types.JobConfiguration{
+				"twitter_api_keys": []string{apiKey},
+				"data_dir":         tempDir,
+			}, statsCollector)
+			// Try to run credential-only job with only API key
+			res, err := scraper.ExecuteJob(types.Job{
+				Type: TwitterCredentialScraperType,
+				Arguments: map[string]interface{}{
+					"type":  "searchbyquery",
+					"query": "NASA",
+					"count": 1,
+				},
+			})
+			Expect(err).To(HaveOccurred())
+			Expect(res.Error).NotTo(BeEmpty())
+		})
+
+		It("should prefer credentials if both are present for twitter-scraper", func() {
+			if credentialAccount == "" || apiKey == "" {
+				Skip("TWITTER_TEST_ACCOUNT or TWITTER_TEST_API_KEY is not set")
+			}
+			scraper := NewTwitterScraper(types.JobConfiguration{
+				"twitter_accounts": []string{credentialAccount},
+				"twitter_api_keys": []string{apiKey},
+				"data_dir":         tempDir,
+			}, statsCollector)
+			res, err := scraper.ExecuteJob(types.Job{
+				Type: TwitterScraperType,
+				Arguments: map[string]interface{}{
+					"type":  "searchbyquery",
+					"query": "NASA",
+					"count": 1,
+				},
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(res.Error).To(BeEmpty())
+			var results []*TweetResult
+			err = res.Unmarshal(&results)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(results).ToNot(BeEmpty())
+		})
+
+		It("should error if neither credentials nor API key are present", func() {
+			scraper := NewTwitterScraper(types.JobConfiguration{
+				"data_dir": tempDir,
+			}, statsCollector)
+			res, err := scraper.ExecuteJob(types.Job{
+				Type: TwitterApiScraperType,
+				Arguments: map[string]interface{}{
+					"type":  "searchbyquery",
+					"query": "NASA",
+					"count": 1,
+				},
+			})
+			Expect(err).To(HaveOccurred())
+			Expect(res.Error).NotTo(BeEmpty())
+		})
+	})
+
+
 	var twitterScraper *TwitterScraper
 	var statsCollector *stats.StatsCollector
 	var tempDir string
