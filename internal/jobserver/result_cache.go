@@ -3,8 +3,6 @@ package jobserver
 import (
 	"container/list"
 	"github.com/masa-finance/tee-worker/api/types"
-	"os"
-	"strconv"
 	"sync"
 	"time"
 )
@@ -30,26 +28,19 @@ type ResultCache struct {
 	maxAge  time.Duration
 }
 
-func NewResultCacheFromEnv() *ResultCache {
-	maxSize := defaultMaxSize
-	maxAge := defaultMaxAgeSecs
-
-	if s := os.Getenv("RESULT_CACHE_MAX_SIZE"); s != "" {
-		if v, err := strconv.Atoi(s); err == nil && v > 0 {
-			maxSize = v
-		}
+// NewResultCache creates a new ResultCache with the specified maxSize and maxAge (in seconds)
+func NewResultCache(maxSize int, maxAgeSeconds int) *ResultCache {
+	if maxSize <= 0 {
+		maxSize = defaultMaxSize
 	}
-	if s := os.Getenv("RESULT_CACHE_MAX_AGE_SECONDS"); s != "" {
-		if v, err := strconv.Atoi(s); err == nil && v > 0 {
-			maxAge = v
-		}
+	if maxAgeSeconds <= 0 {
+		maxAgeSeconds = defaultMaxAgeSecs
 	}
-
 	rc := &ResultCache{
 		entries: make(map[string]*cacheEntry),
 		order:   list.New(),
 		maxSize: maxSize,
-		maxAge:  time.Duration(maxAge) * time.Second,
+		maxAge:  time.Duration(maxAgeSeconds) * time.Second,
 	}
 	go rc.periodicCleanup()
 	return rc
