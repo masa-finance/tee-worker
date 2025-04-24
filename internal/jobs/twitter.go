@@ -470,6 +470,11 @@ func (ts *TwitterScraper) scrapeTweetsByQueryWithApiKey(baseQueryEndpoint string
 		return nil, err
 	}
 
+	// If full archive search is requested, ensure key is elevated
+	if baseQueryEndpoint == twitterx.TweetsAll && apiKey.Type == "base" {
+		return nil, fmt.Errorf("This API key is a base key and does not have access to full archive search. Please use an elevated API key.")
+	}
+
 	ts.statsCollector.Add(stats.TwitterScrapes, 1)
 	var tweets []*TweetResult
 
@@ -1064,6 +1069,8 @@ func NewTwitterScraper(jc types.JobConfiguration, c *stats.StatsCollector) *Twit
 	accounts := parseAccounts(config.Accounts)
 	apiKeys := parseApiKeys(config.ApiKeys)
 	accountManager := twitter.NewTwitterAccountManager(accounts, apiKeys)
+	// Detect key types at startup
+	accountManager.DetectAllApiKeyTypes()
 
 	return &TwitterScraper{
 		configuration:  config,

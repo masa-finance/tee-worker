@@ -13,7 +13,8 @@ type TwitterAccount struct {
 }
 
 type TwitterApiKey struct {
-	Key string
+	Key  string
+	Type string // "base", "elevated", or "credential"
 }
 
 type TwitterAccountManager struct {
@@ -53,6 +54,11 @@ func (manager *TwitterAccountManager) GetNextApiKey() *TwitterApiKey {
 	key := manager.apiKeys[manager.index]
 	manager.index = (manager.index + 1) % len(manager.apiKeys)
 	return key
+}
+
+// GetApiKeys returns all api keys managed by this manager
+func (manager *TwitterAccountManager) GetApiKeys() []*TwitterApiKey {
+	return manager.apiKeys
 }
 
 func (manager *TwitterAccountManager) MarkAccountRateLimited(account *TwitterAccount) {

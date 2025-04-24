@@ -8,6 +8,7 @@ import (
 
 	"github.com/masa-finance/tee-worker/api/types"
 	"github.com/sirupsen/logrus"
+	"github.com/masa-finance/tee-worker/internal/jobs/twitter"
 )
 
 // These are the types of statistics that we can add. The value is the JSON key that will be used for serialization.
@@ -68,6 +69,101 @@ type StatsCollector struct {
 
 // StartCollector starts a goroutine that listens to a channel for AddStat messages and updates the stats accordingly.
 func StartCollector(bufSize uint, jc types.JobConfiguration) *StatsCollector {
+	logrus.Info("Starting stats collector")
+
+	s := stats{
+		BootTimeUnix: time.Now().Unix(),
+		Stats:        make(map[statType]uint),
+	}
+	for _, t := range allStats {
+		s.Stats[t] = 0
+	}
+
+	// Collect capabilities from config
+	capabilities, isString := jc["capabilities"].(string)
+	if isString {
+		if strings.Contains(capabilities, ",") {
+			s.ReportedCapabilities = strings.Split(capabilities, ",")
+		} else {
+			s.ReportedCapabilities = []string{capabilities}
+		}
+		logrus.Infof("Capabilities: %v", s.ReportedCapabilities)
+	}
+
+	// --- Twitter Key Type Capabilities ---
+	if tamIface, ok := jc["twitter_account_manager"]; ok {
+		if tam, ok := tamIface.(*twitter.TwitterAccountManager); ok {
+			var hasBase, hasElevated, hasCredential bool
+			for _, key := range tam.GetApiKeys() {
+				switch key.Type {
+				case "base":
+					hasBase = true
+				case "elevated":
+					hasElevated = true
+				case "credential":
+					hasCredential = true
+				}
+			}
+			if hasBase {
+				s.ReportedCapabilities = append(s.ReportedCapabilities, "twitter_base")
+			}
+			if hasElevated {
+				s.ReportedCapabilities = append(s.ReportedCapabilities, "twitter_elevated")
+			}
+			if hasCredential {
+				s.ReportedCapabilities = append(s.ReportedCapabilities, "twitter_credential")
+			}
+		}
+	}
+
+	logrus.Info("Starting stats collector")
+
+	s := stats{
+		BootTimeUnix: time.Now().Unix(),
+		Stats:        make(map[statType]uint),
+	}
+	for _, t := range allStats {
+		s.Stats[t] = 0
+	}
+
+	// Collect capabilities from config
+	capabilities, isString := jc["capabilities"].(string)
+	if isString {
+		if strings.Contains(capabilities, ",") {
+			s.ReportedCapabilities = strings.Split(capabilities, ",")
+		} else {
+			s.ReportedCapabilities = []string{capabilities}
+		}
+		logrus.Infof("Capabilities: %v", s.ReportedCapabilities)
+	}
+
+	// --- Twitter Key Type Capabilities ---
+	// Try to detect Twitter key types if TwitterAccountManager is available
+	if tamIface, ok := jc["twitter_account_manager"]; ok {
+		if tam, ok := tamIface.(interface{ GetApiKeys() []*twitter.TwitterApiKey }); ok {
+			var hasBase, hasElevated, hasCredential bool
+			for _, key := range tam.GetApiKeys() {
+				switch key.Type {
+				case "base":
+					hasBase = true
+				case "elevated":
+					hasElevated = true
+				case "credential":
+					hasCredential = true
+				}
+			}
+			if hasBase {
+				s.ReportedCapabilities = append(s.ReportedCapabilities, "twitter_base")
+			}
+			if hasElevated {
+				s.ReportedCapabilities = append(s.ReportedCapabilities, "twitter_elevated")
+			}
+			if hasCredential {
+				s.ReportedCapabilities = append(s.ReportedCapabilities, "twitter_credential")
+			}
+		}
+	}
+
 	logrus.Info("Starting stats collector")
 
 	s := stats{
