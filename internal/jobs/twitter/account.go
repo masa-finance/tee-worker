@@ -56,6 +56,16 @@ func (manager *TwitterAccountManager) GetNextApiKey() *TwitterApiKey {
 	return key
 }
 
+// DetectAllApiKeyTypes checks and sets the Type for all apiKeys in the manager.
+func (manager *TwitterAccountManager) DetectAllApiKeyTypes() {
+	for _, key := range manager.apiKeys {
+		err := key.SetKeyType()
+		if err != nil {
+			key.Type = "unknown"
+		}
+	}
+}
+
 // GetApiKeys returns all api keys managed by this manager
 func (manager *TwitterAccountManager) GetApiKeys() []*TwitterApiKey {
 	return manager.apiKeys

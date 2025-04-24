@@ -1100,7 +1100,6 @@ func NewTwitterScraper(jc types.JobConfiguration, c *stats.StatsCollector) *Twit
 
 // TwitterScrapeStrategy defines the interface for scrape strategy
 // Each job type (credential, api, default) implements this
-//
 type TwitterScrapeStrategy interface {
 	Execute(ts *TwitterScraper, args *TwitterScraperArgs) (types.JobResult, error)
 }
@@ -1119,6 +1118,7 @@ func getScrapeStrategy(jobType string) TwitterScrapeStrategy {
 
 // Credential-only
 type CredentialScrapeStrategy struct{}
+
 func (s *CredentialScrapeStrategy) Execute(ts *TwitterScraper, args *TwitterScraperArgs) (types.JobResult, error) {
 	switch strings.ToLower(args.SearchType) {
 	case "searchbyquery":
@@ -1143,6 +1143,7 @@ func (s *CredentialScrapeStrategy) Execute(ts *TwitterScraper, args *TwitterScra
 
 // API key-only
 type ApiKeyScrapeStrategy struct{}
+
 func (s *ApiKeyScrapeStrategy) Execute(ts *TwitterScraper, args *TwitterScraperArgs) (types.JobResult, error) {
 	switch strings.ToLower(args.SearchType) {
 	case "searchbyquery":
@@ -1166,6 +1167,7 @@ func (s *ApiKeyScrapeStrategy) Execute(ts *TwitterScraper, args *TwitterScraperA
 
 // Default (legacy, prefers credentials if both present)
 type DefaultScrapeStrategy struct{}
+
 func (s *DefaultScrapeStrategy) Execute(ts *TwitterScraper, args *TwitterScraperArgs) (types.JobResult, error) {
 	switch strings.ToLower(args.SearchType) {
 	case "searchbyquery":
