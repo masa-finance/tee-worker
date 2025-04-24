@@ -65,6 +65,9 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 
+	// API Key Authentication Middleware
+	e.Use(APIKeyAuthMiddleware(config))
+
 	// Load already existing key
 	tee.LoadKey(dataDIR)
 

@@ -19,6 +19,13 @@ type Client struct {
 	HTTPClient *http.Client
 }
 
+// setAPIKeyHeader sets the API key on the request if configured.
+func (c *Client) setAPIKeyHeader(req *http.Request) {
+	if c.options != nil && c.options.APIKey != "" {
+		req.Header.Set("Authorization", "Bearer "+c.options.APIKey)
+	}
+}
+
 // NewClient creates a new Client instance.
 func NewClient(baseURL string, opts ...Option) *Client {
 	options := NewOptions(opts...)
@@ -46,7 +53,13 @@ func (c *Client) CreateJobSignature(job types.Job) (JobSignature, error) {
 		return JobSignature(""), fmt.Errorf("error marshaling job: %w", err)
 	}
 
-	resp, err := c.HTTPClient.Post(c.BaseURL+"/job/generate", "application/json", bytes.NewBuffer(jobJSON))
+	req, err := http.NewRequest("POST", c.BaseURL+"/job/generate", bytes.NewBuffer(jobJSON))
+	if err != nil {
+		return JobSignature(""), fmt.Errorf("error creating request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	c.setAPIKeyHeader(req)
+	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
 		return JobSignature(""), fmt.Errorf("error sending POST request: %w", err)
 	}
@@ -73,7 +86,13 @@ func (c *Client) SubmitJob(JobSignature JobSignature) (*JobResult, error) {
 		return nil, fmt.Errorf("error marshaling job: %w", err)
 	}
 
-	resp, err := c.HTTPClient.Post(c.BaseURL+"/job/add", "application/json", bytes.NewBuffer(jobJSON))
+	req, err := http.NewRequest("POST", c.BaseURL+"/job/add", bytes.NewBuffer(jobJSON))
+	if err != nil {
+		return nil, fmt.Errorf("error creating request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	c.setAPIKeyHeader(req)
+	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("error sending POST request: %w", err)
 	}
@@ -109,7 +128,13 @@ func (c *Client) Decrypt(JobSignature JobSignature, encryptedResult string) (str
 		return "", fmt.Errorf("error marshaling decrypt request: %w", err)
 	}
 
-	resp, err := c.HTTPClient.Post(c.BaseURL+"/job/result", "application/json", bytes.NewBuffer(decryptReqJSON))
+	req, err := http.NewRequest("POST", c.BaseURL+"/job/result", bytes.NewBuffer(decryptReqJSON))
+	if err != nil {
+		return "", fmt.Errorf("error creating request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	c.setAPIKeyHeader(req)
+	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("error sending POST request to /job/result: %w", err)
 	}
@@ -129,7 +154,12 @@ func (c *Client) Decrypt(JobSignature JobSignature, encryptedResult string) (str
 
 // GetJobResult retrieves the encrypted result of a job.
 func (c *Client) GetResult(jobUUID string) (string, bool, error) {
-	resp, err := c.HTTPClient.Get(c.BaseURL + "/job/status/" + jobUUID)
+	req, err := http.NewRequest("GET", c.BaseURL+"/job/status/"+jobUUID, nil)
+	if err != nil {
+		return "", false, fmt.Errorf("error creating request: %w", err)
+	}
+	c.setAPIKeyHeader(req)
+	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
 		return "", false, fmt.Errorf("error sending GET request: %w", err)
 	}
