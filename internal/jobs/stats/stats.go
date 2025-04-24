@@ -90,6 +90,27 @@ func StartCollector(bufSize uint, jc types.JobConfiguration) *StatsCollector {
 		logrus.Infof("Capabilities: %v", s.ReportedCapabilities)
 	}
 
+	logrus.Info("Starting stats collector")
+
+	s := stats{
+		BootTimeUnix: time.Now().Unix(),
+		Stats:        make(map[statType]uint),
+	}
+	for _, t := range allStats {
+		s.Stats[t] = 0
+	}
+
+	// Collect capabilities from config
+	capabilities, isString := jc["capabilities"].(string)
+	if isString {
+		if strings.Contains(capabilities, ",") {
+			s.ReportedCapabilities = strings.Split(capabilities, ",")
+		} else {
+			s.ReportedCapabilities = []string{capabilities}
+		}
+		logrus.Infof("Capabilities: %v", s.ReportedCapabilities)
+	}
+
 	// --- Twitter Key Type Capabilities ---
 	if tamIface, ok := jc["twitter_account_manager"]; ok {
 		if tam, ok := tamIface.(*twitter.TwitterAccountManager); ok {
@@ -114,27 +135,6 @@ func StartCollector(bufSize uint, jc types.JobConfiguration) *StatsCollector {
 				s.ReportedCapabilities = append(s.ReportedCapabilities, "twitter_credential")
 			}
 		}
-	}
-
-	logrus.Info("Starting stats collector")
-
-	s := stats{
-		BootTimeUnix: time.Now().Unix(),
-		Stats:        make(map[statType]uint),
-	}
-	for _, t := range allStats {
-		s.Stats[t] = 0
-	}
-
-	// Collect capabilities from config
-	capabilities, isString := jc["capabilities"].(string)
-	if isString {
-		if strings.Contains(capabilities, ",") {
-			s.ReportedCapabilities = strings.Split(capabilities, ",")
-		} else {
-			s.ReportedCapabilities = []string{capabilities}
-		}
-		logrus.Infof("Capabilities: %v", s.ReportedCapabilities)
 	}
 
 	// --- Twitter Key Type Capabilities ---
