@@ -27,7 +27,7 @@ type worker interface {
 
 func (js *JobServer) doWork(j types.Job) error {
 	// TODO: add sync.Mutex for accessing jobWorkers
-	fmt.Sprintf("Job type -----: %s", j.Type)
+	fmt.Printf("Job type ----> %s", j.Type)
 	w, exists := js.jobWorkers[j.Type]
 
 	if !exists {
