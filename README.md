@@ -65,7 +65,7 @@ TWITTER_API_KEYS="apikey1,apikey2"
 LISTEN_ADDRESS=":8080"
 RESULT_CACHE_MAX_SIZE=1000
 RESULT_CACHE_MAX_AGE_SECONDS=600
-CAPABILITIES="searchbyquery,searchbyprofile,searchfollowers,getbyid,getreplies,getretweeters,gettweets,getmedia,gethometweets,getforyoutweets,getbookmarks,getprofilebyid,gettrends,getfollowing,getfollowers,getspace,getspaces"
+CAPABILITIES="searchbyfullarchive,searchbyquery,searchbyprofile,searchfollowers,getbyid,getreplies,getretweeters,gettweets,getmedia,gethometweets,getforyoutweets,getbookmarks,getprofilebyid,gettrends,getfollowing,getfollowers,getspace,getspaces"
 ```
 
 See `.env.example` for more details.
