@@ -31,8 +31,29 @@ The tee-worker requires various environment variables for operation. These shoul
 - `LISTEN_ADDRESS`: The address the service listens on (default: `:8080`).
 - `RESULT_CACHE_MAX_SIZE`: Maximum number of job results to keep in the result cache (default: `1000`).
 - `RESULT_CACHE_MAX_AGE_SECONDS`: Maximum age (in seconds) to keep a result in the cache (default: `600`).
+- `CAPABILITIES`: Comma-separated list of capabilities to enable for the worker. This is a security feature to limit the actions the worker can perform. The default is `*` which allows all actions.
 
-These cache-related variables are now part of the JobConfiguration and can be set for different environments or for testing purposes.
+### Capabilities
+
+- `*`: All capabilities (default).
+- `searchbyquery`: Search by query. 
+- `searchbyfullarchive`: Search by full archive. Only available for API keys with full archive access.
+- `searchbyprofile`: Search by profile. 
+- `searchfollowers`: Search followers.
+- `getbyid`: Get by ID.
+- `getreplies`: Get replies.
+- `getretweeters`: Get retweeters.
+- `gettweets`: Get tweets.
+- `getmedia`: Get media.
+- `gethometweets`: Get home tweets.
+- `getforyoutweets`: Get "For You" tweets.
+- `getbookmarks`: Get bookmarks.
+- `getprofilebyid`: Get profile by ID.
+- `gettrends`: Get trends.
+- `getfollowing`: Get following.
+- `getfollowers`: Get followers.
+- `getspace`: Get space.
+- `getspaces`: Get spaces.
 
 See `.env.example` for more details.
 
@@ -42,6 +63,9 @@ WEBSCRAPER_BLACKLIST="google.com,google.be"
 TWITTER_ACCOUNTS="foo:bar,foo:baz"
 TWITTER_API_KEYS="apikey1,apikey2"
 LISTEN_ADDRESS=":8080"
+RESULT_CACHE_MAX_SIZE=1000
+RESULT_CACHE_MAX_AGE_SECONDS=600
+CAPABILITIES="searchbyquery,searchbyprofile,searchfollowers,getbyid,getreplies,getretweeters,gettweets,getmedia,gethometweets,getforyoutweets,getbookmarks,getprofilebyid,gettrends,getfollowing,getfollowers,getspace,getspaces"
 ```
 
 See `.env.example` for more details.
