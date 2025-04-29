@@ -152,7 +152,7 @@ curl localhost:8080/job/result \
   }'
 ```
 
-### Example 2: Twitter Scraping
+### Example 2: Twitter API Scraping
 
 #### Available twitter scraping types
 - `twitter-scraper`: General Twitter scraping
@@ -174,6 +174,42 @@ SIG=$(curl -s "localhost:8080/job/generate" \
       "query": "climate change",
       "count": 100,
       "max_results": 100
+    }
+  }')
+
+# 2. Submit the job
+uuid=$(curl localhost:8080/job/add \
+  -H "Content-Type: application/json" \
+  -d '{ "encrypted_job": "'$SIG'" }' \
+  | jq -r .uid)
+
+# 3. Check job status
+result=$(curl localhost:8080/job/status/$uuid)
+
+# 4. Decrypt job results
+curl localhost:8080/job/result \
+  -H "Content-Type: application/json" \
+  -d '{
+    "encrypted_result": "'$result'", 
+    "encrypted_request": "'$SIG'" 
+  }'
+```
+
+### Example 3: Twitter Credential Scraping
+
+```bash
+# 1. Generate job signature for Twitter credential scraping
+SIG=$(curl -s "localhost:8080/job/generate" \
+  -H "Authorization: Bearer ${AUTH_TOKEN}" \
+  -X POST \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "twitter-credential-scraper",
+    "arguments": {
+      "type": "searchbyquery",
+      "query": "climate change",
+      "count": 10,
+      "max_results": 10
     }
   }')
 
