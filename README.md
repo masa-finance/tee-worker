@@ -115,8 +115,11 @@ tee.CurrentKeyRing = keyRing
 
 The tee-worker exposes a simple http API to submit jobs, retrieve results, and decrypt the results.
 
+Note: `type` can be `web-scraper`, `twitter-scraper`, `twitter-credential-scraper`, `twitter-api-scraper`
 ```bash
+// type can be web-scraper, twitter-scraper, twitter-credential-scraper, twitter-api-scraper
 SIG=$(curl localhost:8080/job/generate -H "Content-Type: application/json" -d '{ "type": "web-scraper", "arguments": { "url": "google" } }')
+
 
 ### Submitting jobs
 uuid=$(curl localhost:8080/job/add -H "Content-Type: application/json" -d '{ "encrypted_job": "'$SIG'" }' | jq -r .uid)
