@@ -58,7 +58,7 @@ func (ws *WebScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 		logrus.Debugf("Checking if URL contains blacklisted term: %s", u)
 		if strings.Contains(args.URL, u) {
 			logrus.Warnf("URL %s is blacklisted due to term: %s", args.URL, u)
-			ws.stats.Add(stats.WebInvalid, 1)
+			ws.stats.Add(j.WorkerID, stats.WebInvalid, 1)
 			logrus.Errorf("Blacklisted URL: %s", args.URL)
 			return types.JobResult{
 				Error: fmt.Sprintf("URL blacklisted: %s", args.URL),
@@ -72,14 +72,14 @@ func (ws *WebScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 	result, err := scrapeWeb([]string{args.URL}, args.Depth)
 	if err != nil {
 		logrus.Errorf("Web scraping failed for URL %s: %v", args.URL, err)
-		ws.stats.Add(stats.WebErrors, 1)
+		ws.stats.Add(j.WorkerID, stats.WebErrors, 1)
 		return types.JobResult{Error: err.Error()}, err
 	}
 	logrus.Infof("Web scraping succeeded for URL %s: %v", args.URL, result)
 
 	// Step 4: Process result and return
 	logrus.Info("Updating statistics for successful web scraping")
-	ws.stats.Add(stats.WebSuccess, 1)
+	ws.stats.Add(j.WorkerID, stats.WebSuccess, 1)
 	logrus.Infof("Returning web scraping result for URL %s", args.URL)
 	return types.JobResult{
 		Data: result,
