@@ -113,22 +113,86 @@ tee.CurrentKeyRing = keyRing
 
 ## API
 
-The tee-worker exposes a simple http API to submit jobs, retrieve results, and decrypt the results.
+The tee-worker exposes a simple HTTP API to submit jobs, retrieve results, and decrypt the results.
 
-Note: `type` can be `web-scraper`, `twitter-scraper`, `twitter-credential-scraper`, `twitter-api-scraper`
+### Available Scraper Types
+- `web-scraper`: Scrapes content from web pages
+- `twitter-scraper`: General Twitter content scraping
+- `twitter-credential-scraper`: Authenticated Twitter scraping
+- `twitter-api-scraper`: Uses Twitter API for data collection
+
+### Example 1: Web Scraper
+
 ```bash
-// type can be web-scraper, twitter-scraper, twitter-credential-scraper, twitter-api-scraper
-SIG=$(curl localhost:8080/job/generate -H "Content-Type: application/json" -d '{ "type": "web-scraper", "arguments": { "url": "google" } }')
+# 1. Generate job signature for web scraping
+SIG=$(curl localhost:8080/job/generate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "web-scraper", 
+    "arguments": { 
+      "url": "https://example.com" 
+    }
+  }')
 
+# 2. Submit the job
+uuid=$(curl localhost:8080/job/add \
+  -H "Content-Type: application/json" \
+  -d '{ "encrypted_job": "'$SIG'" }' \
+  | jq -r .uid)
 
-### Submitting jobs
-uuid=$(curl localhost:8080/job/add -H "Content-Type: application/json" -d '{ "encrypted_job": "'$SIG'" }' | jq -r .uid)
-
-### Jobs results
+# 3. Check job status
 result=$(curl localhost:8080/job/status/$uuid)
 
-### Decrypt job results
-curl localhost:8080/job/result -H "Content-Type: application/json" -d '{ "encrypted_result": "'$result'", "encrypted_request": "'$SIG'" }'
+# 4. Decrypt job results
+curl localhost:8080/job/result \
+  -H "Content-Type: application/json" \
+  -d '{
+    "encrypted_result": "'$result'", 
+    "encrypted_request": "'$SIG'" 
+  }'
+```
+
+### Example 2: Twitter Scraping
+
+#### Available twitter scraping types
+- `twitter-scraper`: General Twitter scraping
+- `twitter-credential-scraper`: Authenticated Twitter scraping
+- `twitter-api-scraper`: Uses Twitter API for data collection
+
+Note that the job argument types are the same as capabilities. The worker will check if the job type is allowed for the current worker.
+
+```bash
+# 1. Generate job signature for Twitter scraping
+SIG=$(curl -s "localhost:8080/job/generate" \
+  -H "Authorization: Bearer ${AUTH_TOKEN}" \
+  -X POST \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "twitter-api-scraper",
+    "arguments": {
+      "type": "searchbyfullarchive",
+      "query": "climate change",
+      "count": 100,
+      "max_results": 100
+    }
+  }')
+
+# 2. Submit the job
+uuid=$(curl localhost:8080/job/add \
+  -H "Content-Type: application/json" \
+  -d '{ "encrypted_job": "'$SIG'" }' \
+  | jq -r .uid)
+
+# 3. Check job status
+result=$(curl localhost:8080/job/status/$uuid)
+
+# 4. Decrypt job results
+curl localhost:8080/job/result \
+  -H "Content-Type: application/json" \
+  -d '{
+    "encrypted_result": "'$result'", 
+    "encrypted_request": "'$SIG'" 
+  }'
 ```
 
 ### Golang client
