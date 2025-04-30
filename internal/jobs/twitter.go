@@ -472,13 +472,11 @@ func (ts *TwitterScraper) scrapeTweetsByQueryWithApiKey(j types.Job, baseQueryEn
 	}
 
 	ts.statsCollector.Add(j.WorkerID, stats.TwitterScrapes, 1)
-	var tweets []*TweetResult
 
 	// If full archive search is requested, ensure key is elevated
 	if baseQueryEndpoint == twitterx.TweetsAll && apiKey.Type == "base" {
 		return nil, fmt.Errorf("this API key is a base/Basic key and does not have access to full archive search. Please use an elevated/Pro API key")
 	}
-
 	var tweets []*TweetResult
 	// Use API-based scraper
 	client := client.NewTwitterXClient(apiKey.Key)
@@ -1119,6 +1117,7 @@ func getScrapeStrategy(jobType string) TwitterScrapeStrategy {
 
 // Credential-only
 type CredentialScrapeStrategy struct{}
+
 func (s *CredentialScrapeStrategy) Execute(j types.Job, ts *TwitterScraper, args *TwitterScraperArgs) (types.JobResult, error) {
 	switch strings.ToLower(args.SearchType) {
 	case "searchbyquery":
@@ -1143,6 +1142,7 @@ func (s *CredentialScrapeStrategy) Execute(j types.Job, ts *TwitterScraper, args
 
 // API key-only
 type ApiKeyScrapeStrategy struct{}
+
 func (s *ApiKeyScrapeStrategy) Execute(j types.Job, ts *TwitterScraper, args *TwitterScraperArgs) (types.JobResult, error) {
 	switch strings.ToLower(args.SearchType) {
 	case "searchbyquery":
@@ -1166,6 +1166,7 @@ func (s *ApiKeyScrapeStrategy) Execute(j types.Job, ts *TwitterScraper, args *Tw
 
 // Default (legacy, prefers credentials if both present)
 type DefaultScrapeStrategy struct{}
+
 func (s *DefaultScrapeStrategy) Execute(j types.Job, ts *TwitterScraper, args *TwitterScraperArgs) (types.JobResult, error) {
 	switch strings.ToLower(args.SearchType) {
 	case "searchbyquery":
