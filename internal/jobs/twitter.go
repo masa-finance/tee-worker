@@ -197,7 +197,7 @@ func (ts *TwitterScraper) getAuthenticatedScraper(baseDir string, jobType string
 			return nil, nil, nil, fmt.Errorf("no Twitter API keys available for API-based scraping")
 		}
 	default:
-		logrus.Info("Using standard Twitter scraper - prefer credentials if available")
+		logrus.Debug("Using standard Twitter scraper - prefer credentials if available")
 		// Standard Twitter scraper - prefer credentials if available
 		account = ts.accountManager.GetNextAccount()
 		// Only get API key if no credential is available
