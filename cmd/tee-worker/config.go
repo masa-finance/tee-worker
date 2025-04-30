@@ -50,6 +50,12 @@ func readConfig() types.JobConfiguration {
 	}
 	jc["result_cache_max_age_seconds"] = resultCacheMaxAge
 
+	// API Key for authentication
+	apiKey := os.Getenv("API_KEY")
+	if apiKey != "" {
+		jc["api_key"] = apiKey
+	}
+
 	webScraperBlacklist := os.Getenv("WEBSCRAPER_BLACKLIST")
 	if webScraperBlacklist != "" {
 		blacklistURLs := strings.Split(webScraperBlacklist, ",")

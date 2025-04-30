@@ -8,6 +8,32 @@ Want to help in development? check the [DEVELOPMENT.md](DEVELOPMENT.md) file.
 
 - Docker
 
+## API Key Authentication
+
+### Enabling API Key Protection
+
+To require all API requests to supply an API key, set the `API_KEY` environment variable before starting the tee-worker:
+
+```sh
+export API_KEY=your-secret-key
+make run
+```
+
+If `API_KEY` is not set, authentication is disabled and all requests are allowed (for development/local use).
+
+### How it Works
+- The server checks for the API key in the `Authorization: Bearer <API_KEY>` header (preferred) or the `X-API-Key` header.
+- If the key is missing or incorrect, the server returns `401 Unauthorized`.
+
+### Go Client Usage Example
+
+```go
+import "github.com/masa-finance/tee-worker/pkg/client"
+
+cli := client.NewClient("http://localhost:8080", client.APIKey("your-secret-key"))
+// All requests will now include the Authorization: Bearer header automatically.
+```
+
 ## Run
 
 To run the tee-worker, use docker with our images. Our images have signed binaries which are allowed to be part of the network:
@@ -25,6 +51,7 @@ docker run --device /dev/sgx_enclave --device /dev/sgx_provision --net host --rm
 
 The tee-worker requires various environment variables for operation. These should be set in `.masa/.env` (for Docker) or exported in your shell (for local runs).
 
+- `API_KEY`: (Optional) API key required for authenticating all HTTP requests to the tee-worker API. If set, all requests must include this key in the `Authorization: Bearer <API_KEY>` or `X-API-Key` header.
 - `WEBSCRAPER_BLACKLIST`: Comma-separated list of domains to block for web scraping.
 - `TWITTER_ACCOUNTS`: Comma-separated list of Twitter credentials in `username:password` format.
 - `TWITTER_API_KEYS`: Comma-separated list of Twitter Bearer API tokens.

@@ -150,7 +150,6 @@ var _ = Describe("Twitter Scraper", func() {
 		})
 	})
 
-
 	var twitterScraper *TwitterScraper
 	var statsCollector *stats.StatsCollector
 	var tempDir string
@@ -184,14 +183,16 @@ var _ = Describe("Twitter Scraper", func() {
 	})
 
 	It("should scrape tweets with a search query", func() {
-		res, err := twitterScraper.ExecuteJob(types.Job{
+		j := types.Job{
 			Type: TwitterScraperType,
 			Arguments: map[string]interface{}{
 				"type":  "searchbyquery",
 				"query": "Jimmy Kimmel",
 				"count": 1,
 			},
-		})
+			WorkerID: "foo",
+		}
+		res, err := twitterScraper.ExecuteJob(j)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(res.Error).To(BeEmpty())
 
@@ -201,19 +202,21 @@ var _ = Describe("Twitter Scraper", func() {
 		Expect(results).ToNot(BeEmpty())
 
 		Expect(results[0].Text).ToNot(BeEmpty())
-		Expect(statsCollector.Stats.Stats[stats.TwitterScrapes]).To(BeNumerically("==", 1))
-		Expect(statsCollector.Stats.Stats[stats.TwitterTweets]).To(BeNumerically("==", uint(len(results))))
+		Expect(statsCollector.Stats.Stats[j.WorkerID][stats.TwitterScrapes]).To(BeNumerically("==", 1))
+		Expect(statsCollector.Stats.Stats[j.WorkerID][stats.TwitterTweets]).To(BeNumerically("==", uint(len(results))))
 	})
 
 	It("should scrape a profile", func() {
-		res, err := twitterScraper.ExecuteJob(types.Job{
+		j := types.Job{
 			Type: TwitterScraperType,
 			Arguments: map[string]interface{}{
 				"type":  "searchbyprofile",
 				"query": "NASA_Marshall",
 				"count": 1,
 			},
-		})
+			WorkerID: "foo",
+		}
+		res, err := twitterScraper.ExecuteJob(j)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(res.Error).To(BeEmpty())
 
@@ -224,19 +227,21 @@ var _ = Describe("Twitter Scraper", func() {
 
 		Expect(results[0].Website).To(ContainSubstring("nasa.gov"))
 
-		Expect(statsCollector.Stats.Stats[stats.TwitterScrapes]).To(BeNumerically("==", 0))
-		Expect(statsCollector.Stats.Stats[stats.TwitterProfiles]).To(BeNumerically("==", uint(len(results))))
+		Expect(statsCollector.Stats.Stats[j.WorkerID][stats.TwitterScrapes]).To(BeNumerically("==", 0))
+		Expect(statsCollector.Stats.Stats[j.WorkerID][stats.TwitterProfiles]).To(BeNumerically("==", uint(len(results))))
 	})
 
 	It("should scrape tweets with a search query", func() {
-		res, err := twitterScraper.ExecuteJob(types.Job{
+		j := types.Job{
 			Type: TwitterScraperType,
 			Arguments: map[string]interface{}{
 				"type":  "searchfollowers",
 				"query": "NASA_Marshall",
 				"count": 1,
 			},
-		})
+			WorkerID: "foo",
+		}
+		res, err := twitterScraper.ExecuteJob(j)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(res.Error).To(BeEmpty())
 
@@ -246,8 +251,8 @@ var _ = Describe("Twitter Scraper", func() {
 		Expect(len(results)).ToNot(BeZero())
 		Expect(results[0].Username).ToNot(BeEmpty())
 
-		Expect(statsCollector.Stats.Stats[stats.TwitterScrapes]).To(BeNumerically("==", 1))
-		Expect(statsCollector.Stats.Stats[stats.TwitterProfiles]).To(BeNumerically("==", uint(len(results))))
+		Expect(statsCollector.Stats.Stats[j.WorkerID][stats.TwitterScrapes]).To(BeNumerically("==", 1))
+		Expect(statsCollector.Stats.Stats[j.WorkerID][stats.TwitterProfiles]).To(BeNumerically("==", uint(len(results))))
 	})
 
 	It("should get tweet by ID", func() {

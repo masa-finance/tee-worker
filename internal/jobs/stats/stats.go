@@ -44,18 +44,19 @@ var allStats []statType = []statType{
 
 // AddStat is the struct used in the rest of the tee-worker for sending statistics
 type AddStat struct {
-	Type statType
-	Num  uint
+	Type     statType
+	WorkerID string
+	Num      uint
 }
 
 // stats is the structure we use to store the statistics
 type stats struct {
-	BootTimeUnix         int64             `json:"boot_time"`
-	LastOperationUnix    int64             `json:"last_operation_time"`
-	CurrentTimeUnix      int64             `json:"current_time"`
-	WorkerID             string            `json:"worker_id"`
-	Stats                map[statType]uint `json:"stats"`
-	ReportedCapabilities []string          `json:"reported_capabilities"`
+	BootTimeUnix         int64                        `json:"boot_time"`
+	LastOperationUnix    int64                        `json:"last_operation_time"`
+	CurrentTimeUnix      int64                        `json:"current_time"`
+	WorkerID             string                       `json:"worker_id"`
+	Stats                map[string]map[statType]uint `json:"stats"`
+	ReportedCapabilities []string                     `json:"reported_capabilities"`
 	sync.Mutex
 }
 
@@ -72,10 +73,7 @@ func StartCollector(bufSize uint, jc types.JobConfiguration) *StatsCollector {
 
 	s := stats{
 		BootTimeUnix: time.Now().Unix(),
-		Stats:        make(map[statType]uint),
-	}
-	for _, t := range allStats {
-		s.Stats[t] = 0
+		Stats:        make(map[string]map[statType]uint),
 	}
 
 	capabilities, isString := jc["capabilities"].(string)
@@ -95,10 +93,13 @@ func StartCollector(bufSize uint, jc types.JobConfiguration) *StatsCollector {
 			stat := <-ch
 			s.Lock()
 			s.LastOperationUnix = time.Now().Unix()
-			if _, ok := s.Stats[stat.Type]; ok {
-				s.Stats[stat.Type] += stat.Num
+			if _, ok := s.Stats[stat.WorkerID]; !ok {
+				s.Stats[stat.WorkerID] = make(map[statType]uint)
+			}
+			if _, ok := s.Stats[stat.WorkerID][stat.Type]; ok {
+				s.Stats[stat.WorkerID][stat.Type] += stat.Num
 			} else {
-				s.Stats[stat.Type] = stat.Num
+				s.Stats[stat.WorkerID][stat.Type] = stat.Num
 			}
 			s.Unlock()
 			logrus.Debugf("Added %d to stat %s. Current stats: %#v", stat.Num, stat.Type, s)
@@ -117,8 +118,8 @@ func (s *StatsCollector) Json() ([]byte, error) {
 }
 
 // Add is a convenience method to add a number to a statistic
-func (s *StatsCollector) Add(typ statType, num uint) {
-	s.Chan <- AddStat{Type: typ, Num: num}
+func (s *StatsCollector) Add(workerID string, typ statType, num uint) {
+	s.Chan <- AddStat{WorkerID: workerID, Type: typ, Num: num}
 }
 
 // SetWorkerID sets the worker ID for the stats collector
