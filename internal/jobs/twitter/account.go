@@ -1,6 +1,9 @@
 package twitter
 
 import (
+	"fmt"
+	"github.com/masa-finance/tee-worker/pkg/client"
+	"strings"
 	"sync"
 	"time"
 )
@@ -13,7 +16,8 @@ type TwitterAccount struct {
 }
 
 type TwitterApiKey struct {
-	Key string
+	Key  string
+	Type string // "base" or "elevated"
 }
 
 type TwitterAccountManager struct {
@@ -44,6 +48,20 @@ func (manager *TwitterAccountManager) GetNextAccount() *TwitterAccount {
 	return nil
 }
 
+// DetectAllApiKeyTypes checks and sets the Type for all apiKeys in the manager.
+func (manager *TwitterAccountManager) DetectAllApiKeyTypes() {
+	for _, key := range manager.apiKeys {
+		err := key.SetKeyType()
+		if err != nil {
+			key.Type = "unknown"
+		}
+	}
+}
+
+// GetApiKeys returns all api keys managed by this manager
+func (manager *TwitterAccountManager) GetApiKeys() []*TwitterApiKey {
+	return manager.apiKeys
+}
 func (manager *TwitterAccountManager) GetNextApiKey() *TwitterApiKey {
 	manager.mutex.Lock()
 	defer manager.mutex.Unlock()
@@ -59,4 +77,36 @@ func (manager *TwitterAccountManager) MarkAccountRateLimited(account *TwitterAcc
 	manager.mutex.Lock()
 	defer manager.mutex.Unlock()
 	account.RateLimitedUntil = time.Now().Add(GetRateLimitDuration())
+}
+
+func detectTwitterKeyType(apiKey string) (string, error) {
+	if strings.Contains(apiKey, ":") {
+		return "credential", nil
+	}
+	// Try a harmless full archive search (tweets/search/all)
+	tx := client.NewTwitterXClient(apiKey)
+	endpoint := "tweets/search/all?query=from:twitterdev&max_results=10"
+	resp, err := tx.Get(endpoint)
+	if err != nil {
+		return "", fmt.Errorf("request error: %w", err)
+	}
+	defer resp.Body.Close()
+
+	switch resp.StatusCode {
+	case 200:
+		return "elevated", nil
+	case 401, 403:
+		return "base", nil
+	default:
+		return "", fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+}
+
+func (k *TwitterApiKey) SetKeyType() error {
+	typeStr, err := detectTwitterKeyType(k.Key)
+	if err != nil {
+		return err
+	}
+	k.Type = typeStr
+	return nil
 }
