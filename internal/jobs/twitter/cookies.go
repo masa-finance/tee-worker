@@ -32,6 +32,12 @@ func SaveCookies(scraper *twitterscraper.Scraper, account *TwitterAccount, baseD
 }
 
 func LoadCookies(scraper *twitterscraper.Scraper, account *TwitterAccount, baseDir string) error {
+
+	// let's logout first before loading cookies
+	if err := scraper.Logout(); err != nil { // logout first
+		logrus.Errorf("Error logging out: %v", err) // log error but continue
+	}
+
 	logrus.Debugf("Loading cookies for user %s", account.Username)
 	cookieFile := filepath.Join(baseDir, fmt.Sprintf("%s_twitter_cookies.json", account.Username))
 
