@@ -10,6 +10,10 @@ type AuthConfig struct {
 	// Account-based auth
 	Account *TwitterAccount
 	BaseDir string
+	// SkipLoginVerification when true, skips the IsLoggedIn check after loading cookies
+	// This can help avoid rate limiting on Twitter's verify_credentials endpoint
+	// Default is false (verification enabled)
+	SkipLoginVerification bool
 }
 
 func NewScraper(config AuthConfig) *Scraper {
@@ -21,6 +25,9 @@ func NewScraper(config AuthConfig) *Scraper {
 	}
 
 	scraper := &Scraper{Scraper: newTwitterScraper()}
+	
+	// Configure whether to skip login verification
+	scraper.SetSkipLoginVerification(config.SkipLoginVerification)
 
 	// Try loading cookies
 	if err := LoadCookies(scraper.Scraper, config.Account, config.BaseDir); err == nil {
