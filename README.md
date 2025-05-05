@@ -58,8 +58,29 @@ The tee-worker requires various environment variables for operation. These shoul
 - `LISTEN_ADDRESS`: The address the service listens on (default: `:8080`).
 - `RESULT_CACHE_MAX_SIZE`: Maximum number of job results to keep in the result cache (default: `1000`).
 - `RESULT_CACHE_MAX_AGE_SECONDS`: Maximum age (in seconds) to keep a result in the cache (default: `600`).
+- `CAPABILITIES`: Comma-separated list of capabilities to enable for the worker. This is a security feature to limit the actions the worker can perform. The default is `*` which allows all actions.
 
-These cache-related variables are now part of the JobConfiguration and can be set for different environments or for testing purposes.
+### Capabilities
+
+- `*`: All capabilities (default).
+- `searchbyquery`: Search by query. 
+- `searchbyfullarchive`: Search by full archive. Only available for API keys with full archive access.
+- `searchbyprofile`: Search by profile. 
+- `searchfollowers`: Search followers.
+- `getbyid`: Get by ID.
+- `getreplies`: Get replies.
+- `getretweeters`: Get retweeters.
+- `gettweets`: Get tweets.
+- `getmedia`: Get media.
+- `gethometweets`: Get home tweets.
+- `getforyoutweets`: Get "For You" tweets.
+- `getbookmarks`: Get bookmarks.
+- `getprofilebyid`: Get profile by ID.
+- `gettrends`: Get trends.
+- `getfollowing`: Get following.
+- `getfollowers`: Get followers.
+- `getspace`: Get space.
+- `getspaces`: Get spaces.
 
 See `.env.example` for more details.
 
@@ -69,6 +90,9 @@ WEBSCRAPER_BLACKLIST="google.com,google.be"
 TWITTER_ACCOUNTS="foo:bar,foo:baz"
 TWITTER_API_KEYS="apikey1,apikey2"
 LISTEN_ADDRESS=":8080"
+RESULT_CACHE_MAX_SIZE=1000
+RESULT_CACHE_MAX_AGE_SECONDS=600
+CAPABILITIES="searchbyfullarchive,searchbyquery,searchbyprofile,searchfollowers,getbyid,getreplies,getretweeters,gettweets,getmedia,gethometweets,getforyoutweets,getbookmarks,getprofilebyid,gettrends,getfollowing,getfollowers,getspace,getspaces"
 ```
 
 See `.env.example` for more details.
@@ -116,19 +140,122 @@ tee.CurrentKeyRing = keyRing
 
 ## API
 
-The tee-worker exposes a simple http API to submit jobs, retrieve results, and decrypt the results.
+The tee-worker exposes a simple HTTP API to submit jobs, retrieve results, and decrypt the results.
+
+### Available Scraper Types
+- `web-scraper`: Scrapes content from web pages
+- `twitter-scraper`: General Twitter content scraping
+- `twitter-credential-scraper`: Authenticated Twitter scraping
+- `twitter-api-scraper`: Uses Twitter API for data collection
+
+### Example 1: Web Scraper
 
 ```bash
-SIG=$(curl localhost:8080/job/generate -H "Content-Type: application/json" -d '{ "type": "web-scraper", "arguments": { "url": "google" } }')
+# 1. Generate job signature for web scraping
+SIG=$(curl localhost:8080/job/generate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "web-scraper", 
+    "arguments": { 
+      "url": "https://example.com" 
+    }
+  }')
 
-### Submitting jobs
-uuid=$(curl localhost:8080/job/add -H "Content-Type: application/json" -d '{ "encrypted_job": "'$SIG'" }' | jq -r .uid)
+# 2. Submit the job
+uuid=$(curl localhost:8080/job/add \
+  -H "Content-Type: application/json" \
+  -d '{ "encrypted_job": "'$SIG'" }' \
+  | jq -r .uid)
 
-### Jobs results
+# 3. Check job status
 result=$(curl localhost:8080/job/status/$uuid)
 
-### Decrypt job results
-curl localhost:8080/job/result -H "Content-Type: application/json" -d '{ "encrypted_result": "'$result'", "encrypted_request": "'$SIG'" }'
+# 4. Decrypt job results
+curl localhost:8080/job/result \
+  -H "Content-Type: application/json" \
+  -d '{
+    "encrypted_result": "'$result'", 
+    "encrypted_request": "'$SIG'" 
+  }'
+```
+
+### Example 2: Twitter API Scraping
+
+#### Available twitter scraping types
+- `twitter-scraper`: General Twitter scraping
+- `twitter-credential-scraper`: Authenticated Twitter scraping
+- `twitter-api-scraper`: Uses Twitter API for data collection
+
+Note that the job argument types are the same as capabilities. The worker will check if the job type is allowed for the current worker.
+
+```bash
+# 1. Generate job signature for Twitter scraping
+SIG=$(curl -s "localhost:8080/job/generate" \
+  -H "Authorization: Bearer ${AUTH_TOKEN}" \
+  -X POST \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "twitter-api-scraper",
+    "arguments": {
+      "type": "searchbyfullarchive",
+      "query": "climate change",
+      "count": 100,
+      "max_results": 100
+    }
+  }')
+
+# 2. Submit the job
+uuid=$(curl localhost:8080/job/add \
+  -H "Content-Type: application/json" \
+  -d '{ "encrypted_job": "'$SIG'" }' \
+  | jq -r .uid)
+
+# 3. Check job status
+result=$(curl localhost:8080/job/status/$uuid)
+
+# 4. Decrypt job results
+curl localhost:8080/job/result \
+  -H "Content-Type: application/json" \
+  -d '{
+    "encrypted_result": "'$result'", 
+    "encrypted_request": "'$SIG'" 
+  }'
+```
+
+### Example 3: Twitter Credential Scraping
+
+```bash
+# 1. Generate job signature for Twitter credential scraping
+SIG=$(curl -s "localhost:8080/job/generate" \
+  -H "Authorization: Bearer ${AUTH_TOKEN}" \
+  -X POST \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "twitter-credential-scraper",
+    "arguments": {
+      "type": "searchbyquery",
+      "query": "climate change",
+      "count": 10,
+      "max_results": 10
+    }
+  }')
+
+# 2. Submit the job
+uuid=$(curl localhost:8080/job/add \
+  -H "Content-Type: application/json" \
+  -d '{ "encrypted_job": "'$SIG'" }' \
+  | jq -r .uid)
+
+# 3. Check job status
+result=$(curl localhost:8080/job/status/$uuid)
+
+# 4. Decrypt job results
+curl localhost:8080/job/result \
+  -H "Content-Type: application/json" \
+  -d '{
+    "encrypted_result": "'$result'", 
+    "encrypted_request": "'$SIG'" 
+  }'
 ```
 
 ### Golang client
