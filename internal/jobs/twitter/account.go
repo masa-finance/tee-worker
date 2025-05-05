@@ -15,9 +15,18 @@ type TwitterAccount struct {
 	RateLimitedUntil time.Time
 }
 
+type TwitterApiKeyType string
+
+const (
+	TwitterApiKeyTypeBase       TwitterApiKeyType = "base"
+	TwitterApiKeyTypeElevated   TwitterApiKeyType = "elevated"
+	TwitterApiKeyTypeCredential TwitterApiKeyType = "credential"
+	TwitterApiKeyTypeUnknown    TwitterApiKeyType = "unknown"
+)
+
 type TwitterApiKey struct {
 	Key  string
-	Type string // "base" or "elevated"
+	Type TwitterApiKeyType // "base" or "elevated"
 }
 
 type TwitterAccountManager struct {
@@ -53,7 +62,8 @@ func (manager *TwitterAccountManager) DetectAllApiKeyTypes() {
 	for _, key := range manager.apiKeys {
 		err := key.SetKeyType()
 		if err != nil {
-			key.Type = "unknown"
+			key.Type = TwitterApiKeyTypeUnknown
+			fmt.Printf("Error detecting key type for API key %s: %v", key.Key, err)
 		}
 	}
 }
@@ -79,9 +89,9 @@ func (manager *TwitterAccountManager) MarkAccountRateLimited(account *TwitterAcc
 	account.RateLimitedUntil = time.Now().Add(GetRateLimitDuration())
 }
 
-func detectTwitterKeyType(apiKey string) (string, error) {
+func detectTwitterKeyType(apiKey string) (TwitterApiKeyType, error) {
 	if strings.Contains(apiKey, ":") {
-		return "credential", nil
+		return TwitterApiKeyTypeCredential, nil
 	}
 	// Try a harmless full archive search (tweets/search/all)
 	tx := client.NewTwitterXClient(apiKey)
@@ -94,9 +104,9 @@ func detectTwitterKeyType(apiKey string) (string, error) {
 
 	switch resp.StatusCode {
 	case 200:
-		return "elevated", nil
+		return TwitterApiKeyTypeElevated, nil
 	case 401, 403:
-		return "base", nil
+		return TwitterApiKeyTypeBase, nil
 	default:
 		return "", fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
