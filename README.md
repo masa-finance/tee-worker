@@ -63,6 +63,7 @@ The tee-worker requires various environment variables for operation. These shoul
 ### Capabilities
 
 - `*`: All capabilities (default).
+- `all`: All capabilities. Same as `*`.
 - `searchbyquery`: Search by query. 
 - `searchbyfullarchive`: Search by full archive. Only available for API keys with full archive access.
 - `searchbyprofile`: Search by profile. 

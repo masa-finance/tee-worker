@@ -84,8 +84,6 @@ func getAuthenticatedScraper(baseDir string) (*Scraper, *TwitterAccount, error) 
 	// Check if we should skip login verification from environment
 	skipVerification := os.Getenv("TWITTER_SKIP_LOGIN_VERIFICATION") == "true"
 
-	fmt.Println("TWITTER_SKIP_LOGIN_VERIFICATION ------- >", skipVerification)
-
 	authConfig := AuthConfig{
 		Account:               account,
 		BaseDir:               baseDir,

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -213,8 +214,8 @@ func (ts *TwitterScraper) getAuthenticatedScraper(j types.Job, baseDir string, j
 	// Initialize the scraper if credentials are available
 	if account != nil {
 		authConfig := twitter.AuthConfig{
-			Account: account,
-			BaseDir: baseDir,
+			Account:               account,
+			BaseDir:               baseDir,
 			SkipLoginVerification: ts.configuration.SkipLoginVerification,
 		}
 
@@ -1050,9 +1051,9 @@ type TwitterScraper struct {
 }
 
 type TwitterScraperConfiguration struct {
-	Accounts             []string `json:"twitter_accounts"`
-	ApiKeys              []string `json:"twitter_api_keys"`
-	DataDir              string   `json:"data_dir"`
+	Accounts              []string `json:"twitter_accounts"`
+	ApiKeys               []string `json:"twitter_api_keys"`
+	DataDir               string   `json:"data_dir"`
 	SkipLoginVerification bool     `json:"skip_login_verification,omitempty"` // If true, skips Twitter's verify_credentials check (default: false)
 }
 
@@ -1072,6 +1073,11 @@ func NewTwitterScraper(jc types.JobConfiguration, c *stats.StatsCollector) *Twit
 	apiKeys := parseApiKeys(config.ApiKeys)
 	accountManager := twitter.NewTwitterAccountManager(accounts, apiKeys)
 	accountManager.DetectAllApiKeyTypes()
+
+	skipVerification := os.Getenv("TWITTER_SKIP_LOGIN_VERIFICATION") == "true"
+	if config.SkipLoginVerification || skipVerification {
+		config.SkipLoginVerification = true
+	}
 
 	return &TwitterScraper{
 		configuration:  config,
