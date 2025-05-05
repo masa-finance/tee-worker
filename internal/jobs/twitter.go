@@ -197,6 +197,7 @@ func (ts *TwitterScraper) getAuthenticatedScraper(j types.Job, baseDir string, j
 			return nil, nil, nil, fmt.Errorf("no Twitter API keys available for API-based scraping")
 		}
 	default:
+		logrus.Debug("Using standard Twitter scraper - prefer credentials if available")
 		// Standard Twitter scraper - prefer credentials if available
 		account = ts.accountManager.GetNextAccount()
 		// Only get API key if no credential is available
@@ -472,8 +473,12 @@ func (ts *TwitterScraper) scrapeTweetsByQueryWithApiKey(j types.Job, baseQueryEn
 	}
 
 	ts.statsCollector.Add(j.WorkerID, stats.TwitterScrapes, 1)
-	var tweets []*TweetResult
 
+	// If full archive search is requested, ensure key is elevated
+	if baseQueryEndpoint == twitterx.TweetsAll && apiKey.Type == twitter.TwitterApiKeyTypeBase {
+		return nil, fmt.Errorf("this API key is a base/Basic key and does not have access to full archive search. Please use an elevated/Pro API key")
+	}
+	var tweets []*TweetResult
 	// Use API-based scraper
 	client := client.NewTwitterXClient(apiKey.Key)
 	twitterXScraper := twitterx.NewTwitterXScraper(client)
@@ -1066,6 +1071,7 @@ func NewTwitterScraper(jc types.JobConfiguration, c *stats.StatsCollector) *Twit
 	accounts := parseAccounts(config.Accounts)
 	apiKeys := parseApiKeys(config.ApiKeys)
 	accountManager := twitter.NewTwitterAccountManager(accounts, apiKeys)
+	accountManager.DetectAllApiKeyTypes()
 
 	return &TwitterScraper{
 		configuration:  config,
