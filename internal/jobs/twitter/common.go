@@ -81,15 +81,19 @@ func getAuthenticatedScraper(baseDir string) (*Scraper, *TwitterAccount, error) 
 		return nil, nil, fmt.Errorf("all accounts are rate-limited")
 	}
 
+	// Check if we should skip login verification from environment
+	skipVerification := os.Getenv("TWITTER_SKIP_LOGIN_VERIFICATION") == "true"
+
 	authConfig := AuthConfig{
-		Account: account,
-		BaseDir: baseDir,
+		Account:               account,
+		BaseDir:               baseDir,
+		SkipLoginVerification: skipVerification,
 	}
 
 	scraper := NewScraper(authConfig)
 	if scraper == nil {
 		logrus.Errorf("Authentication failed for %s", account.Username)
-		return nil, account, fmt.Errorf("Twitter authentication failed for %s", account.Username)
+		return nil, account, fmt.Errorf("twitter authentication failed for %s", account.Username)
 	}
 	return scraper, account, nil
 }

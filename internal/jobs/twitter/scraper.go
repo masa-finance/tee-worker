@@ -6,12 +6,27 @@ import (
 
 type Scraper struct {
 	*twitterscraper.Scraper
+	skipLoginVerification bool // false by default
 }
 
 func newTwitterScraper() *twitterscraper.Scraper {
 	return twitterscraper.New()
 }
 
+// SetSkipLoginVerification configures whether to skip the Twitter login verification API call
+// Setting this to true will avoid rate limiting on Twitter's verify_credentials endpoint
+func (s *Scraper) SetSkipLoginVerification(skip bool) *Scraper {
+	s.skipLoginVerification = skip
+	return s
+}
+
+// IsLoggedIn checks if the scraper is logged in
+// If skipLoginVerification is true, it will assume the session is valid without making an API call
 func (s *Scraper) IsLoggedIn() bool {
+	if s.skipLoginVerification {
+		return true // Skip the verification API call to avoid rate limits
+	}
+	
+	// Otherwise, perform the actual verification via API call
 	return s.Scraper.IsLoggedIn()
 }
