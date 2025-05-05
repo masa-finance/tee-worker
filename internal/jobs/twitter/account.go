@@ -63,7 +63,6 @@ func (manager *TwitterAccountManager) DetectAllApiKeyTypes() {
 		err := key.SetKeyType()
 		if err != nil {
 			key.Type = TwitterApiKeyTypeUnknown
-			fmt.Printf("Error detecting key type for API key %s: %v", key.Key, err)
 		}
 	}
 }
