@@ -88,10 +88,10 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 			w: jobs.NewTwitterScraper(jc, s),
 		},
 		jobs.TwitterCredentialScraperType: {
-			w: jobs.NewTwitterScraper(jc, s), // Uses the same implementation as standard Twitter scraper
+			w: jobs.NewTwitterScraper(jc, s),
 		},
 		jobs.TwitterApiScraperType: {
-			w: jobs.NewTwitterScraper(jc, s), // Uses the same implementation as standard Twitter scraper
+			w: jobs.NewTwitterScraper(jc, s),
 		},
 		jobs.TelemetryJobType: {
 			w: jobs.NewTelemetryJob(jc, s),
