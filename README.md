@@ -55,6 +55,7 @@ The tee-worker requires various environment variables for operation. These shoul
 - `WEBSCRAPER_BLACKLIST`: Comma-separated list of domains to block for web scraping.
 - `TWITTER_ACCOUNTS`: Comma-separated list of Twitter credentials in `username:password` format.
 - `TWITTER_API_KEYS`: Comma-separated list of Twitter Bearer API tokens.
+- `TWITTER_SKIP_LOGIN_VERIFICATION`: Set to `true` to skip Twitter's login verification step. This can help avoid rate limiting issues with Twitter's verify_credentials API endpoint when running multiple workers or processing large volumes of requests.
 - `LISTEN_ADDRESS`: The address the service listens on (default: `:8080`).
 - `RESULT_CACHE_MAX_SIZE`: Maximum number of job results to keep in the result cache (default: `1000`).
 - `RESULT_CACHE_MAX_AGE_SECONDS`: Maximum age (in seconds) to keep a result in the cache (default: `600`).
@@ -63,6 +64,7 @@ The tee-worker requires various environment variables for operation. These shoul
 ### Capabilities
 
 - `*`: All capabilities (default).
+- `all`: All capabilities. Same as `*`.
 - `searchbyquery`: Search by query. 
 - `searchbyfullarchive`: Search by full archive. Only available for API keys with full archive access.
 - `searchbyprofile`: Search by profile. 
@@ -89,6 +91,7 @@ See `.env.example` for more details.
 WEBSCRAPER_BLACKLIST="google.com,google.be"
 TWITTER_ACCOUNTS="foo:bar,foo:baz"
 TWITTER_API_KEYS="apikey1,apikey2"
+TWITTER_SKIP_LOGIN_VERIFICATION="true"
 LISTEN_ADDRESS=":8080"
 RESULT_CACHE_MAX_SIZE=1000
 RESULT_CACHE_MAX_AGE_SECONDS=600
