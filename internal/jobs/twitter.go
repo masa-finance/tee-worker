@@ -1123,6 +1123,8 @@ func NewTwitterScraper(jc types.JobConfiguration, c *stats.StatsCollector) *Twit
 	logrus.Infof("Twitter capabilities: Accounts=%v, ApiKeys=%v, FullArchive=%v",
 		hasAccounts, hasApiKeys, hasFullArchiveCapability)
 
+	logrus.Infof("Twitter capabilities: %v", capabilities)
+
 	return &TwitterScraper{
 		configuration:  config,
 		accountManager: accountManager,
