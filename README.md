@@ -61,31 +61,6 @@ The tee-worker requires various environment variables for operation. These shoul
 - `RESULT_CACHE_MAX_AGE_SECONDS`: Maximum age (in seconds) to keep a result in the cache (default: `600`).
 - `CAPABILITIES`: Comma-separated list of capabilities to enable for the worker. This is a security feature to limit the actions the worker can perform. The default is `*` which allows all actions.
 
-### Capabilities
-
-- `*`: All capabilities (default).
-- `all`: All capabilities. Same as `*`.
-- `searchbyquery`: Search by query. 
-- `searchbyfullarchive`: Search by full archive. Only available for API keys with full archive access.
-- `searchbyprofile`: Search by profile. 
-- `searchfollowers`: Search followers.
-- `getbyid`: Get by ID.
-- `getreplies`: Get replies.
-- `getretweeters`: Get retweeters.
-- `gettweets`: Get tweets.
-- `getmedia`: Get media.
-- `gethometweets`: Get home tweets.
-- `getforyoutweets`: Get "For You" tweets.
-- `getbookmarks`: Get bookmarks.
-- `getprofilebyid`: Get profile by ID.
-- `gettrends`: Get trends.
-- `getfollowing`: Get following.
-- `getfollowers`: Get followers.
-- `getspace`: Get space.
-- `getspaces`: Get spaces.
-
-See `.env.example` for more details.
-
 **Example:**
 ```env
 WEBSCRAPER_BLACKLIST="google.com,google.be"
@@ -95,7 +70,6 @@ TWITTER_SKIP_LOGIN_VERIFICATION="true"
 LISTEN_ADDRESS=":8080"
 RESULT_CACHE_MAX_SIZE=1000
 RESULT_CACHE_MAX_AGE_SECONDS=600
-CAPABILITIES="searchbyfullarchive,searchbyquery,searchbyprofile,searchfollowers,getbyid,getreplies,getretweeters,gettweets,getmedia,gethometweets,getforyoutweets,getbookmarks,getprofilebyid,gettrends,getfollowing,getfollowers,getspace,getspaces"
 ```
 
 See `.env.example` for more details.
@@ -189,7 +163,7 @@ curl localhost:8080/job/result \
 - `twitter-credential-scraper`: Authenticated Twitter scraping
 - `twitter-api-scraper`: Uses Twitter API for data collection
 
-Note that the job argument types are the same as capabilities. The worker will check if the job type is allowed for the current worker.
+The worker will check if the job type is allowed for the current worker.
 
 ```bash
 # 1. Generate job signature for Twitter scraping
