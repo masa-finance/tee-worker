@@ -80,27 +80,56 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 
 	// Initialize job workers
 	logrus.Info("Setting up job workers...")
-	jobworkers := map[string]*jobWorkerEntry{
-		jobs.WebScraperType: {
-			w: jobs.NewWebScraper(jc, s),
-		},
-		jobs.TwitterScraperType: {
-			w: jobs.NewTwitterScraper(jc, s),
-		},
-		jobs.TwitterCredentialScraperType: {
-			w: jobs.NewTwitterScraper(jc, s),
-		},
-		jobs.TwitterApiScraperType: {
-			w: jobs.NewTwitterScraper(jc, s),
-		},
-		jobs.TelemetryJobType: {
-			w: jobs.NewTelemetryJob(jc, s),
-		},
+	jobworkers := map[string]*jobWorkerEntry{}
+	
+	// Add WebScraper worker
+	jobworkers[jobs.WebScraperType] = &jobWorkerEntry{
+		w: jobs.NewWebScraper(jc, s),
 	}
 	logrus.Infof("Initialized job worker for: %s", jobs.WebScraperType)
-	logrus.Infof("Initialized job worker for: %s", jobs.TwitterScraperType)
-	logrus.Infof("Initialized job worker for: %s", jobs.TwitterCredentialScraperType)
-	logrus.Infof("Initialized job worker for: %s", jobs.TwitterApiScraperType)
+	
+	// For Twitter workers, first create a single TwitterScraper instance
+	twitterScraper := jobs.NewTwitterScraper(jc, s)
+	
+	// Get capabilities from the TwitterScraper
+	capabilities := twitterScraper.GetCapabilities()
+	logrus.Infof("Twitter capabilities detected: %v", capabilities)
+	
+	// Only add Twitter workers for capabilities that are supported
+	if len(capabilities) > 0 {
+		// Main TwitterScraper for standard queries
+		jobworkers[jobs.TwitterScraperType] = &jobWorkerEntry{
+			w: twitterScraper,
+		}
+		logrus.Infof("Initialized job worker for: %s", jobs.TwitterScraperType)
+		
+		// For credential-based search types - requires accounts to be set
+		if twitterScraper.HasAccounts() {
+			jobworkers[jobs.TwitterCredentialScraperType] = &jobWorkerEntry{
+				w: twitterScraper,
+			}
+			logrus.Infof("Initialized job worker for: %s", jobs.TwitterCredentialScraperType)
+		} else {
+			logrus.Info("No Twitter accounts available, credential-based worker will not be registered")
+		}
+		
+		// For API-based search types - requires API keys to be set
+		if twitterScraper.HasApiKeys() {
+			jobworkers[jobs.TwitterApiScraperType] = &jobWorkerEntry{
+				w: twitterScraper,
+			}
+			logrus.Infof("Initialized job worker for: %s", jobs.TwitterApiScraperType)
+		} else {
+			logrus.Info("No Twitter API keys available, API-based worker will not be registered")
+		}
+	} else {
+		logrus.Warn("No Twitter capabilities available, Twitter workers will not be registered")
+	}
+	
+	// Add TelemetryJob worker
+	jobworkers[jobs.TelemetryJobType] = &jobWorkerEntry{
+		w: jobs.NewTelemetryJob(jc, s),
+	}
 	logrus.Infof("Initialized job worker for: %s", jobs.TelemetryJobType)
 
 	logrus.Info("Job workers setup completed.")

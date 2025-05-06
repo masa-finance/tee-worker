@@ -1341,6 +1341,37 @@ func (ts *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 	return strategy.Execute(j, ts, args)
 }
 
+// HasCapability checks if the scraper has a specific capability
+func (ts *TwitterScraper) HasCapability(capability string) bool {
+	if supported, exists := ts.capabilities[capability]; exists {
+		return supported
+	}
+	return false
+}
+
+// GetCapabilities returns all the capabilities of the scraper
+func (ts *TwitterScraper) GetCapabilities() map[string]bool {
+	// Return a copy to avoid data races
+	capabilitiesCopy := make(map[string]bool)
+	for k, v := range ts.capabilities {
+		capabilitiesCopy[k] = v
+	}
+	return capabilitiesCopy
+}
+
+// HasAccounts returns true if the TwitterScraper has any accounts configured
+func (ts *TwitterScraper) HasAccounts() bool {
+	// We can check if there are accounts by trying to get the next available account
+	// If no accounts are available, GetNextAccount will return nil
+	return ts.accountManager != nil && len(ts.configuration.Accounts) > 0
+}
+
+// HasApiKeys returns true if the TwitterScraper has any API keys configured
+func (ts *TwitterScraper) HasApiKeys() bool {
+	apiKeys := ts.accountManager.GetApiKeys()
+	return len(apiKeys) > 0
+}
+
 func (ts *TwitterScraper) FetchHomeTweets(j types.Job, baseDir string, count int, cursor string) ([]*twitterscraper.Tweet, string, error) {
 	scraper, account, _, err := ts.getAuthenticatedScraper(j, baseDir, TwitterScraperType)
 	if err != nil {
