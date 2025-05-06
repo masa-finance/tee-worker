@@ -1072,6 +1072,8 @@ func NewTwitterScraper(jc types.JobConfiguration, c *stats.StatsCollector) *Twit
 	accounts := parseAccounts(config.Accounts)
 	apiKeys := parseApiKeys(config.ApiKeys)
 	accountManager := twitter.NewTwitterAccountManager(accounts, apiKeys)
+
+	// Detect all API key types
 	accountManager.DetectAllApiKeyTypes()
 
 	skipVerification := os.Getenv("TWITTER_SKIP_LOGIN_VERIFICATION") == "true"
@@ -1079,29 +1081,53 @@ func NewTwitterScraper(jc types.JobConfiguration, c *stats.StatsCollector) *Twit
 		config.SkipLoginVerification = true
 	}
 
+	// Set capabilities based on available authentication methods
+	// Define all Twitter capabilities
+	allCapabilities := []string{
+		"searchbyquery", "searchbyfullarchive", "searchbyprofile", "searchfollowers",
+		"getbyid", "getreplies", "getretweeters", "gettweets", "getmedia",
+		"gethometweets", "getforyoutweets", "getbookmarks", "getprofilebyid",
+		"gettrends", "getfollowing", "getfollowers", "getspace", "getspaces",
+	}
+
+	// Initialize capabilities map
+	capabilities := make(map[string]bool)
+
+	// By default, assume we can't do anything
+	hasFullArchiveCapability := false
+
+	// Check for API keys with elevated access (can do full archive search)
+	apiKeyList := accountManager.GetApiKeys()
+	for _, key := range apiKeyList {
+		if key.Type == twitter.TwitterApiKeyTypeElevated {
+			hasFullArchiveCapability = true
+			break
+		}
+	}
+
+	// Set capabilities based on authentication types
+	hasAccounts := len(accounts) > 0
+	hasApiKeys := len(apiKeyList) > 0
+
+	// Enable all capabilities for everything
+	for _, capability := range allCapabilities {
+		// For searchbyfullarchive, only enable if we have elevated API access
+		if capability == "searchbyfullarchive" {
+			capabilities[capability] = hasFullArchiveCapability
+		} else {
+			// Enable if we have either accounts or API keys
+			capabilities[capability] = hasAccounts || hasApiKeys
+		}
+	}
+
+	logrus.Infof("Twitter capabilities: Accounts=%v, ApiKeys=%v, FullArchive=%v",
+		hasAccounts, hasApiKeys, hasFullArchiveCapability)
+
 	return &TwitterScraper{
 		configuration:  config,
 		accountManager: accountManager,
 		statsCollector: c,
-		capabilities: map[string]bool{
-			"searchbyquery":       true,
-			"searchbyfullarchive": true,
-			"searchbyprofile":     true,
-			"searchfollowers":     true,
-			"getbyid":             true,
-			"getreplies":          true,
-			"getretweeters":       true,
-			"gettweets":           true,
-			"getmedia":            true,
-			"gethometweets":       true,
-			"getforyoutweets":     true,
-			"getbookmarks":        true,
-			"getprofilebyid":      true,
-			"gettrends":           true,
-			"getfollowing":        true,
-			"getfollowers":        true,
-			"getspace":            true,
-		},
+		capabilities:   capabilities,
 	}
 }
 
