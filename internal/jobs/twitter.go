@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"golang.org/x/exp/slices"
 	"os"
 	"strconv"
 	"strings"
@@ -1093,17 +1094,11 @@ func NewTwitterScraper(jc types.JobConfiguration, c *stats.StatsCollector) *Twit
 	// Initialize capabilities map
 	capabilities := make(map[string]bool)
 
-	// By default, assume we can't do anything
-	hasFullArchiveCapability := false
-
 	// Check for API keys with elevated access (can do full archive search)
 	apiKeyList := accountManager.GetApiKeys()
-	for _, key := range apiKeyList {
-		if key.Type == twitter.TwitterApiKeyTypeElevated {
-			hasFullArchiveCapability = true
-			break
-		}
-	}
+	hasFullArchiveCapability := slices.ContainsFunc(apiKeyList, func(k *twitter.TwitterApiKey) bool {
+		return k.Type == twitter.TwitterApiKeyTypeElevated
+	})
 
 	// Set capabilities based on authentication types
 	hasAccounts := len(accounts) > 0
