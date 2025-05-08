@@ -394,6 +394,7 @@ func (ts *TwitterScraper) scrapeTweetsByQuery(j types.Job, baseQueryEndpoint str
 			newTweetResult.ConversationID = tweet.ConversationID
 			newTweetResult.UserID = tweet.AuthorID
 			newTweetResult.CreatedAt = tweet.CreatedAt
+			newTweetResult.Username = tweet.Username
 
 			newTweetPublicMetrics := PublicMetrics{
 				BookmarkCount: tweet.PublicMetrics.BookmarkCount,
@@ -523,6 +524,7 @@ func (ts *TwitterScraper) scrapeTweetsByQueryWithApiKey(j types.Job, baseQueryEn
 		newTweetResult.ConversationID = tweet.ConversationID
 		newTweetResult.UserID = tweet.AuthorID
 		newTweetResult.CreatedAt = tweet.CreatedAt
+		newTweetResult.Username = tweet.Username
 
 		newTweetPublicMetrics := PublicMetrics{
 			BookmarkCount: tweet.PublicMetrics.BookmarkCount,
