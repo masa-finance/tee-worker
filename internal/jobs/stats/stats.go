@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/masa-finance/tee-worker/api/types"
+	"github.com/masa-finance/tee-worker/internal/versioning"
 	"github.com/sirupsen/logrus"
 )
 
@@ -57,6 +58,8 @@ type stats struct {
 	WorkerID             string                       `json:"worker_id"`
 	Stats                map[string]map[statType]uint `json:"stats"`
 	ReportedCapabilities []string                     `json:"reported_capabilities"`
+	WorkerVersion        string                       `json:"worker_version"`
+	ApplicationVersion   string                       `json:"application_version"`
 	sync.Mutex
 }
 
@@ -72,8 +75,11 @@ func StartCollector(bufSize uint, jc types.JobConfiguration) *StatsCollector {
 	logrus.Info("Starting stats collector")
 
 	s := stats{
-		BootTimeUnix: time.Now().Unix(),
-		Stats:        make(map[string]map[statType]uint),
+		BootTimeUnix:         time.Now().Unix(),
+		Stats:                make(map[string]map[statType]uint),
+		WorkerVersion:        versioning.TEEWorkerVersion,
+		ApplicationVersion:   versioning.ApplicationVersion,
+		ReportedCapabilities: []string{},
 	}
 
 	capabilities, isString := jc["capabilities"].(string)
