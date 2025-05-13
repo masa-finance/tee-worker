@@ -3,7 +3,6 @@ package jobserver
 import (
 	"context"
 	"sync"
-	"time"
 
 	"github.com/sirupsen/logrus"
 
