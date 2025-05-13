@@ -95,7 +95,7 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 	return &JobServer{
 		jobChan: make(chan types.Job),
 		// TODO The defaults here should come from config.go, but during tests the config is not necessarily read
-		results: NewResultCache(jc.GetInt("result_cache_max_size", 1000), jc.GetDuration("result_cache_max_age_seconds", 300)),
+		results: NewResultCache(jc.GetInt("result_cache_max_size", 1000), jc.GetDuration("result_cache_max_age_seconds", 600)),
 
 		workers:          workers,
 		jobConfiguration: jc,
@@ -112,7 +112,8 @@ func (js *JobServer) Run(ctx context.Context) {
 }
 
 func (js *JobServer) AddJob(j types.Job) string {
-	j.Timeout = js.jobConfiguration["job_timeout_seconds"].(time.Duration)
+	// TODO The default should come from config.go, but during tests the config is not necessarily read
+	j.Timeout = js.jobConfiguration.GetDuration("job_timeout_seconds", 300)
 	j.UUID = uuid.New().String()
 	defer func() {
 		go func() {
