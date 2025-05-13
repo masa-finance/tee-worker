@@ -675,7 +675,7 @@ func (ts *TwitterScraper) GetUserMedia(j types.Job, baseDir, username string, co
 				}
 				continue
 			}
-			if len(tweet.Tweet.Photos) > 0 || len(tweet.Tweet.Videos) > 0 {
+			if len(tweet.Photos) > 0 || len(tweet.Videos) > 0 {
 				newTweetResult := ts.convertTwitterScraperTweetToTweetResult(tweet.Tweet)
 				media = append(media, newTweetResult)
 				//media = append(media, &TweetResult{Tweet: &tweet.Tweet})
@@ -811,7 +811,7 @@ func (ts *TwitterScraper) GetBookmarks(j types.Job, baseDir string, count int, c
 
 	ctx := context.Background()
 	// Convert cursor to integer if it's not empty
-	var cursorInt int = 0
+	cursorInt := 0
 	if cursor != "" {
 		var err error
 		cursorInt, err = strconv.Atoi(cursor)
@@ -988,7 +988,10 @@ func NewTwitterScraper(jc types.JobConfiguration, c *stats.StatsCollector) *Twit
 		DataDir               string   `json:"data_dir"`
 		SkipLoginVerification bool     `json:"skip_login_verification,omitempty"` // If true, skips Twitter's verify_credentials check (default: false)
 	}{}
-	jc.Unmarshal(&config)
+	if err := jc.Unmarshal(&config); err != nil {
+		logrus.Errorf("Error unmarshalling Twitter scraper configuration: %v", err)
+		return nil
+	}
 
 	accounts := parseAccounts(config.Accounts)
 	apiKeys := parseApiKeys(config.ApiKeys)
@@ -1180,6 +1183,9 @@ func retryWithCursorAndQuery[T any](
 }
 
 func processResponse(response any, nextCursor string, err error) (types.JobResult, error) {
+	if err != nil {
+		return types.JobResult{Error: err.Error()}, err
+	}
 	dat, err := json.Marshal(response)
 	if err != nil {
 		return types.JobResult{Error: err.Error()}, err
@@ -1236,7 +1242,10 @@ func defaultStrategyFallback(j types.Job, ts *TwitterScraper, args *TwitterScrap
 
 func (ts *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 	args := &TwitterScraperArgs{}
-	j.Arguments.Unmarshal(args)
+	if err := j.Arguments.Unmarshal(args); err != nil {
+		logrus.Errorf("Error while unmarshalling job arguments: %s", err)
+		return types.JobResult{Error: err.Error()}, err
+	}
 	strategy := getScrapeStrategy(j.Type)
 	return strategy.Execute(j, ts, args)
 }

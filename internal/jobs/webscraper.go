@@ -33,7 +33,10 @@ type WebScraperArgs struct {
 
 func NewWebScraper(jc types.JobConfiguration, statsCollector *stats.StatsCollector) *WebScraper {
 	config := WebScraperConfiguration{}
-	jc.Unmarshal(&config)
+	if err := jc.Unmarshal(&config); err != nil {
+		logrus.Errorf("Failed to unmarshal WebScraper configuration: %v", err)
+		return nil
+	}
 	return &WebScraper{
 		configuration: config,
 		stats:         statsCollector,
@@ -245,6 +248,10 @@ func scrapeWeb(uri []string, depth int) ([]byte, error) {
 	logrus.Infof("Starting to visit URLs: %v", uri)
 	for _, u := range uri {
 		err := c.Visit(u)
+		if err != nil {
+			logrus.Errorf("Failed to visit URL: %s. Error: %v", u, err)
+			continue
+		}
 		logrus.Infof("Visiting URL: %s", u)
 		err = c.Visit(u)
 		if err != nil {

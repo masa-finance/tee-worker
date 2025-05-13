@@ -23,7 +23,10 @@ func readConfig() types.JobConfiguration {
 
 	if dataDir == "" {
 		dataDir = "/home/masa"
-		os.Setenv("DATA_DIR", dataDir)
+		err := os.Setenv("DATA_DIR", dataDir)
+		if err != nil {
+			logrus.Fatalf("Failed to set DATA_DIR: %v", err)
+		}
 	}
 
 	jc["data_dir"] = dataDir

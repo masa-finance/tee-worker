@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/masa-finance/tee-worker/api/types"
+	"github.com/sirupsen/logrus"
 )
 
 func (js *JobServer) worker(c context.Context) {
@@ -16,7 +17,9 @@ func (js *JobServer) worker(c context.Context) {
 
 		case j := <-js.jobChan:
 			fmt.Println("Job received: ", j)
-			js.doWork(j)
+			if err := js.doWork(j); err != nil {
+				logrus.Errorf("Error while executing job %v: %s", j, err)
+			}
 		}
 	}
 }

@@ -136,7 +136,7 @@ func (s *TwitterXScraper) ScrapeTweetsByQuery(baseQueryEndpoint string, query st
 	case TweetsSearchRecent:
 		count = min(max(count, 10), 100)
 	default:
-		return nil, fmt.Errorf("Unsupported base query endpoint: %s", baseQueryEndpoint)
+		return nil, fmt.Errorf("unsupported base query endpoint: %s", baseQueryEndpoint)
 	}
 
 	// Initialize the client

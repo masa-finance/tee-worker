@@ -7,6 +7,7 @@ import (
 	"github.com/masa-finance/tee-worker/api/types"
 	"github.com/masa-finance/tee-worker/internal/jobserver"
 	"github.com/masa-finance/tee-worker/pkg/tee"
+	"github.com/sirupsen/logrus"
 )
 
 func generate(c echo.Context) error {
@@ -18,7 +19,10 @@ func generate(c echo.Context) error {
 
 	encryptedSignature, err := job.GenerateJobSignature()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, types.JobError{Error: err.Error()})
+		err = c.JSON(http.StatusInternalServerError, types.JobError{Error: err.Error()})
+		if err != nil {
+			logrus.Errorf("Error while sending internal server error: %s", err)
+		}
 	}
 
 	return c.String(http.StatusOK, encryptedSignature)

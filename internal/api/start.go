@@ -69,7 +69,10 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 	e.Use(APIKeyAuthMiddleware(config))
 
 	// Load already existing key
-	tee.LoadKey(dataDIR)
+	if err := tee.LoadKey(dataDIR); err != nil {
+		e.Logger.Error("Failed to load sealing key: ", err)
+		return err
+	}
 
 	// Routes
 
@@ -111,7 +114,9 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 
 	go func() {
 		<-ctx.Done()
-		e.Close()
+		if err := e.Close(); err != nil {
+			e.Logger.Error("Failed to close Echo server: ", err)
+		}
 	}()
 
 	if standalone {

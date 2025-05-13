@@ -29,20 +29,6 @@ const (
 	// TODO: Should we add stats for calls to each of the Twitter job types?
 )
 
-// allStats is a list of all the stats that we support.
-// Make sure to keep this in sync with the above!
-var allStats []statType = []statType{
-	TwitterScrapes,
-	TwitterTweets,
-	TwitterProfiles,
-	TwitterOther,
-	TwitterErrors,
-	TwitterAuthErrors,
-	TwitterRateErrors,
-	WebSuccess,
-	WebErrors,
-}
-
 // AddStat is the struct used in the rest of the tee-worker for sending statistics
 type AddStat struct {
 	Type     statType
@@ -66,7 +52,6 @@ type stats struct {
 // StatsCollector is the object used to collect statistics
 type StatsCollector struct {
 	Stats *stats
-	jc    types.JobConfiguration
 	Chan  chan AddStat
 }
 
