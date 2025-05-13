@@ -175,10 +175,8 @@ func (c *Client) GetResult(jobUUID string) (string, bool, error) {
 	}
 
 	respErr := types.JobError{}
-	err = json.Unmarshal(body, &respErr)
-	if err != nil {
-		return "", false, fmt.Errorf("error unmarshaling response %s: %w", string(body), err)
-	}
+	// We ignore the error here. We're just interested in unmarshalling if it's an error, otherwise we just return the raw body
+	json.Unmarshal(body, &respErr)
 	if respErr.Error != "" {
 		err = fmt.Errorf("error while getting results of job %s: %s", jobUUID, respErr.Error)
 		return "", false, err
