@@ -94,7 +94,8 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 	logrus.Info("JobServer initialization complete.")
 	return &JobServer{
 		jobChan: make(chan types.Job),
-		results: NewResultCache(jc.GetInt("result_cache_max_size", 1000), jc["result_cache_max_age_seconds"].(time.Duration)),
+		// TODO The defaults here should come from config.go, but during tests the config is not necessarily read
+		results: NewResultCache(jc.GetInt("result_cache_max_size", 1000), jc.GetDuration("result_cache_max_age_seconds", 300)),
 
 		workers:          workers,
 		jobConfiguration: jc,

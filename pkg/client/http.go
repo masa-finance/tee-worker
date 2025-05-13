@@ -177,7 +177,7 @@ func (c *Client) GetResult(jobUUID string) (string, bool, error) {
 	respErr := types.JobError{}
 	err = json.Unmarshal(body, &respErr)
 	if err != nil {
-		return "", false, fmt.Errorf("error unmarshaling response: %w", err)
+		return "", false, fmt.Errorf("error unmarshaling response %s: %w", string(body), err)
 	}
 	if respErr.Error != "" {
 		err = fmt.Errorf("error while getting results of job %s: %s", jobUUID, respErr.Error)

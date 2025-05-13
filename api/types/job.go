@@ -136,3 +136,13 @@ func (jc JobConfiguration) GetInt(key string, def int) int {
 	}
 	return def
 }
+
+func (jc JobConfiguration) GetDuration(key string, defSecs int) time.Duration {
+	// Go does not allow generics in methods :-(
+	if v, ok := jc[key]; ok {
+		if val, ok := v.(time.Duration); ok {
+			return val
+		}
+	}
+	return time.Duration(defSecs) * time.Second
+}
