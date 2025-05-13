@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/joho/godotenv"
 	"github.com/masa-finance/tee-worker/api/types"
@@ -48,7 +49,15 @@ func readConfig() types.JobConfiguration {
 			resultCacheMaxAge = v
 		}
 	}
-	jc["result_cache_max_age_seconds"] = resultCacheMaxAge
+	jc["result_cache_max_age_seconds"] = time.Duration(resultCacheMaxAge) * time.Second
+
+	jobTimeout := 300
+	if s := os.Getenv("JOB_TIMEOUT_SECONDS"); s != "" {
+		if v, err := strconv.Atoi(s); err == nil && v > 0 {
+			jobTimeout = v
+		}
+	}
+	jc["job_timeout_seconds"] = time.Duration(jobTimeout) * time.Second
 
 	// API Key for authentication
 	apiKey := os.Getenv("API_KEY")

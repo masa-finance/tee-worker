@@ -2,31 +2,16 @@ package jobserver
 
 import (
 	"context"
-	"github.com/sirupsen/logrus"
 	"sync"
+	"time"
+
+	"github.com/sirupsen/logrus"
 
 	"github.com/google/uuid"
 	"github.com/masa-finance/tee-worker/api/types"
 	"github.com/masa-finance/tee-worker/internal/jobs"
 	"github.com/masa-finance/tee-worker/internal/jobs/stats"
 )
-
-// getIntFromConfig safely extracts an int from JobConfiguration, with a default fallback
-func getIntFromConfig(jc types.JobConfiguration, key string, def int) int {
-	if v, ok := jc[key]; ok {
-		switch val := v.(type) {
-		case int:
-			return val
-		case int64:
-			return int(val)
-		case float64:
-			return int(val)
-		case float32:
-			return int(val)
-		}
-	}
-	return def
-}
 
 type JobServer struct {
 	sync.Mutex
@@ -108,8 +93,8 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 	// Return the JobServer instance
 	logrus.Info("JobServer initialization complete.")
 	return &JobServer{
-		jobChan:          make(chan types.Job),
-		results:          NewResultCache(getIntFromConfig(jc, "result_cache_max_size", 1000), getIntFromConfig(jc, "result_cache_max_age_seconds", 600)),
+		jobChan: make(chan types.Job),
+		results: NewResultCache(jc.GetInt("result_cache_max_size", 1000), jc["result_cache_max_age_seconds"].(time.Duration)),
 
 		workers:          workers,
 		jobConfiguration: jc,
@@ -126,6 +111,7 @@ func (js *JobServer) Run(ctx context.Context) {
 }
 
 func (js *JobServer) AddJob(j types.Job) string {
+	j.Timeout = js.jobConfiguration["job_timeout_seconds"].(time.Duration)
 	j.UUID = uuid.New().String()
 	defer func() {
 		go func() {
