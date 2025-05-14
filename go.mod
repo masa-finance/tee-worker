@@ -1,6 +1,8 @@
 module github.com/masa-finance/tee-worker
 
-go 1.24.0
+go 1.23.0
+
+toolchain go1.24.0
 
 require (
 	github.com/cenkalti/backoff v2.2.1+incompatible
