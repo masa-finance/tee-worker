@@ -3,7 +3,7 @@ package jobs
 import (
 	"encoding/json"
 	"fmt"
-	types2 "github.com/masa-finance/tee-types/types"
+	teetypes "github.com/masa-finance/tee-types/types"
 	"net/http"
 	"strconv"
 	"strings"
@@ -40,7 +40,7 @@ func (ws *WebScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 	logrus.Info("Starting ExecuteJob for web scraper")
 
 	// Step 1: Unmarshal arguments
-	args := &types2.WebSearchArguments{}
+	args := &teetypes.WebSearchArguments{}
 	logrus.Info("Unmarshaling job arguments")
 	if err := j.Arguments.Unmarshal(args); err != nil {
 		logrus.Errorf("Failed to unmarshal job arguments: %v", err)
