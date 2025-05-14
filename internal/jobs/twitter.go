@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/masa-finance/tee-types/args"
+	teetypes "github.com/masa-finance/tee-types/types"
 	"os"
 	"strconv"
 	"strings"
@@ -20,76 +22,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type TweetResult struct {
-	ID             int64 `json:"id"`
-	TweetID        string
-	ConversationID string
-	UserID         string
-	Text           string
-	CreatedAt      time.Time
-	Timestamp      int64
-
-	ThreadCursor struct {
-		FocalTweetID string
-		ThreadID     string
-		Cursor       string
-		CursorType   string
-	}
-	IsQuoted     bool
-	IsPin        bool
-	IsReply      bool
-	IsRetweet    bool
-	IsSelfThread bool
-	Likes        int
-	Hashtags     []string
-	HTML         string
-	Replies      int
-	Retweets     int
-	URLs         []string
-	Username     string
-
-	Photos []Photo
-
-	// Video type.
-	Videos []Video
-
-	RetweetedStatusID string
-	Views             int
-	SensitiveContent  bool
-
-	// from twitterx
-	AuthorID          string
-	PublicMetrics     PublicMetrics
-	PossiblySensitive bool
-	Lang              string
-	NewestID          string
-	OldestID          string
-	ResultCount       int
-
-	Error error
-}
-
-type PublicMetrics struct {
-	RetweetCount    int
-	ReplyCount      int
-	LikeCount       int
-	QuoteCount      int
-	BookmarkCount   int
-	ImpressionCount int
-}
-type Photo struct {
-	ID  string
-	URL string
-}
-
-type Video struct {
-	ID      string
-	Preview string
-	URL     string
-	HLSURL  string
-}
-
-func (ts *TwitterScraper) convertTwitterScraperTweetToTweetResult(tweet twitterscraper.Tweet) TweetResult {
+func (ts *TwitterScraper) convertTwitterScraperTweetToTweetResult(tweet twitterscraper.Tweet) teetypes.TweetResult {
 
 	id, err := strconv.ParseInt(tweet.ID, 10, 64)
 	if err != nil {
@@ -101,7 +34,7 @@ func (ts *TwitterScraper) convertTwitterScraperTweetToTweetResult(tweet twitters
 	createdAt := time.Unix(tweet.Timestamp, 0).UTC()
 
 	logrus.Info("Tweet ID: ", id)
-	return TweetResult{
+	return teetypes.TweetResult{
 		ID:             id,
 		TweetID:        tweet.ID,
 		ConversationID: tweet.ConversationID,
@@ -121,20 +54,20 @@ func (ts *TwitterScraper) convertTwitterScraperTweetToTweetResult(tweet twitters
 		Retweets:       tweet.Retweets,
 		URLs:           tweet.URLs,
 		Username:       tweet.Username,
-		Photos: func() []Photo {
-			var photos []Photo
+		Photos: func() []teetypes.Photo {
+			var photos []teetypes.Photo
 			for _, photo := range tweet.Photos {
-				photos = append(photos, Photo{
+				photos = append(photos, teetypes.Photo{
 					ID:  photo.ID,
 					URL: photo.URL,
 				})
 			}
 			return photos
 		}(),
-		Videos: func() []Video {
-			var videos []Video
+		Videos: func() []teetypes.Video {
+			var videos []teetypes.Video
 			for _, video := range tweet.Videos {
-				videos = append(videos, Video{
+				videos = append(videos, teetypes.Video{
 					ID:      video.ID,
 					Preview: video.Preview,
 					URL:     video.URL,
@@ -320,15 +253,15 @@ func (ts *TwitterScraper) ScrapeTweetsProfile(j types.Job, baseDir string, usern
 //
 // It takes a base directory, a query string and a count as parameters, and returns
 // a slice of pointer to TweetResult.
-func (ts *TwitterScraper) ScrapeTweetsByFullArchiveSearchQuery(j types.Job, baseDir string, query string, count int) ([]*TweetResult, error) {
+func (ts *TwitterScraper) ScrapeTweetsByFullArchiveSearchQuery(j types.Job, baseDir string, query string, count int) ([]*teetypes.TweetResult, error) {
 	return ts.scrapeTweetsByQuery(j, twitterx.TweetsAll, baseDir, query, count)
 }
 
 // ScrapeTweetsByRecentSearchQuery scrapes tweets by a search query using the TwitterX API.
 //
 // It takes a base directory, a query string and a count as parameters, and returns
-// a slice of pointer to TweetResult.
-func (ts *TwitterScraper) ScrapeTweetsByRecentSearchQuery(j types.Job, baseDir string, query string, count int) ([]*TweetResult, error) {
+// a slice of pointer to teetypes.TweetResult.
+func (ts *TwitterScraper) ScrapeTweetsByRecentSearchQuery(j types.Job, baseDir string, query string, count int) ([]*teetypes.TweetResult, error) {
 	return ts.scrapeTweetsByQuery(j, twitterx.TweetsSearchRecent, baseDir, query, count)
 }
 
@@ -336,19 +269,19 @@ func (ts *TwitterScraper) ScrapeTweetsByRecentSearchQuery(j types.Job, baseDir s
 // if a TwitterX API key is available. Otherwise, it uses the default scraper.
 //
 // It takes a base query endpoint, a base directory, a query string and a count
-// as parameters, and returns a slice of pointers to TweetResult and an error.
+// as parameters, and returns a slice of pointers to teetypes.TweetResult and an error.
 // It increments the TwitterScrapes and TwitterTweets stats counters.
 //
 // If the scraper fails, it calls handleError with the error and the account,
 // and returns the error.
-func (ts *TwitterScraper) scrapeTweetsByQuery(j types.Job, baseQueryEndpoint string, baseDir string, query string, count int) ([]*TweetResult, error) {
+func (ts *TwitterScraper) scrapeTweetsByQuery(j types.Job, baseQueryEndpoint string, baseDir string, query string, count int) ([]*teetypes.TweetResult, error) {
 	scraper, account, apiKey, err := ts.getAuthenticatedScraper(j, baseDir, TwitterScraperType)
 	if err != nil {
 		return nil, err
 	}
 
 	ts.statsCollector.Add(j.WorkerID, stats.TwitterScrapes, 1)
-	var tweets []*TweetResult
+	var tweets []*teetypes.TweetResult
 
 	// Check if we have a TwitterX API key
 	if apiKey != nil {
@@ -378,7 +311,7 @@ func (ts *TwitterScraper) scrapeTweetsByQuery(j types.Job, baseQueryEndpoint str
 		for _, tweet := range result.Data {
 
 			// Append the tweet to the list of tweet result
-			var newTweetResult TweetResult
+			var newTweetResult teetypes.TweetResult
 
 			// convert id string to int64
 			id, err := strconv.ParseInt(tweet.ID, 10, 64)
@@ -395,7 +328,7 @@ func (ts *TwitterScraper) scrapeTweetsByQuery(j types.Job, baseQueryEndpoint str
 			newTweetResult.CreatedAt = tweet.CreatedAt
 			newTweetResult.Username = tweet.Username
 
-			newTweetPublicMetrics := PublicMetrics{
+			newTweetPublicMetrics := teetypes.PublicMetrics{
 				BookmarkCount: tweet.PublicMetrics.BookmarkCount,
 				LikeCount:     tweet.PublicMetrics.LikeCount,
 				QuoteCount:    tweet.PublicMetrics.QuoteCount,
@@ -439,14 +372,14 @@ func (ts *TwitterScraper) scrapeTweetsByQuery(j types.Job, baseQueryEndpoint str
 
 // scrapeTweetsByQueryWithCredentials performs tweet scraping using only Twitter credentials
 // This method is specifically for queries that require credential-based access
-func (ts *TwitterScraper) scrapeTweetsByQueryWithCredentials(j types.Job, baseDir string, query string, count int) ([]*TweetResult, error) {
+func (ts *TwitterScraper) scrapeTweetsByQueryWithCredentials(j types.Job, baseDir string, query string, count int) ([]*teetypes.TweetResult, error) {
 	scraper, account, _, err := ts.getAuthenticatedScraper(j, baseDir, TwitterCredentialScraperType)
 	if err != nil {
 		return nil, err
 	}
 
 	ts.statsCollector.Add(j.WorkerID, stats.TwitterScrapes, 1)
-	var tweets []*TweetResult
+	var tweets []*teetypes.TweetResult
 
 	// Use credential-based scraper to search
 	ctx := context.Background()
@@ -468,7 +401,7 @@ func (ts *TwitterScraper) scrapeTweetsByQueryWithCredentials(j types.Job, baseDi
 
 // scrapeTweetsByQueryWithApiKey performs tweet scraping using only Twitter API keys
 // This method is specifically for queries that require API-based access
-func (ts *TwitterScraper) scrapeTweetsByQueryWithApiKey(j types.Job, baseQueryEndpoint string, baseDir string, query string, count int) ([]*TweetResult, error) {
+func (ts *TwitterScraper) scrapeTweetsByQueryWithApiKey(j types.Job, baseQueryEndpoint string, baseDir string, query string, count int) ([]*teetypes.TweetResult, error) {
 	_, _, apiKey, err := ts.getAuthenticatedScraper(j, baseDir, TwitterApiScraperType)
 	if err != nil {
 		return nil, err
@@ -480,7 +413,7 @@ func (ts *TwitterScraper) scrapeTweetsByQueryWithApiKey(j types.Job, baseQueryEn
 	if baseQueryEndpoint == twitterx.TweetsAll && apiKey.Type == twitter.TwitterApiKeyTypeBase {
 		return nil, fmt.Errorf("this API key is a base/Basic key and does not have access to full archive search. Please use an elevated/Pro API key")
 	}
-	var tweets []*TweetResult
+	var tweets []*teetypes.TweetResult
 	// Use API-based scraper
 	client := client.NewTwitterXClient(apiKey.Key)
 	twitterXScraper := twitterx.NewTwitterXScraper(client)
@@ -508,7 +441,7 @@ func (ts *TwitterScraper) scrapeTweetsByQueryWithApiKey(j types.Job, baseQueryEn
 
 	for _, tweet := range result.Data {
 		// Convert to tweet result
-		var newTweetResult TweetResult
+		var newTweetResult teetypes.TweetResult
 
 		// convert id string to int64
 		id, err := strconv.ParseInt(tweet.ID, 10, 64)
@@ -525,7 +458,7 @@ func (ts *TwitterScraper) scrapeTweetsByQueryWithApiKey(j types.Job, baseQueryEn
 		newTweetResult.CreatedAt = tweet.CreatedAt
 		newTweetResult.Username = tweet.Username
 
-		newTweetPublicMetrics := PublicMetrics{
+		newTweetPublicMetrics := teetypes.PublicMetrics{
 			BookmarkCount: tweet.PublicMetrics.BookmarkCount,
 			LikeCount:     tweet.PublicMetrics.LikeCount,
 			QuoteCount:    tweet.PublicMetrics.QuoteCount,
@@ -557,7 +490,7 @@ func (ts *TwitterScraper) scrapeTweetsByQueryWithApiKey(j types.Job, baseQueryEn
 //
 // If the scraper fails, it calls handleError with the error and the
 // account, and returns the error.
-func (ts *TwitterScraper) ScrapeTweetByID(j types.Job, baseDir string, tweetID string) (*TweetResult, error) {
+func (ts *TwitterScraper) ScrapeTweetByID(j types.Job, baseDir string, tweetID string) (*teetypes.TweetResult, error) {
 	ts.statsCollector.Add(j.WorkerID, stats.TwitterScrapes, 1)
 
 	scraper, account, _, err := ts.getAuthenticatedScraper(j, baseDir, TwitterScraperType)
@@ -585,7 +518,7 @@ func (ts *TwitterScraper) ScrapeTweetByID(j types.Job, baseDir string, tweetID s
 //
 // If the scraper fails, it calls handleError with the error and the
 // account, and returns the error.
-func (ts *TwitterScraper) GetTweet(j types.Job, baseDir, tweetID string) (*TweetResult, error) {
+func (ts *TwitterScraper) GetTweet(j types.Job, baseDir, tweetID string) (*teetypes.TweetResult, error) {
 	scraper, account, _, err := ts.getAuthenticatedScraper(j, baseDir, TwitterScraperType)
 	if err != nil {
 		return nil, err
@@ -612,14 +545,14 @@ func (ts *TwitterScraper) GetTweet(j types.Job, baseDir, tweetID string) (*Tweet
 //
 // If the scraper fails, it calls handleError with the error and the
 // account, and returns the error.
-func (ts *TwitterScraper) GetTweetReplies(j types.Job, baseDir, tweetID string, cursor string) ([]TweetResult, error) {
+func (ts *TwitterScraper) GetTweetReplies(j types.Job, baseDir, tweetID string, cursor string) ([]teetypes.TweetResult, error) {
 	scraper, account, _, err := ts.getAuthenticatedScraper(j, baseDir, TwitterScraperType)
 	if err != nil {
 		return nil, err
 	}
 
 	ts.statsCollector.Add(j.WorkerID, stats.TwitterScrapes, 1)
-	var replies []TweetResult
+	var replies []teetypes.TweetResult
 	tweets, threadCursor, err := scraper.GetTweetReplies(tweetID, cursor)
 
 	for i, tweet := range tweets {
@@ -679,7 +612,7 @@ func (ts *TwitterScraper) GetTweetRetweeters(j types.Job, baseDir, tweetID strin
 // If the streaming method is used, it sets the next cursor to the last tweet's
 // ID if available. If the fetch method is used, the next cursor is set to the
 // cursor returned by the fetch method.
-func (ts *TwitterScraper) GetUserTweets(j types.Job, baseDir, username string, count int, cursor string) ([]TweetResult, string, error) {
+func (ts *TwitterScraper) GetUserTweets(j types.Job, baseDir, username string, count int, cursor string) ([]teetypes.TweetResult, string, error) {
 	scraper, account, _, err := ts.getAuthenticatedScraper(j, baseDir, TwitterScraperType)
 	if err != nil {
 		return nil, "", err
@@ -687,7 +620,7 @@ func (ts *TwitterScraper) GetUserTweets(j types.Job, baseDir, username string, c
 
 	ts.statsCollector.Add(j.WorkerID, stats.TwitterScrapes, 1)
 
-	var tweets []TweetResult
+	var tweets []teetypes.TweetResult
 	var nextCursor string
 
 	if cursor != "" {
@@ -724,7 +657,7 @@ func (ts *TwitterScraper) GetUserTweets(j types.Job, baseDir, username string, c
 	return tweets, nextCursor, nil
 }
 
-func (ts *TwitterScraper) GetUserMedia(j types.Job, baseDir, username string, count int, cursor string) ([]TweetResult, string, error) {
+func (ts *TwitterScraper) GetUserMedia(j types.Job, baseDir, username string, count int, cursor string) ([]teetypes.TweetResult, string, error) {
 	scraper, account, _, err := ts.getAuthenticatedScraper(j, baseDir, TwitterScraperType)
 	if err != nil {
 		return nil, "", err
@@ -732,7 +665,7 @@ func (ts *TwitterScraper) GetUserMedia(j types.Job, baseDir, username string, co
 
 	ts.statsCollector.Add(j.WorkerID, stats.TwitterScrapes, 1)
 
-	var media []TweetResult
+	var media []teetypes.TweetResult
 	var nextCursor string
 
 	if cursor != "" {
@@ -776,7 +709,7 @@ func (ts *TwitterScraper) GetUserMedia(j types.Job, baseDir, username string, co
 	return media, nextCursor, nil
 }
 
-func (ts *TwitterScraper) GetHomeTweets(j types.Job, baseDir string, count int, cursor string) ([]TweetResult, string, error) {
+func (ts *TwitterScraper) GetHomeTweets(j types.Job, baseDir string, count int, cursor string) ([]teetypes.TweetResult, string, error) {
 	scraper, account, _, err := ts.getAuthenticatedScraper(j, baseDir, TwitterScraperType)
 	if err != nil {
 		return nil, "", err
@@ -784,7 +717,7 @@ func (ts *TwitterScraper) GetHomeTweets(j types.Job, baseDir string, count int, 
 
 	ts.statsCollector.Add(j.WorkerID, stats.TwitterScrapes, 1)
 
-	var tweets []TweetResult
+	var tweets []teetypes.TweetResult
 	var nextCursor string
 
 	if cursor != "" {
@@ -826,7 +759,7 @@ func (ts *TwitterScraper) GetHomeTweets(j types.Job, baseDir string, count int, 
 	return tweets, nextCursor, nil
 }
 
-func (ts *TwitterScraper) GetForYouTweets(j types.Job, baseDir string, count int, cursor string) ([]TweetResult, string, error) {
+func (ts *TwitterScraper) GetForYouTweets(j types.Job, baseDir string, count int, cursor string) ([]teetypes.TweetResult, string, error) {
 	scraper, account, _, err := ts.getAuthenticatedScraper(j, baseDir, TwitterScraperType)
 	if err != nil {
 		return nil, "", err
@@ -834,7 +767,7 @@ func (ts *TwitterScraper) GetForYouTweets(j types.Job, baseDir string, count int
 
 	ts.statsCollector.Add(j.WorkerID, stats.TwitterScrapes, 1)
 
-	var tweets []TweetResult
+	var tweets []teetypes.TweetResult
 	var nextCursor string
 
 	if cursor != "" {
@@ -884,14 +817,14 @@ func (ts *TwitterScraper) GetForYouTweets(j types.Job, baseDir string, count int
 //
 // If the scraper fails, it calls handleError with the error and the
 // account, and returns the error.
-func (ts *TwitterScraper) GetBookmarks(j types.Job, baseDir string, count int, cursor string) ([]TweetResult, string, error) {
+func (ts *TwitterScraper) GetBookmarks(j types.Job, baseDir string, count int, cursor string) ([]teetypes.TweetResult, string, error) {
 	scraper, account, _, err := ts.getAuthenticatedScraper(j, baseDir, TwitterScraperType)
 	if err != nil {
 		return nil, "", err
 	}
 
 	ts.statsCollector.Add(j.WorkerID, stats.TwitterScrapes, 1)
-	var bookmarks []TweetResult
+	var bookmarks []teetypes.TweetResult
 
 	ctx := context.Background()
 	// Convert cursor to integer if it's not empty
@@ -1059,13 +992,27 @@ type TwitterScraperConfiguration struct {
 	SkipLoginVerification bool     `json:"skip_login_verification,omitempty"` // If true, skips Twitter's verify_credentials check (default: false)
 }
 
-type TwitterScraperArgs struct {
-	SearchType string `json:"type"`
-	Query      string `json:"query"`
-	Count      int    `json:"count"`
-	MaxResults int    `json:"max_results"`
-	NextCursor string `json:"next_cursor"`
-}
+// common
+//
+//	type TwitterScraperArgs struct {
+//		SearchType string `json:"type"`
+//		Query      string `json:"query"`
+//		Count      int    `json:"count"`
+//		MaxResults int    `json:"max_results"`
+//		NextCursor string `json:"next_cursor"`
+//	}
+//
+//	type TwitterSearchArguments struct {
+//		QueryType  string `json:"type"`  // Optional, type of search
+//		Query      string `json:"query"` // Username or search query
+//		Count      int    `json:"count"`
+//		StartTime  string `json:"start_time"`  // Optional ISO timestamp
+//		EndTime    string `json:"end_time"`    // Optional ISO timestamp
+//		MaxResults int    `json:"max_results"` // Optional, max number of results
+//		NextCursor string `json:"next_cursor"`
+//	}
+
+//var TwitterSearchArguments = teetypes.TwitterSearchArguments{}
 
 func NewTwitterScraper(jc types.JobConfiguration, c *stats.StatsCollector) *TwitterScraper {
 	config := TwitterScraperConfiguration{}
@@ -1110,7 +1057,7 @@ func NewTwitterScraper(jc types.JobConfiguration, c *stats.StatsCollector) *Twit
 // TwitterScrapeStrategy defines the interface for scrape strategy
 // Each job type (credential, api, default) implements this
 type TwitterScrapeStrategy interface {
-	Execute(j types.Job, ts *TwitterScraper, args *TwitterScraperArgs) (types.JobResult, error)
+	Execute(j types.Job, ts *TwitterScraper, args *args.TwitterSearchArguments) (types.JobResult, error)
 }
 
 // Factory for strategy
@@ -1128,8 +1075,8 @@ func getScrapeStrategy(jobType string) TwitterScrapeStrategy {
 // Credential-only
 type CredentialScrapeStrategy struct{}
 
-func (s *CredentialScrapeStrategy) Execute(j types.Job, ts *TwitterScraper, args *TwitterScraperArgs) (types.JobResult, error) {
-	switch strings.ToLower(args.SearchType) {
+func (s *CredentialScrapeStrategy) Execute(j types.Job, ts *TwitterScraper, args *args.TwitterSearchArguments) (types.JobResult, error) {
+	switch strings.ToLower(args.QueryType) {
 	case "searchbyquery":
 		tweets, err := ts.scrapeTweetsByQueryWithCredentials(j, ts.configuration.DataDir, args.Query, args.MaxResults)
 		if err != nil {
@@ -1153,8 +1100,8 @@ func (s *CredentialScrapeStrategy) Execute(j types.Job, ts *TwitterScraper, args
 // API key-only
 type ApiKeyScrapeStrategy struct{}
 
-func (s *ApiKeyScrapeStrategy) Execute(j types.Job, ts *TwitterScraper, args *TwitterScraperArgs) (types.JobResult, error) {
-	switch strings.ToLower(args.SearchType) {
+func (s *ApiKeyScrapeStrategy) Execute(j types.Job, ts *TwitterScraper, args *args.TwitterSearchArguments) (types.JobResult, error) {
+	switch strings.ToLower(args.QueryType) {
 	case "searchbyquery":
 		tweets, err := ts.scrapeTweetsByQueryWithApiKey(j, twitterx.TweetsSearchRecent, ts.configuration.DataDir, args.Query, args.MaxResults)
 		if err != nil {
@@ -1177,8 +1124,8 @@ func (s *ApiKeyScrapeStrategy) Execute(j types.Job, ts *TwitterScraper, args *Tw
 // Default (legacy, prefers credentials if both present)
 type DefaultScrapeStrategy struct{}
 
-func (s *DefaultScrapeStrategy) Execute(j types.Job, ts *TwitterScraper, args *TwitterScraperArgs) (types.JobResult, error) {
-	switch strings.ToLower(args.SearchType) {
+func (s *DefaultScrapeStrategy) Execute(j types.Job, ts *TwitterScraper, args *args.TwitterSearchArguments) (types.JobResult, error) {
+	switch strings.ToLower(args.QueryType) {
 	case "searchbyquery":
 		tweets, err := ts.ScrapeTweetsByRecentSearchQuery(j, ts.configuration.DataDir, args.Query, args.MaxResults)
 		if err != nil {
@@ -1199,8 +1146,8 @@ func (s *DefaultScrapeStrategy) Execute(j types.Job, ts *TwitterScraper, args *T
 }
 
 // fallback for all strategies for non-query types
-func defaultStrategyFallback(j types.Job, ts *TwitterScraper, args *TwitterScraperArgs) (types.JobResult, error) {
-	switch strings.ToLower(args.SearchType) {
+func defaultStrategyFallback(j types.Job, ts *TwitterScraper, args *args.TwitterSearchArguments) (types.JobResult, error) {
+	switch strings.ToLower(args.QueryType) {
 	case "searchbyprofile":
 		profile, err := ts.ScrapeTweetsProfile(j, ts.configuration.DataDir, args.Query)
 		if err != nil {
@@ -1311,7 +1258,7 @@ func defaultStrategyFallback(j types.Job, ts *TwitterScraper, args *TwitterScrap
 }
 
 func (ts *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
-	args := &TwitterScraperArgs{}
+	args := &args.TwitterSearchArguments{}
 	j.Arguments.Unmarshal(args)
 	strategy := getScrapeStrategy(j.Type)
 	return strategy.Execute(j, ts, args)

@@ -3,6 +3,7 @@ package jobs
 import (
 	"encoding/json"
 	"fmt"
+	types2 "github.com/masa-finance/tee-types/types"
 	"net/http"
 	"strconv"
 	"strings"
@@ -26,11 +27,6 @@ type WebScraperConfiguration struct {
 	Blacklist []string `json:"webscraper_blacklist"`
 }
 
-type WebScraperArgs struct {
-	URL   string `json:"url"`
-	Depth int    `json:"depth"`
-}
-
 func NewWebScraper(jc types.JobConfiguration, statsCollector *stats.StatsCollector) *WebScraper {
 	config := WebScraperConfiguration{}
 	jc.Unmarshal(&config)
@@ -44,7 +40,7 @@ func (ws *WebScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 	logrus.Info("Starting ExecuteJob for web scraper")
 
 	// Step 1: Unmarshal arguments
-	args := &WebScraperArgs{}
+	args := &types2.WebSearchArguments{}
 	logrus.Info("Unmarshaling job arguments")
 	if err := j.Arguments.Unmarshal(args); err != nil {
 		logrus.Errorf("Failed to unmarshal job arguments: %v", err)
