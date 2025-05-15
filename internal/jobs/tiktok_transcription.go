@@ -171,7 +171,7 @@ func (ttt *TikTokTranscriber) ExecuteJob(j types.Job) (types.JobResult, error) {
 
 	if apiResp.StatusCode != http.StatusOK {
 		// Try to read body for more error details from API
-		bodyBytes, _ := ReadAll(apiResp.Body)
+		bodyBytes, _ := io.ReadAll(apiResp.Body)
 		errMsg := fmt.Sprintf("API request failed with status code %d. Response: %s", apiResp.StatusCode, string(bodyBytes))
 		logrus.WithField("job_uuid", j.UUID).Error(errMsg)
 		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1)
@@ -237,6 +237,8 @@ func (ttt *TikTokTranscriber) ExecuteJob(j types.Job) (types.JobResult, error) {
 		return types.JobResult{Error: errMsg}, fmt.Errorf(errMsg)
 	}
 
+	logrus.Debugf("Job %s: Raw VTT content for language %s:\n%s", j.UUID, finalDetectedLanguage, vttText)
+
 	// Convert VTT to Plain Text
 	plainTextTranscription, err := convertVTTToPlainText(vttText)
 	if err != nil {
@@ -281,7 +283,20 @@ func convertVTTToPlainText(vttContent string) (string, error) {
 	for _, line := range lines {
 		trimmedLine := strings.TrimSpace(line)
 
-		if trimmedLine == "" || strings.HasPrefix(trimmedLine, "WEBVTT") || strings.HasPrefix(trimmedLine, "NOTE") {
+		if strings.HasPrefix(trimmedLine, "WEBVTT") {
+			// Attempt to extract text directly from the WEBVTT line if it's not just "WEBVTT"
+			potentialText := strings.TrimSpace(strings.TrimPrefix(trimmedLine, "WEBVTT"))
+			if potentialText != "" {
+				cleanedLine := removeVttTags(potentialText)
+				if plainText.Len() > 0 {
+					plainText.WriteString(" ")
+				}
+				plainText.WriteString(cleanedLine)
+			}
+			inCaptionBlock = false // Reset/ensure false after processing WEBVTT line
+			continue
+		}
+		if trimmedLine == "" || strings.HasPrefix(trimmedLine, "NOTE") {
 			inCaptionBlock = false // Reset on these lines or empty lines
 			continue
 		}
@@ -335,93 +350,3 @@ func removeVttTags(line string) string {
 	}
 	return result.String()
 }
-
-// ReadAll is a helper to read an io.Reader (like http.Response.Body) fully.
-// Needed because io.ReadAll is not available in older Go versions used by the project context.
-func ReadAll(r io.Reader) ([]byte, error) {
-	var buf bytes.Buffer
-	_, err := buf.ReadFrom(r)
-	if err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
-}
-
-// Ensure TikTokTranscriber implements the JobHandler interface (if one exists, common pattern)
-// var _ types.JobHandler = (*TikTokTranscriber)(nil)
-
-// Dummy types.JobArgument to make the code compile standalone until integrated.
-// This should be removed once the actual types.JobArgument is confirmed.
-// In the real system, j.Arguments.UnmarshalTo(args) would be provided by the types package.
-
-// Add a simple main for standalone testing if needed (remove for production)
-/*
-func main() {
-	// Example of how to use NewTikTokTranscriber
-	mockJobConfig := types.JobConfiguration{
-		"tiktok_transcription_endpoint": "https://submagic-free-tools.fly.dev/api/tiktok-transcription",
-		"tiktok_api_origin":             "https://submagic-free-tools.fly.dev",
-		"tiktok_api_referer":            "https://submagic-free-tools.fly.dev/tiktok-transcription",
-		"tiktok_api_user_agent":         "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Mobile Safari/537.36",
-		"tiktok_default_language":       "eng-US",
-	}
-	mockStatsCollector := &stats.StatsCollector{} // Replace with actual stats collector init if possible
-
-	transcriber := NewTikTokTranscriber(mockJobConfig, mockStatsCollector)
-	if transcriber == nil {
-		logrus.Fatal("Failed to create transcriber")
-	}
-	logrus.Infof("Transcriber created with endpoint: %s", transcriber.configuration.TranscriptionEndpoint)
-
-	// Example of how to call ExecuteJob
-	mockJob := types.Job{
-		ID:       "test-job-123",
-		WorkerID: "test-worker",
-		Type:     TikTokTranscriptionType,
-		Arguments: types.JobArgument(map[string]interface{}{ // This needs to be compatible with how JobArgument is actually defined
-			"video_url": "https://www.tiktok.com/@coachty23/video/7502100651397172526",
-			// "language": "cat-ES",
-		}),
-	}
-
-	// To make types.JobArgument(map[string]interface{}{...}) work,
-	// we need a concrete type for JobArgument or a constructor.
-	// For now, let's assume JobArgument can be created from a map for testing.
-	// This part is tricky without knowing the exact definition of types.JobArgument
-	// and its UnmarshalTo method.
-
-	// The following will not compile directly without a proper types.JobArgument that has UnmarshalTo.
-	// For now, this main function is for conceptual testing.
-	// result, err := transcriber.ExecuteJob(mockJob)
-	// if err != nil {
-	// 	logrus.Fatalf("ExecuteJob failed: %v, Result Error: %s", err, result.Error)
-	// }
-	// logrus.Infof("ExecuteJob successful. Result Data: %s", string(result.Data))
-}
-*/
-
-// Placeholder for io.Reader if not directly available
-type ioReader interface {
-	Read(p []byte) (n int, err error)
-}
-
-// Interface for io.Closer
-type ioCloser interface {
-	Close() error
-}
-
-// Combined interface for io.ReadCloser
-type ioReadCloser interface {
-	ioReader
-	ioCloser
-}
-
-// Note: The `io` package stubs (ioReader, ioCloser, ioReadCloser, ReadAll)
-// and the `main` function are for ensuring the code is self-contained for review
-// and basic compilation checks if the actual `io` or `types.JobArgument` isn't
-// fully defined in this context. They should be removed or reconciled with the
-// actual project dependencies.
-// The `bytes.ReadAll` and `io.ReadAll` have been replaced with a custom `ReadAll`
-// and `bytes.Buffer.ReadFrom` for broader Go version compatibility if needed.
-// The actual `io.ReadAll` from the `io` package should be preferred if available.
-// The placeholder `APIResponse` and `convertVTTToPlainText` are also part of fulfilling the spec.
