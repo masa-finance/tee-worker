@@ -17,6 +17,9 @@ import (
 // TikTokTranscriptionType is the job type identifier for TikTok transcriptions.
 const TikTokTranscriptionType = "tiktok-transcription"
 
+// tiktokTranscriptionEndpoint is the default hardcoded endpoint for TikTok transcriptions.
+const tiktokTranscriptionEndpoint = "https://submagic-free-tools.fly.dev/api/tiktok-transcription"
+
 // TikTokTranscriptionArgs defines the arguments required for a TikTok transcription job.
 type TikTokTranscriptionArgs struct {
 	VideoURL string `json:"video_url"`
@@ -62,13 +65,22 @@ func NewTikTokTranscriber(jc types.JobConfiguration, statsCollector *stats.Stats
 		// For now, proceed with potentially zero-value config, ExecuteJob should check critical fields.
 	}
 
-	if config.TranscriptionEndpoint == "" {
-		logrus.Error("TikTokTranscriber: TranscriptionEndpoint is not configured.")
-		// ExecuteJob must handle this to prevent panic.
+	// Hardcode the TranscriptionEndpoint, overriding any value from jc
+	config.TranscriptionEndpoint = tiktokTranscriptionEndpoint
+	logrus.Info("TikTokTranscriber: Using hardcoded TranscriptionEndpoint: ", config.TranscriptionEndpoint)
+
+	if config.APIOrigin == "" {
+		config.APIOrigin = "https://submagic-free-tools.fly.dev"
+		logrus.Info("TikTokTranscriber: APIOrigin not configured, using default: ", config.APIOrigin)
 	}
+
+	if config.APIReferer == "" {
+		config.APIReferer = "https://submagic-free-tools.fly.dev/tiktok-transcription"
+		logrus.Info("TikTokTranscriber: APIReferer not configured, using default: ", config.APIReferer)
+	}
+
 	if config.APIUserAgent == "" {
-		// Set a default User-Agent if not provided, as it's often required.
-		config.APIUserAgent = "Masa TEE Worker/1.0"
+		config.APIUserAgent = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Mobile Safari/537.36"
 		logrus.Info("TikTokTranscriber: APIUserAgent not configured, using default.")
 	}
 

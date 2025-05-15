@@ -85,6 +85,25 @@ func readConfig() types.JobConfiguration {
 		jc["twitter_api_keys"] = apiKeys
 	}
 
+	tikTokLang := os.Getenv("TIKTOK_DEFAULT_LANGUAGE")
+	if tikTokLang == "" {
+		tikTokLang = "eng-US"
+		logrus.Info("TIKTOK_DEFAULT_LANGUAGE not set, using default: ", tikTokLang)
+	}
+	jc["tiktok_default_language"] = tikTokLang
+
+	if origin := os.Getenv("TIKTOK_API_ORIGIN"); origin != "" {
+		jc["tiktok_api_origin"] = origin
+	} // Default for origin will be set in NewTikTokTranscriber if default endpoint is used
+
+	if referer := os.Getenv("TIKTOK_API_REFERER"); referer != "" {
+		jc["tiktok_api_referer"] = referer
+	} // Default for referer will be set in NewTikTokTranscriber if default endpoint is used
+
+	if userAgent := os.Getenv("TIKTOK_API_USER_AGENT"); userAgent != "" {
+		jc["tiktok_api_user_agent"] = userAgent
+	} // Default for userAgent is set in NewTikTokTranscriber
+
 	jc["stats_buf_size"] = statsBufSize()
 
 	logLevel := os.Getenv("LOG_LEVEL")

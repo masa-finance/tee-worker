@@ -2,8 +2,9 @@ package jobserver
 
 import (
 	"context"
-	"github.com/sirupsen/logrus"
 	"sync"
+
+	"github.com/sirupsen/logrus"
 
 	"github.com/google/uuid"
 	"github.com/masa-finance/tee-worker/api/types"
@@ -96,20 +97,24 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 		jobs.TelemetryJobType: {
 			w: jobs.NewTelemetryJob(jc, s),
 		},
+		jobs.TikTokTranscriptionType: {
+			w: jobs.NewTikTokTranscriber(jc, s),
+		},
 	}
 	logrus.Infof("Initialized job worker for: %s", jobs.WebScraperType)
 	logrus.Infof("Initialized job worker for: %s", jobs.TwitterScraperType)
 	logrus.Infof("Initialized job worker for: %s", jobs.TwitterCredentialScraperType)
 	logrus.Infof("Initialized job worker for: %s", jobs.TwitterApiScraperType)
 	logrus.Infof("Initialized job worker for: %s", jobs.TelemetryJobType)
+	logrus.Infof("Initialized job worker for: %s", jobs.TikTokTranscriptionType)
 
 	logrus.Info("Job workers setup completed.")
 
 	// Return the JobServer instance
 	logrus.Info("JobServer initialization complete.")
 	return &JobServer{
-		jobChan:          make(chan types.Job),
-		results:          NewResultCache(getIntFromConfig(jc, "result_cache_max_size", 1000), getIntFromConfig(jc, "result_cache_max_age_seconds", 600)),
+		jobChan: make(chan types.Job),
+		results: NewResultCache(getIntFromConfig(jc, "result_cache_max_size", 1000), getIntFromConfig(jc, "result_cache_max_age_seconds", 600)),
 
 		workers:          workers,
 		jobConfiguration: jc,
