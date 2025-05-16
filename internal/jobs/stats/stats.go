@@ -15,17 +15,19 @@ import (
 type statType string
 
 const (
-	TwitterScrapes        statType = "twitter_scrapes"
-	TwitterTweets         statType = "twitter_returned_tweets"
-	TwitterProfiles       statType = "twitter_returned_profiles"
-	TwitterOther          statType = "twitter_returned_other"
-	TwitterErrors         statType = "twitter_errors"
-	TwitterAuthErrors     statType = "twitter_auth_errors"
-	TwitterRateErrors     statType = "twitter_ratelimit_errors"
-	TwitterXSearchQueries statType = "twitterx_search"
-	WebSuccess            statType = "web_success"
-	WebErrors             statType = "web_errors"
-	WebInvalid            statType = "web_invalid"
+	TwitterScrapes             statType = "twitter_scrapes"
+	TwitterTweets              statType = "twitter_returned_tweets"
+	TwitterProfiles            statType = "twitter_returned_profiles"
+	TwitterOther               statType = "twitter_returned_other"
+	TwitterErrors              statType = "twitter_errors"
+	TwitterAuthErrors          statType = "twitter_auth_errors"
+	TwitterRateErrors          statType = "twitter_ratelimit_errors"
+	TwitterXSearchQueries      statType = "twitterx_search"
+	WebSuccess                 statType = "web_success"
+	WebErrors                  statType = "web_errors"
+	WebInvalid                 statType = "web_invalid"
+	TikTokTranscriptionSuccess statType = "tiktok_transcription_success"
+	TikTokTranscriptionErrors  statType = "tiktok_transcription_errors"
 	// TODO: Should we add stats for calls to each of the Twitter job types?
 )
 
@@ -41,6 +43,8 @@ var allStats []statType = []statType{
 	TwitterRateErrors,
 	WebSuccess,
 	WebErrors,
+	TikTokTranscriptionSuccess,
+	TikTokTranscriptionErrors,
 }
 
 // AddStat is the struct used in the rest of the tee-worker for sending statistics
