@@ -33,10 +33,7 @@ type WebScraperArgs struct {
 
 func NewWebScraper(jc types.JobConfiguration, statsCollector *stats.StatsCollector) *WebScraper {
 	config := WebScraperConfiguration{}
-	if err := jc.Unmarshal(&config); err != nil {
-		logrus.Errorf("Failed to unmarshal WebScraper configuration: %v", err)
-		return nil
-	}
+	jc.Unmarshal(&config)
 	return &WebScraper{
 		configuration: config,
 		stats:         statsCollector,

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -21,9 +22,10 @@ func generate(c echo.Context) error {
 
 	encryptedSignature, err := job.GenerateJobSignature()
 	if err != nil {
-		err = c.JSON(http.StatusInternalServerError, types.JobError{Error: err.Error()})
-		if err != nil {
+		err2 := c.JSON(http.StatusInternalServerError, types.JobError{Error: err.Error()})
+		if err2 != nil {
 			logrus.Errorf("Error while sending internal server error: %s", err)
+			return c.String(http.StatusInternalServerError, fmt.Sprintf("Error generating job signature: %s\n. Additionally, an error when trying to send the error: %s", err.Error(), err2.Error()))
 		}
 	}
 
