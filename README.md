@@ -59,9 +59,13 @@ The tee-worker requires various environment variables for operation. These shoul
 - `LISTEN_ADDRESS`: The address the service listens on (default: `:8080`).
 - `RESULT_CACHE_MAX_SIZE`: Maximum number of job results to keep in the result cache (default: `1000`).
 - `RESULT_CACHE_MAX_AGE_SECONDS`: Maximum age (in seconds) to keep a result in the cache (default: `600`).
-- `CAPABILITIES`: Comma-separated list of capabilities to enable for the worker. This is a security feature to limit the actions the worker can perform. The default is `*` which allows all actions.
+- `CAPABILITIES`: Comma-separated list of capabilities to enable for the worker. This is a security feature to limit the actions the worker can perform. The default is `*` which allows all actions. Note that this is an optional feature. If not set, the worker will automatically determine the capabilities based on the provided Twitter credentials and API keys.
 
 ### Capabilities
+
+The `CAPABILITIES` environment variable defines the actions the worker can perform. This is a security feature to limit the actions the worker can perform. The default is `*` which allows all actions.
+
+Note that this is an optional feature. If not set, the worker will automatically determine the capabilities based on the provided Twitter credentials and API keys.
 
 - `*`: All capabilities (default).
 - `all`: All capabilities. Same as `*`.
