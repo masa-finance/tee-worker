@@ -13,6 +13,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/labstack/echo-contrib v0.17.3
 	github.com/labstack/echo/v4 v4.13.3
+	github.com/masa-finance/tee-types v0.0.0-20250516141703-5b8af7db591c
 	github.com/onsi/ginkgo/v2 v2.23.3
 	github.com/onsi/gomega v1.36.2
 	github.com/sirupsen/logrus v1.9.3
@@ -25,7 +26,6 @@ require (
 	github.com/AlexEidt/Vidio v1.5.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
-	github.com/masa-finance/tee-types v0.0.0-20250514061334-3ed5481b2868 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 )
 
