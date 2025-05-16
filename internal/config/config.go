@@ -1,7 +1,6 @@
-package main
+package config
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -14,13 +13,27 @@ import (
 )
 
 // TODO: Revamp the whole config, using a Map and having multiple global functions to get the config is not nice
-var dataDir = os.Getenv("DATA_DIR")
+func init() {
+	switch strings.ToLower(os.Getenv("LOG_LEVEL")) {
+	case "debug":
+		logrus.SetLevel(logrus.DebugLevel)
+	case "info":
+		logrus.SetLevel(logrus.InfoLevel)
+	case "warn":
+		logrus.SetLevel(logrus.WarnLevel)
+	case "error":
+		logrus.SetLevel(logrus.ErrorLevel)
+	default:
+		logrus.SetLevel(logrus.InfoLevel)
+	}
+}
 
-func readConfig() types.JobConfiguration {
+func ReadConfig() types.JobConfiguration {
 	// The jobs will then unmarshal from this configuration to the specific configuration
 	// that is needed for the job
 	jc := types.JobConfiguration{}
 
+	dataDir := os.Getenv("DATA_DIR")
 	if dataDir == "" {
 		dataDir = "/home/masa"
 		err := os.Setenv("DATA_DIR", dataDir)
@@ -28,13 +41,11 @@ func readConfig() types.JobConfiguration {
 			logrus.Fatalf("Failed to set DATA_DIR: %v", err)
 		}
 	}
-
 	jc["data_dir"] = dataDir
 
 	// Read the env file
 	if err := godotenv.Load(filepath.Join(dataDir, ".env")); err != nil {
-		fmt.Println("Failed reading env file!")
-		panic(err)
+		logrus.Warn("Failed reading env file! Loading from environment variables")
 	}
 
 	// Result cache config
@@ -97,10 +108,11 @@ func readConfig() types.JobConfiguration {
 		jc["twitter_api_keys"] = apiKeys
 	}
 
-	jc["stats_buf_size"] = statsBufSize()
+	jc["stats_buf_size"] = StatsBufSize()
 
 	logLevel := os.Getenv("LOG_LEVEL")
-	switch strings.ToLower(logLevel) {
+	jc["log_level"] = strings.ToLower(logLevel)
+	switch jc["log_level"] {
 	case "debug":
 		logrus.SetLevel(logrus.DebugLevel)
 	case "info":
@@ -119,8 +131,8 @@ func readConfig() types.JobConfiguration {
 	return jc
 }
 
-// statsBufSize returns the size of the stats channel buffer
-func statsBufSize() uint {
+// StatsBufSize returns the size of the stats channel buffer
+func StatsBufSize() uint {
 	bufSizeStr := os.Getenv("STATS_BUF_SIZE")
 	if bufSizeStr == "" {
 		bufSizeStr = "128"
@@ -134,7 +146,7 @@ func statsBufSize() uint {
 	return uint(bufSize)
 }
 
-func listenAddress() string {
+func ListenAddress() string {
 	listenAddress := os.Getenv("LISTEN_ADDRESS")
 	if listenAddress == "" {
 		listenAddress = ":8080"
@@ -143,6 +155,6 @@ func listenAddress() string {
 	return listenAddress
 }
 
-func standaloneMode() bool {
+func StandaloneMode() bool {
 	return os.Getenv("STANDALONE") == "true"
 }

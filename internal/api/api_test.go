@@ -2,10 +2,12 @@ package api_test
 
 import (
 	"context"
+	"os"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/sirupsen/logrus"
 
 	"github.com/masa-finance/tee-worker/api/types"
 	. "github.com/masa-finance/tee-worker/internal/api"
@@ -26,7 +28,12 @@ var _ = Describe("API", func() {
 		ctx, cancel = context.WithCancel(context.Background())
 
 		// Start the server
-		go Start(ctx, "127.0.0.1:40912", "", true, types.JobConfiguration{})
+		os.Setenv("LOG_LEVEL", "debug")
+		logrus.SetLevel(logrus.DebugLevel)
+		go func() {
+			logrus.SetLevel(logrus.DebugLevel)
+			Start(ctx, "127.0.0.1:40912", "", true, types.JobConfiguration{})
+		}()
 
 		// Wait for the server to start
 		Eventually(func() error {

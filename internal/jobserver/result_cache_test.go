@@ -10,7 +10,7 @@ import (
 
 var _ = Describe("ResultCache", func() {
 	It("should set and get values", func() {
-		cache := NewResultCache(1000, 600)
+		cache := NewResultCache(1000, time.Duration(600)*time.Second)
 		key := "abc"
 		val := types.JobResult{Job: types.Job{UUID: key}, Error: ""}
 		cache.Set(key, val)
@@ -20,7 +20,7 @@ var _ = Describe("ResultCache", func() {
 	})
 
 	It("should evict oldest when max size is reached", func() {
-		cache := NewResultCache(3, 600)
+		cache := NewResultCache(3, time.Duration(600)*time.Second)
 		for i := 0; i < 5; i++ {
 			key := string(rune('a' + i))
 			cache.Set(key, types.JobResult{Job: types.Job{UUID: key}})
@@ -31,7 +31,7 @@ var _ = Describe("ResultCache", func() {
 	})
 
 	It("should evict by age", func() {
-		cache := NewResultCache(10, 1)
+		cache := NewResultCache(10, time.Duration(1)*time.Second)
 		key := "expireme"
 		cache.Set(key, types.JobResult{Job: types.Job{UUID: key}})
 		time.Sleep(1100 * time.Millisecond)
@@ -40,7 +40,7 @@ var _ = Describe("ResultCache", func() {
 	})
 
 	It("should clean up expired entries periodically", func() {
-		cache := NewResultCache(10, 1)
+		cache := NewResultCache(10, time.Duration(1)*time.Second)
 		key := "periodic"
 		cache.Set(key, types.JobResult{Job: types.Job{UUID: key}})
 		time.Sleep(2200 * time.Millisecond)

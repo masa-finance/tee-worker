@@ -29,18 +29,18 @@ type ResultCache struct {
 }
 
 // NewResultCache creates a new ResultCache with the specified maxSize and maxAge (in seconds)
-func NewResultCache(maxSize int, maxAgeSeconds int) *ResultCache {
+func NewResultCache(maxSize int, maxAge time.Duration) *ResultCache {
 	if maxSize <= 0 {
 		maxSize = defaultMaxSize
 	}
-	if maxAgeSeconds <= 0 {
-		maxAgeSeconds = defaultMaxAgeSecs
+	if maxAge <= 0 {
+		maxAge = defaultMaxAgeSecs
 	}
 	rc := &ResultCache{
 		entries: make(map[string]*cacheEntry),
 		order:   list.New(),
 		maxSize: maxSize,
-		maxAge:  time.Duration(maxAgeSeconds) * time.Second,
+		maxAge:  maxAge,
 	}
 	go rc.periodicCleanup()
 	return rc
