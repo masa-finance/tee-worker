@@ -1,6 +1,7 @@
 package jobs_test
 
 import (
+	teetypes "github.com/masa-finance/tee-types/types"
 	"os"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -57,7 +58,7 @@ var _ = Describe("Twitter Scraper", func() {
 			})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(res.Error).To(BeEmpty())
-			var results []*TweetResult
+			var results []*teetypes.TweetResult
 			err = res.Unmarshal(&results)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(results).ToNot(BeEmpty())
@@ -81,7 +82,7 @@ var _ = Describe("Twitter Scraper", func() {
 			})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(res.Error).To(BeEmpty())
-			var results []*TweetResult
+			var results []*teetypes.TweetResult
 			err = res.Unmarshal(&results)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(results).ToNot(BeEmpty())
@@ -127,7 +128,7 @@ var _ = Describe("Twitter Scraper", func() {
 			})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(res.Error).To(BeEmpty())
-			var results []*TweetResult
+			var results []*teetypes.TweetResult
 			err = res.Unmarshal(&results)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(results).ToNot(BeEmpty())
@@ -196,7 +197,7 @@ var _ = Describe("Twitter Scraper", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(res.Error).To(BeEmpty())
 
-		var results []*TweetResult
+		var results []*teetypes.TweetResult
 		err = res.Unmarshal(&results)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(results).ToNot(BeEmpty())
@@ -285,7 +286,7 @@ var _ = Describe("Twitter Scraper", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(res.Error).To(BeEmpty())
 
-		var replies []*TweetResult
+		var replies []*teetypes.TweetResult
 		err = res.Unmarshal(&replies)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(replies).ToNot(BeEmpty())
@@ -323,7 +324,7 @@ var _ = Describe("Twitter Scraper", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(res.Error).To(BeEmpty())
 
-		var tweets []*TweetResult
+		var tweets []*teetypes.TweetResult
 		err = res.Unmarshal(&tweets)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(tweets)).ToNot(BeZero())
@@ -342,7 +343,7 @@ var _ = Describe("Twitter Scraper", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(res.Error).To(BeEmpty())
 
-		var media []*TweetResult
+		var media []*teetypes.TweetResult
 		err = res.Unmarshal(&media)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(media).ToNot(BeEmpty())
@@ -360,7 +361,7 @@ var _ = Describe("Twitter Scraper", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(res.Error).To(BeEmpty())
 
-		var bookmarks []*TweetResult
+		var bookmarks []*teetypes.TweetResult
 		err = res.Unmarshal(&bookmarks)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(bookmarks)).ToNot(BeZero())
@@ -378,7 +379,7 @@ var _ = Describe("Twitter Scraper", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(res.Error).To(BeEmpty())
 
-		var tweets []*TweetResult
+		var tweets []*teetypes.TweetResult
 		err = res.Unmarshal(&tweets)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(tweets)).ToNot(BeZero())
@@ -396,7 +397,7 @@ var _ = Describe("Twitter Scraper", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(res.Error).To(BeEmpty())
 
-		var tweets []*TweetResult
+		var tweets []*teetypes.TweetResult
 		err = res.Unmarshal(&tweets)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(tweets)).ToNot(BeZero())

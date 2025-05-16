@@ -108,8 +108,8 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 	// Return the JobServer instance
 	logrus.Info("JobServer initialization complete.")
 	return &JobServer{
-		jobChan:          make(chan types.Job),
-		results:          NewResultCache(getIntFromConfig(jc, "result_cache_max_size", 1000), getIntFromConfig(jc, "result_cache_max_age_seconds", 600)),
+		jobChan: make(chan types.Job),
+		results: NewResultCache(getIntFromConfig(jc, "result_cache_max_size", 1000), getIntFromConfig(jc, "result_cache_max_age_seconds", 600)),
 
 		workers:          workers,
 		jobConfiguration: jc,

@@ -25,7 +25,7 @@ func NewScraper(config AuthConfig) *Scraper {
 	}
 
 	scraper := &Scraper{Scraper: newTwitterScraper()}
-	
+
 	// Configure whether to skip login verification
 	scraper.SetSkipLoginVerification(config.SkipLoginVerification)
 

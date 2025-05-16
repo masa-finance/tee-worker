@@ -32,8 +32,6 @@ type AuthResponse struct {
 	} `json:"errors,omitempty"`
 }
 
-
-
 func NewTwitterXClient(apiKey string) *TwitterXClient {
 	logrus.Info("Creating new TwitterXClient with API key")
 	// test if the API key is valid before returning the client
@@ -132,5 +130,3 @@ func (c *TwitterXClient) testAuth() error {
 		return fmt.Errorf("API auth test failed with status: %d", resp.StatusCode)
 	}
 }
-
-
