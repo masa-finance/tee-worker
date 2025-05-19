@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/masa-finance/tee-worker/pkg/tee"
 	"golang.org/x/exp/rand"
@@ -20,11 +21,12 @@ func (ja JobArguments) Unmarshal(i interface{}) error {
 }
 
 type Job struct {
-	Type      string       `json:"type"`
-	Arguments JobArguments `json:"arguments"`
-	UUID      string       `json:"-"`
-	Nonce     string       `json:"quote"`
-	WorkerID  string       `json:"worker_id"`
+	Type      string        `json:"type"`
+	Arguments JobArguments  `json:"arguments"`
+	UUID      string        `json:"-"`
+	Nonce     string        `json:"quote"`
+	WorkerID  string        `json:"worker_id"`
+	Timeout   time.Duration `json:"-"`
 }
 
 var letterRunes = []rune("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()_+")
@@ -116,4 +118,38 @@ func (jc JobConfiguration) Unmarshal(v interface{}) error {
 	}
 
 	return nil
+}
+
+// getInt safely extracts an int from JobConfiguration, with a default fallback
+func (jc JobConfiguration) GetInt(key string, def int) int {
+	if v, ok := jc[key]; ok {
+		switch val := v.(type) {
+		case int:
+			return val
+		case int64:
+			return int(val)
+		case float64:
+			return int(val)
+		case float32:
+			return int(val)
+		}
+	}
+	return def
+}
+
+func (jc JobConfiguration) GetDuration(key string, defSecs int) time.Duration {
+	// Go does not allow generics in methods :-(
+	if v, ok := jc[key]; ok {
+		if val, ok := v.(time.Duration); ok {
+			return val
+		}
+	}
+	return time.Duration(defSecs) * time.Second
+}
+
+func (jc JobConfiguration) GetString(key string, def string) string {
+	if v, ok := jc[key]; ok {
+		return v.(string)
+	}
+	return def
 }
