@@ -17,6 +17,7 @@ import (
 	"github.com/masa-finance/tee-worker/api/types"
 	"github.com/masa-finance/tee-worker/internal/jobserver"
 	"github.com/masa-finance/tee-worker/pkg/tee"
+	"github.com/sirupsen/logrus"
 )
 
 func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, config types.JobConfiguration) error {
@@ -68,8 +69,9 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 	// API Key Authentication Middleware
 	e.Use(APIKeyAuthMiddleware(config))
 
-	// Load already existing key
-	tee.LoadKey(dataDIR)
+	if err := tee.LoadKey(dataDIR); err != nil {
+		logrus.Warnf("Error loading key from %s: %s", dataDIR, err)
+	}
 
 	// Routes
 
@@ -111,7 +113,9 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 
 	go func() {
 		<-ctx.Done()
-		e.Close()
+		if err := e.Close(); err != nil {
+			e.Logger.Error("Failed to close Echo server: ", err)
+		}
 	}()
 
 	if standalone {
@@ -157,7 +161,8 @@ func enableProfiling(e *echo.Echo, standaloneMode bool) bool {
 
 	e.Logger.Info("Enabling profiling - this may impact performance")
 
-	// TODO These values should probably come from configuration, and/or be settable at runtime when enabling profiling
+	// TODO: These values should probably come from configuration, and/or be settable at runtime when enabling profiling
+	//
 	// Sample time in nanoseconds, see https://github.com/DataDog/go-profiler-notes/blob/main/block.md#usage
 	runtime.SetBlockProfileRate(500)
 	// Fraction of contention events that are reported https://gist.github.com/andrewhodel/ed7625a14eb87404cafd37493849d1ba

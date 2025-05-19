@@ -77,3 +77,4 @@ bp-todo.md
 .masa/.env
 # TEE
 tee/private.pem
+.aider*
