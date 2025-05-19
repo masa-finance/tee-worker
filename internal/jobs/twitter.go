@@ -1126,6 +1126,7 @@ func (s *DefaultScrapeStrategy) Execute(j types.Job, ts *TwitterScraper, args *T
 	}
 }
 
+// retryWithCursor retries a given function `fn` which fetches data in a paginated manner using a cursor. It continues to call `fn` until the desired `count` of records is fetched, the job timeout is reached, or there are no more results.
 func retryWithCursor[T any](
 	j types.Job,
 	baseDir string,
@@ -1163,6 +1164,7 @@ func retryWithCursor[T any](
 	return processResponse(records, cursor, nil)
 }
 
+// retryWithCursor retries a given function `fn` which receives a query and fetches data in a paginated manner using a cursor. It continues to call `fn` until the desired `count` of records is fetched, the job timeout is reached, or there are no more results.
 func retryWithCursorAndQuery[T any](
 	j types.Job,
 	baseDir string,
@@ -1182,6 +1184,7 @@ func retryWithCursorAndQuery[T any](
 	)
 }
 
+// processResponse is a convenience function that takes a response object, a nextCursor string, and an error, and converts them into a types.JobResult.
 func processResponse(response any, nextCursor string, err error) (types.JobResult, error) {
 	if err != nil {
 		return types.JobResult{Error: err.Error()}, err
