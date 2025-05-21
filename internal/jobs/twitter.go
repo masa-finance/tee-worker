@@ -347,21 +347,21 @@ func (ts *TwitterScraper) scrapeTweetsWithApiKey(j types.Job, baseQueryEndpoint 
 				Username:       tX.Username,
 				Lang:           tX.Lang,
 			}
-			if result.Meta != nil {
-				newTweet.NewestID = result.Meta.NewestID
-				newTweet.OldestID = result.Meta.OldestID
-				newTweet.ResultCount = result.Meta.ResultCount
-			}
+			//if result.Meta != nil {
+			newTweet.NewestID = result.Meta.NewestID
+			newTweet.OldestID = result.Meta.OldestID
+			newTweet.ResultCount = result.Meta.ResultCount
+			//}
 
-			if tX.PublicMetrics != nil {
-				newTweet.PublicMetrics = teetypes.PublicMetrics{
-					RetweetCount:  tX.PublicMetrics.RetweetCount,
-					ReplyCount:    tX.PublicMetrics.ReplyCount,
-					LikeCount:     tX.PublicMetrics.LikeCount,
-					QuoteCount:    tX.PublicMetrics.QuoteCount,
-					BookmarkCount: tX.PublicMetrics.BookmarkCount,
-				}
+			//if tX.PublicMetrics != nil {
+			newTweet.PublicMetrics = teetypes.PublicMetrics{
+				RetweetCount:  tX.PublicMetrics.RetweetCount,
+				ReplyCount:    tX.PublicMetrics.ReplyCount,
+				LikeCount:     tX.PublicMetrics.LikeCount,
+				QuoteCount:    tX.PublicMetrics.QuoteCount,
+				BookmarkCount: tX.PublicMetrics.BookmarkCount,
 			}
+			//}
 			// if tX.PossiblySensitive is available in twitterx.TweetData and teetypes.TweetResult has PossiblySensitive:
 			// newTweet.PossiblySensitive = tX.PossiblySensitive
 			// Also, fields like IsQuoted, Photos, Videos etc. would need to be populated if tX provides them.
@@ -373,7 +373,7 @@ func (ts *TwitterScraper) scrapeTweetsWithApiKey(j types.Job, baseQueryEndpoint 
 			}
 		}
 
-		if result.Meta != nil {
+		if result.Meta.NextCursor != "" {
 			cursor = result.Meta.NextCursor
 		} else {
 			cursor = ""
@@ -570,13 +570,12 @@ func (ts *TwitterScraper) GetUserMedia(j types.Job, baseDir, username string, co
 	} else {
 		// Fetch more tweets initially as GetTweetsAndReplies doesn't guarantee 'count' media items.
 		// Adjust multiplier as needed; it's a heuristic.
-		initialFetchCount := count * 5 
+		initialFetchCount := count * 5
 		if initialFetchCount == 0 && count > 0 { // handle count=0 case for initialFetchCount if count is very small
 			initialFetchCount = 100 // a reasonable default if count is tiny but non-zero
 		} else if count == 0 {
 			initialFetchCount = 0 // if specifically asking for 0 media items
 		}
-
 
 		for tweetScraped := range scraper.GetTweetsAndReplies(ctx, username, initialFetchCount) {
 			if tweetScraped.Error != nil {
@@ -733,10 +732,9 @@ func (ts *TwitterScraper) GetBookmarks(j types.Job, baseDir string, count int, c
 		// The next cursor should be the current offset + number of items fetched in this batch.
 		nextCursor = strconv.Itoa(cursorInt + len(bookmarks))
 	} else if cursor != "" {
-        // If no bookmarks were fetched but a cursor was provided, retain it or signal no change
-        nextCursor = cursor 
-    }
-
+		// If no bookmarks were fetched but a cursor was provided, retain it or signal no change
+		nextCursor = cursor
+	}
 
 	ts.statsCollector.Add(j.WorkerID, stats.TwitterTweets, uint(len(bookmarks)))
 	return bookmarks, nextCursor, nil
@@ -1003,8 +1001,9 @@ func retryWithCursor[T any](
 		if count == 0 { // If count is 0, fetch a reasonable batch size, e.g. 100, or let fn decide
 			numToFetch = 100 // Or another default batch size if fn doesn't handle count=0 well for batching
 		}
-		if numToFetch <= 0 && count > 0 { break }
-
+		if numToFetch <= 0 && count > 0 {
+			break
+		}
 
 		results, nextInternalCursor, err := fn(j, baseDir, numToFetch, currentCursor)
 		if err != nil {
@@ -1020,7 +1019,7 @@ func retryWithCursor[T any](
 		}
 
 		if nextInternalCursor == "" || nextInternalCursor == currentCursor { // No more pages or cursor stuck
-            currentCursor = nextInternalCursor // Update to the last known cursor
+			currentCursor = nextInternalCursor // Update to the last known cursor
 			break
 		}
 		currentCursor = nextInternalCursor
@@ -1117,7 +1116,7 @@ func defaultStrategyFallback(j types.Job, ts *TwitterScraper, jobArgs *args.Twit
 func (ts *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 	jobArgs := &args.TwitterSearchArguments{}
 	if err := j.Arguments.Unmarshal(jobArgs); err != nil {
-		logrus.Errorf("Error while unmarshalling job arguments for job ID %s, type %s: %v", j.ID, j.Type, err)
+		logrus.Errorf("Error while unmarshalling job arguments for job ID %s, type %s: %v", j.UUID, j.Type, err)
 		return types.JobResult{Error: err.Error()}, err
 	}
 	strategy := getScrapeStrategy(j.Type)
