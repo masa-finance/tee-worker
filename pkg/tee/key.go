@@ -19,7 +19,7 @@ func LoadKey(datadir string) error {
 
 	// Check if directory exists
 	if _, err := os.Stat(datadir); os.IsNotExist(err) {
-		err := fmt.Errorf("directory does not exist: %s", datadir)
+		err := fmt.Errorf("loading key ring: directory does not exist: %s", datadir)
 		logrus.Warn(err)
 		return err
 	}

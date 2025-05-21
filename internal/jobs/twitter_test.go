@@ -6,6 +6,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/sirupsen/logrus"
 
 	twitterscraper "github.com/imperatrona/twitter-scraper"
 	"github.com/masa-finance/tee-worker/api/types"
@@ -24,6 +25,9 @@ var _ = Describe("Twitter Scraper", func() {
 		var apiKey string
 
 		BeforeEach(func() {
+			logrus.SetLevel(logrus.DebugLevel)
+			os.Setenv("LOG_LEVEL", "debug")
+
 			CIDir := os.Getenv("TEST_COOKIE_DIR")
 			if CIDir != "" {
 				tempDir = CIDir

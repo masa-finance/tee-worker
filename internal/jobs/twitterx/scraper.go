@@ -3,14 +3,15 @@ package twitterx
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/masa-finance/tee-worker/pkg/client"
-	"github.com/sirupsen/logrus"
 	"io"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/masa-finance/tee-worker/pkg/client"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -85,6 +86,7 @@ type TwitterMeta struct {
 	NewestID    string `json:"newest_id"`
 	OldestID    string `json:"oldest_id"`
 	ResultCount int    `json:"result_count"`
+	NextCursor  string `json:"next_token"`
 }
 
 // UserLookupResponse structure for the user lookup endpoint
@@ -127,37 +129,18 @@ func NewTwitterXScraper(client *client.TwitterXClient) *TwitterXScraper {
 	}
 }
 
-func (s *TwitterXScraper) ScrapeTweetsByFullTextSearchQuery(query string, count int) (*TwitterXSearchQueryResult, error) {
-
-	if count == 0 {
-		count = 10
+func (s *TwitterXScraper) ScrapeTweetsByQuery(baseQueryEndpoint string, query string, count int, cursor string) (*TwitterXSearchQueryResult, error) {
+	switch baseQueryEndpoint {
+	case TweetsAll:
+		count = min(max(count, 10), 499)
+	case TweetsSearchRecent:
+		count = min(max(count, 10), 100)
+	default:
+		return nil, fmt.Errorf("unsupported base query endpoint: %s", baseQueryEndpoint)
 	}
 
-	if count > 500 {
-		count = 499
-	}
-
-	return s.scrapeTweetsByQuery(TweetsAll, query, count)
-}
-
-func (s *TwitterXScraper) ScrapeTweetsByQuery(query string, count int) (*TwitterXSearchQueryResult, error) {
-
-	if count == 0 {
-		count = 10
-	}
-
-	if count > 100 {
-		count = 99
-	}
-
-	return s.scrapeTweetsByQuery(TweetsSearchRecent, query, count)
-}
-func (s *TwitterXScraper) scrapeTweetsByQuery(baseQueryEndpoint string, query string, count int) (*TwitterXSearchQueryResult, error) {
 	// Initialize the client
 	client := s.twitterXClient
-
-	// Construct the base URL
-	baseURL := baseQueryEndpoint
 
 	// Create url.Values to handle all query parameters
 	params := url.Values{}
@@ -174,6 +157,11 @@ func (s *TwitterXScraper) scrapeTweetsByQuery(baseQueryEndpoint string, query st
 
 	params.Add("max_results", strconv.Itoa(count))
 
+	// Add cursor if provided
+	if cursor != "" {
+		params.Add("next_token", cursor)
+	}
+
 	// Add tweet fields
 	params.Add("tweet.fields", "created_at,author_id,public_metrics,context_annotations,geo,lang,possibly_sensitive,source,withheld,attachments,entities,conversation_id,in_reply_to_user_id,referenced_tweets,reply_settings,media_metadata,note_tweet,display_text_range,edit_controls,edit_history_tweet_ids,article,card_uri,community_id")
 
@@ -184,7 +172,7 @@ func (s *TwitterXScraper) scrapeTweetsByQuery(baseQueryEndpoint string, query st
 	params.Add("place.fields", "contained_within,country,country_code,full_name,geo,id,name,place_type")
 
 	// Construct the final URL with all encoded parameters
-	endpoint := baseURL + "?" + params.Encode()
+	endpoint := baseQueryEndpoint + "?" + params.Encode()
 
 	logrus.Debugf("Making request to endpoint: %s", endpoint)
 
@@ -235,24 +223,7 @@ func (s *TwitterXScraper) scrapeTweetsByQuery(baseQueryEndpoint string, query st
 
 // Helper function to check if a string contains special characters
 func (s *TwitterXScraper) containsSpecialChars(str string) bool {
-	specialChars := []string{
-		"$", "@", "#", "!", "%", "^", "&", "*", "(", ")", "+", "=",
-		"{", "}", "[", "]", ":", ";", "'", "\"", "\\", "|", "<", ">",
-		",", ".", "?", "/", "~", "`",
-	}
-
-	for _, char := range specialChars {
-		if strings.Contains(str, char) {
-			return true
-		}
-	}
-
-	// Also check for spaces which may indicate multiple words
-	if strings.Contains(str, " ") {
-		return true
-	}
-
-	return false
+	return strings.ContainsAny(str, "$@#!%^&*()+={}[]:;'\"\\|<>,.?/~` ")
 }
 
 // fetchUsernames retrieves the username for each author_id in the search results
@@ -352,64 +323,4 @@ func (s *TwitterXScraper) lookupUserByID(userID string) (string, error) {
 	default:
 		return "", fmt.Errorf("API user lookup failed with status: %d", resp.StatusCode)
 	}
-}
-
-func (s *TwitterXScraper) ScrapeTweetsByQueryExtended(params SearchParams) (*TwitterXSearchQueryResult, error) {
-	// initialize the client
-	client := s.twitterXClient
-
-	// construct the base URL
-	baseURL := TweetsSearchRecent
-
-	// create url.Values for parameter encoding
-	queryParams := url.Values{}
-
-	// Add the main search query
-	queryParams.Add("query", params.Query)
-
-	// Add optional parameters if present
-	if params.MaxResults > 0 {
-		queryParams.Add("max_results", strconv.Itoa(params.MaxResults))
-	}
-	if params.NextToken != "" {
-		queryParams.Add("next_token", params.NextToken)
-	}
-	if params.SinceID != "" {
-		queryParams.Add("since_id", params.SinceID)
-	}
-	if params.UntilID != "" {
-		queryParams.Add("until_id", params.UntilID)
-	}
-	if len(params.TweetFields) > 0 {
-		queryParams.Add("tweet.fields", strings.Join(params.TweetFields, ","))
-	}
-
-	// construct the final URL
-	endpoint := baseURL + "?" + queryParams.Encode()
-
-	// run the search
-	response, err := client.Get(endpoint)
-	if err != nil {
-		logrus.Errorf("failed to execute search query: %s", err)
-		return nil, fmt.Errorf("failed to execute search query: %w", err)
-	}
-	defer response.Body.Close()
-
-	// check response status
-	if response.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(response.Body)
-		logrus.Errorf("unexpected status code %d: %s", response.StatusCode, string(body))
-		return nil, fmt.Errorf("unexpected status code %d: %s", response.StatusCode, string(body))
-	}
-
-	// unmarshal the response
-	var result TwitterXSearchQueryResult
-	err = json.NewDecoder(response.Body).Decode(&result)
-	if err != nil {
-		logrus.Error("failed to decode response: %w", err)
-		return nil, fmt.Errorf("failed to decode response: %w", err)
-	}
-
-	logrus.Info("Successfully scraped tweets by query, result count: ", result.Meta.ResultCount)
-	return &result, nil
 }

@@ -59,9 +59,14 @@ The tee-worker requires various environment variables for operation. These shoul
 - `LISTEN_ADDRESS`: The address the service listens on (default: `:8080`).
 - `RESULT_CACHE_MAX_SIZE`: Maximum number of job results to keep in the result cache (default: `1000`).
 - `RESULT_CACHE_MAX_AGE_SECONDS`: Maximum age (in seconds) to keep a result in the cache (default: `600`).
-- `CAPABILITIES`: Comma-separated list of capabilities to enable for the worker. This is a security feature to limit the actions the worker can perform. The default is `*` which allows all actions.
+- `CAPABILITIES`: Comma-separated list of capabilities to enable for the worker. This is a security feature to limit the actions the worker can perform. The default is `*` which allows all actions. If not set, the worker will automatically determine the capabilities (auto-detection) based on the provided Twitter credentials and API keys.  Note that this is an optional feature and it will override the capabilities that were set by the auto-detection.
+- `JOB_TIMEOUT_SECONDS`: Maximum duration of a job when multiple calls are needed to get the number of results requested (default: `300`).
 
 ### Capabilities
+
+The `CAPABILITIES` environment variable defines the actions the worker can perform. This is a security feature to limit the actions the worker can perform. The default is `*` which allows all actions.
+
+Note that this is an optional feature. If not set, the worker will automatically determine the capabilities based on the provided Twitter credentials and API keys.
 
 - `*`: All capabilities (default).
 - `all`: All capabilities. Same as `*`.
@@ -202,7 +207,6 @@ SIG=$(curl -s "localhost:8080/job/generate" \
     "arguments": {
       "type": "searchbyfullarchive",
       "query": "climate change",
-      "count": 100,
       "max_results": 100
     }
   }')
@@ -238,7 +242,6 @@ SIG=$(curl -s "localhost:8080/job/generate" \
     "arguments": {
       "type": "searchbyquery",
       "query": "climate change",
-      "count": 10,
       "max_results": 10
     }
   }')
@@ -327,14 +330,14 @@ Performs different types of Twitter searches.
 
 * `type` (string): Type of query (see below).
 * `query` (string): The query to execute. Its meaning depends on the type of query (see below)
-* `count` (int): How many results to return.
+* `max_results` (int): How many results to return.
 * `next_cursor` (int): Cursor returned from the previous query, for pagination (for those job types that support it).
 
 **Job types**
 
 Some job types now support cursor-based pagination. For these jobs:
 
-- The get variants ignore the next_cursor parameter and retrieve the first count records quickly
+- The get variants ignore the next_cursor parameter and retrieve the first `max_results` records quickly
 - To paginate, first use an empty next_cursor to get initial results, then use the returned next_cursor in subsequent calls.
 
 **Jobs that return tweets or lists of tweets**
