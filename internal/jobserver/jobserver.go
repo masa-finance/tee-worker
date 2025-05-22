@@ -95,7 +95,6 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 		jobChan: make(chan types.Job),
 		// TODO The defaults here should come from config.go, but during tests the config is not necessarily read
 		results: NewResultCache(jc.GetInt("result_cache_max_size", 1000), jc.GetDuration("result_cache_max_age_seconds", 600)),
-
 		workers:          workers,
 		jobConfiguration: jc,
 		jobWorkers:       jobworkers,
