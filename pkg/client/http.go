@@ -27,13 +27,16 @@ func (c *Client) setAPIKeyHeader(req *http.Request) {
 }
 
 // NewClient creates a new Client instance.
-func NewClient(baseURL string, opts ...Option) *Client {
-	options := NewOptions(opts...)
+func NewClient(baseURL string, opts ...Option) (*Client, error) {
+	options, err := NewOptions(opts...)
+	if err != nil {
+		return nil, err
+	}
 	c := &Client{
-		BaseURL:    baseURL,
-		options:    options,
+		BaseURL: baseURL,
+		options: options,
 		HTTPClient: &http.Client{
-			//Timeout: options.timeout,
+			Timeout: options.Timeout,
 		},
 	}
 	if options.ignoreTLSCert {
@@ -42,7 +45,7 @@ func NewClient(baseURL string, opts ...Option) *Client {
 		}
 	}
 
-	return c
+	return c, nil
 }
 
 // CreateJobSignature sends a job to the server to generate a job signature.

@@ -47,7 +47,9 @@ var _ = Describe("Client", func() {
 			}
 		}))
 
-		client = NewClient(mockServer.URL)
+		var err error
+		client, err = NewClient(mockServer.URL)
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	AfterEach(func() {
