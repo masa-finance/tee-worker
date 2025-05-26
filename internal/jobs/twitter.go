@@ -1120,7 +1120,18 @@ func (ts *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 		return types.JobResult{Error: err.Error()}, err
 	}
 	strategy := getScrapeStrategy(j.Type)
-	return strategy.Execute(j, ts, jobArgs)
+
+	jobResult, err := strategy.Execute(j, ts, jobArgs)
+	if err != nil {
+		return types.JobResult{Error: err.Error()}, err
+	}
+
+	// check if data is []
+	if jobResult.Data != nil && len(jobResult.Data) == 0 {
+		return types.JobResult{Error: "job result is empty"}, fmt.Errorf("job result is empty")
+	}
+
+	return jobResult, nil
 }
 
 func (ts *TwitterScraper) FetchHomeTweets(j types.Job, baseDir string, count int, cursor string) ([]*twitterscraper.Tweet, string, error) {
