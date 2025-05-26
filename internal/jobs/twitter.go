@@ -1131,6 +1131,15 @@ func (ts *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 		return types.JobResult{Error: "job result is empty"}, fmt.Errorf("job result is empty")
 	}
 
+	// marshal result to json
+	var results []*teetypes.TweetResult // we know the result is a slice of TweetResult
+	err = jobResult.Unmarshal(&results)
+
+	fmt.Println("Unmarshalled results:", results)
+	if results == nil && len(results) == 0 {
+		return types.JobResult{Error: "job result is empty"}, fmt.Errorf("job result is empty")
+	}
+
 	return jobResult, nil
 }
 
