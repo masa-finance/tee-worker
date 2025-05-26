@@ -1113,30 +1113,43 @@ func defaultStrategyFallback(j types.Job, ts *TwitterScraper, jobArgs *args.Twit
 	return types.JobResult{Error: "invalid search type in defaultStrategyFallback: " + jobArgs.QueryType}, fmt.Errorf("invalid search type: %s", jobArgs.QueryType)
 }
 
+// ExecuteJob runs a job using the appropriate scrape strategy based on the job type.
+// It first unmarshals the job arguments into a TwitterSearchArguments struct.
+// Then it runs the appropriate scrape strategy's Execute method, passing in the job, TwitterScraper, and job arguments.
+// If the result is empty, it returns an error.
+// If the result is not empty, it unmarshals the result into a slice of TweetResult and returns the result.
+// If the unmarshaling fails, it returns an error.
+// If the unmarshaled result is empty, it returns an error.
 func (ts *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 	jobArgs := &args.TwitterSearchArguments{}
 	if err := j.Arguments.Unmarshal(jobArgs); err != nil {
 		logrus.Errorf("Error while unmarshalling job arguments for job ID %s, type %s: %v", j.UUID, j.Type, err)
 		return types.JobResult{Error: err.Error()}, err
 	}
-	strategy := getScrapeStrategy(j.Type)
 
+	strategy := getScrapeStrategy(j.Type)
 	jobResult, err := strategy.Execute(j, ts, jobArgs)
 	if err != nil {
+		logrus.Errorf("Error executing job ID %s, type %s: %v", j.UUID, j.Type, err)
 		return types.JobResult{Error: err.Error()}, err
 	}
 
-	// check if data is []
-	if jobResult.Data != nil && len(jobResult.Data) == 0 {
+	// Check if raw data is empty
+	if jobResult.Data == nil || len(jobResult.Data) == 0 {
+		logrus.Errorf("Job result is empty for job ID %s, type %s", j.UUID, j.Type)
 		return types.JobResult{Error: "job result is empty"}, fmt.Errorf("job result is empty")
 	}
 
-	// marshal result to json
-	var results []*teetypes.TweetResult // we know the result is a slice of TweetResult
-	err = jobResult.Unmarshal(&results)
+	// Unmarshal result to typed structure
+	var results []*teetypes.TweetResult
+	if err := jobResult.Unmarshal(&results); err != nil {
+		logrus.Errorf("Error while unmarshalling job result for job ID %s, type %s: %v", j.UUID, j.Type, err)
+		return types.JobResult{Error: err.Error()}, err
+	}
 
-	fmt.Println("Unmarshalled results:", results)
-	if results == nil && len(results) == 0 {
+	// Final validation after unmarshaling
+	if len(results) == 0 {
+		logrus.Errorf("Job result is empty for job ID %s, type %s", j.UUID, j.Type)
 		return types.JobResult{Error: "job result is empty"}, fmt.Errorf("job result is empty")
 	}
 
