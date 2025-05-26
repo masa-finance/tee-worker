@@ -37,7 +37,7 @@ var _ = Describe("API", func() {
 
 		// Wait for the server to start
 		Eventually(func() error {
-			c := client.NewClient("http://localhost:40912")
+			c, _ := client.NewClient("http://localhost:40912")
 			// Create a job signature for an empty job. Eventually it should succeed
 			_, err := c.CreateJobSignature(types.Job{
 				Type:      jobs.WebScraperType,
@@ -47,7 +47,7 @@ var _ = Describe("API", func() {
 		}, 10*time.Second).Should(Succeed())
 
 		// Initialize the client
-		clientInstance = client.NewClient("http://localhost:40912")
+		clientInstance, _ = client.NewClient("http://localhost:40912")
 	})
 
 	AfterEach(func() {
