@@ -1338,7 +1338,7 @@ func (ts *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 	}
 
 	// Unmarshal result to typed structure
-	var results []*teetypes.TweetResult
+	var results []*TweetResult
 	if err := jobResult.Unmarshal(&results); err != nil {
 		logrus.Errorf("Error while unmarshalling job result for job ID %s, type %s: %v", j.UUID, j.Type, err)
 		return types.JobResult{Error: "error unmarshalling job result for final validation and result length check"}, err
