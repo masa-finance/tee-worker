@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/masa-finance/tee-types/args"
 	"os"
 	"strconv"
 	"strings"
@@ -1319,7 +1318,7 @@ func defaultStrategyFallback(j types.Job, ts *TwitterScraper, args *TwitterScrap
 // If the unmarshaling fails, it returns an error.
 // If the unmarshaled result is empty, it returns an error.
 func (ts *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
-	jobArgs := &args.TwitterSearchArguments{}
+	jobArgs := &TwitterScraperArgs{}
 	if err := j.Arguments.Unmarshal(jobArgs); err != nil {
 		logrus.Errorf("Error while unmarshalling job arguments for job ID %s, type %s: %v", j.UUID, j.Type, err)
 		return types.JobResult{Error: "error unmarshalling job arguments"}, err
