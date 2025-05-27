@@ -1113,14 +1113,47 @@ func defaultStrategyFallback(j types.Job, ts *TwitterScraper, jobArgs *args.Twit
 	return types.JobResult{Error: "invalid search type in defaultStrategyFallback: " + jobArgs.QueryType}, fmt.Errorf("invalid search type: %s", jobArgs.QueryType)
 }
 
+// ExecuteJob runs a job using the appropriate scrape strategy based on the job type.
+// It first unmarshals the job arguments into a TwitterSearchArguments struct.
+// Then it runs the appropriate scrape strategy's Execute method, passing in the job, TwitterScraper, and job arguments.
+// If the result is empty, it returns an error.
+// If the result is not empty, it unmarshals the result into a slice of TweetResult and returns the result.
+// If the unmarshaling fails, it returns an error.
+// If the unmarshaled result is empty, it returns an error.
 func (ts *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 	jobArgs := &args.TwitterSearchArguments{}
 	if err := j.Arguments.Unmarshal(jobArgs); err != nil {
 		logrus.Errorf("Error while unmarshalling job arguments for job ID %s, type %s: %v", j.UUID, j.Type, err)
-		return types.JobResult{Error: err.Error()}, err
+		return types.JobResult{Error: "error unmarshalling job arguments"}, err
 	}
+
 	strategy := getScrapeStrategy(j.Type)
-	return strategy.Execute(j, ts, jobArgs)
+	jobResult, err := strategy.Execute(j, ts, jobArgs)
+	if err != nil {
+		logrus.Errorf("Error executing job ID %s, type %s: %v", j.UUID, j.Type, err)
+		return types.JobResult{Error: "error executing job"}, err
+	}
+
+	// Check if raw data is empty
+	if jobResult.Data == nil || len(jobResult.Data) == 0 {
+		logrus.Errorf("Job result data is empty for job ID %s, type %s", j.UUID, j.Type)
+		return types.JobResult{Error: "job result data is empty"}, fmt.Errorf("job result data is empty")
+	}
+
+	// Unmarshal result to typed structure
+	var results []*teetypes.TweetResult
+	if err := jobResult.Unmarshal(&results); err != nil {
+		logrus.Errorf("Error while unmarshalling job result for job ID %s, type %s: %v", j.UUID, j.Type, err)
+		return types.JobResult{Error: "error unmarshalling job result for final validation and result length check"}, err
+	}
+
+	// Final validation after unmarshaling
+	if len(results) == 0 {
+		logrus.Errorf("Job result is empty for job ID %s, type %s", j.UUID, j.Type)
+		return types.JobResult{Error: "job result is empty"}, fmt.Errorf("job result is empty")
+	}
+
+	return jobResult, nil
 }
 
 func (ts *TwitterScraper) FetchHomeTweets(j types.Job, baseDir string, count int, cursor string) ([]*twitterscraper.Tweet, string, error) {
