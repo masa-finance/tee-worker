@@ -1124,14 +1124,14 @@ func (ts *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 	jobArgs := &args.TwitterSearchArguments{}
 	if err := j.Arguments.Unmarshal(jobArgs); err != nil {
 		logrus.Errorf("Error while unmarshalling job arguments for job ID %s, type %s: %v", j.UUID, j.Type, err)
-		return types.JobResult{Error: err.Error()}, err
+		return types.JobResult{Error: "error unmarshalling job arguments"}, err
 	}
 
 	strategy := getScrapeStrategy(j.Type)
 	jobResult, err := strategy.Execute(j, ts, jobArgs)
 	if err != nil {
 		logrus.Errorf("Error executing job ID %s, type %s: %v", j.UUID, j.Type, err)
-		return types.JobResult{Error: err.Error()}, err
+		return types.JobResult{Error: "error executing job"}, err
 	}
 
 	// Check if raw data is empty
@@ -1144,7 +1144,7 @@ func (ts *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 	var results []*teetypes.TweetResult
 	if err := jobResult.Unmarshal(&results); err != nil {
 		logrus.Errorf("Error while unmarshalling job result for job ID %s, type %s: %v", j.UUID, j.Type, err)
-		return types.JobResult{Error: err.Error()}, err
+		return types.JobResult{Error: "error unmarshalling job result for final validation and result length check"}, err
 	}
 
 	// Final validation after unmarshaling
