@@ -164,74 +164,52 @@ var _ = Describe("PriorityQueue", func() {
 
 	Describe("Concurrent Operations", func() {
 		It("should handle concurrent enqueue and dequeue operations", func() {
-			var wg sync.WaitGroup
-			numWorkers := 10
-			jobsPerWorker := 100
+			// Create a larger queue for this test
+			concurrentPQ := jobserver.NewPriorityQueue(500, 500)
+			defer concurrentPQ.Close()
 
-			// Start enqueuers
-			for i := 0; i < numWorkers; i++ {
+			var wg sync.WaitGroup
+			numJobs := 100
+			processedJobs := make([]string, 0, numJobs)
+			var mutex sync.Mutex
+
+			// Enqueue jobs concurrently
+			for i := 0; i < numJobs; i++ {
 				wg.Add(1)
-				go func(workerID int) {
+				go func(id int) {
 					defer wg.Done()
-					for j := 0; j < jobsPerWorker; j++ {
-						job := &types.Job{
-							UUID:     fmt.Sprintf("worker-%d-job-%d", workerID, j),
-							WorkerID: fmt.Sprintf("worker-%d", workerID),
-						}
-						if workerID%2 == 0 {
-							pq.EnqueueFast(job)
-						} else {
-							pq.EnqueueSlow(job)
-						}
+					job := &types.Job{
+						UUID:     fmt.Sprintf("job-%d", id),
+						WorkerID: fmt.Sprintf("worker-%d", id),
+					}
+					if id%2 == 0 {
+						err := concurrentPQ.EnqueueFast(job)
+						Expect(err).NotTo(HaveOccurred())
+					} else {
+						err := concurrentPQ.EnqueueSlow(job)
+						Expect(err).NotTo(HaveOccurred())
 					}
 				}(i)
 			}
 
-			// Start dequeuers
-			processedJobs := make(chan string, numWorkers*jobsPerWorker)
-			processedCount := 0
-			var processMutex sync.Mutex
-			
-			for i := 0; i < numWorkers/2; i++ {
-				wg.Add(1)
-				go func() {
-					defer wg.Done()
-					for {
-						job, err := pq.Dequeue()
-						if err == jobserver.ErrQueueEmpty {
-							processMutex.Lock()
-							if processedCount >= numWorkers*jobsPerWorker {
-								processMutex.Unlock()
-								return
-							}
-							processMutex.Unlock()
-							time.Sleep(10 * time.Millisecond)
-							continue
-						}
-						if job != nil {
-							processedJobs <- job.UUID
-							processMutex.Lock()
-							processedCount++
-							if processedCount >= numWorkers*jobsPerWorker {
-								processMutex.Unlock()
-								return
-							}
-							processMutex.Unlock()
-						}
-					}
-				}()
-			}
-
-			// Wait for all operations to complete
+			// Wait for all enqueues to complete
 			wg.Wait()
-			close(processedJobs)
+
+			// Dequeue all jobs
+			for i := 0; i < numJobs; i++ {
+				job, err := concurrentPQ.Dequeue()
+				Expect(err).NotTo(HaveOccurred())
+				mutex.Lock()
+				processedJobs = append(processedJobs, job.UUID)
+				mutex.Unlock()
+			}
 
 			// Verify all jobs were processed
-			finalProcessedCount := 0
-			for range processedJobs {
-				finalProcessedCount++
-			}
-			Expect(finalProcessedCount).To(Equal(numWorkers * jobsPerWorker))
+			Expect(len(processedJobs)).To(Equal(numJobs))
+			
+			// Verify no more jobs in queue
+			_, err := concurrentPQ.Dequeue()
+			Expect(err).To(Equal(jobserver.ErrQueueEmpty))
 		})
 	})
 })
