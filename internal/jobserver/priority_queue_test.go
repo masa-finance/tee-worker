@@ -189,6 +189,9 @@ var _ = Describe("PriorityQueue", func() {
 
 			// Start dequeuers
 			processedJobs := make(chan string, numWorkers*jobsPerWorker)
+			processedCount := 0
+			var processMutex sync.Mutex
+			
 			for i := 0; i < numWorkers/2; i++ {
 				wg.Add(1)
 				go func() {
@@ -196,14 +199,24 @@ var _ = Describe("PriorityQueue", func() {
 					for {
 						job, err := pq.Dequeue()
 						if err == jobserver.ErrQueueEmpty {
+							processMutex.Lock()
+							if processedCount >= numWorkers*jobsPerWorker {
+								processMutex.Unlock()
+								return
+							}
+							processMutex.Unlock()
 							time.Sleep(10 * time.Millisecond)
 							continue
 						}
 						if job != nil {
 							processedJobs <- job.UUID
-						}
-						if len(processedJobs) >= numWorkers*jobsPerWorker {
-							return
+							processMutex.Lock()
+							processedCount++
+							if processedCount >= numWorkers*jobsPerWorker {
+								processMutex.Unlock()
+								return
+							}
+							processMutex.Unlock()
 						}
 					}
 				}()
@@ -214,8 +227,11 @@ var _ = Describe("PriorityQueue", func() {
 			close(processedJobs)
 
 			// Verify all jobs were processed
-			processedCount := len(processedJobs)
-			Expect(processedCount).To(Equal(numWorkers * jobsPerWorker))
+			finalProcessedCount := 0
+			for range processedJobs {
+				finalProcessedCount++
+			}
+			Expect(finalProcessedCount).To(Equal(numWorkers * jobsPerWorker))
 		})
 	})
 })
