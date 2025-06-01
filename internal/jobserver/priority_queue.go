@@ -1,3 +1,5 @@
+// Package jobserver provides job queue management and processing functionality
+// for the tee-worker, including priority-based job routing.
 package jobserver
 
 import (
@@ -7,7 +9,12 @@ import (
 	"github.com/masa-finance/tee-worker/api/types"
 )
 
-// PriorityQueue represents a dual-queue system with fast and slow queues
+// PriorityQueue implements a dual-queue system for job prioritization.
+// It maintains two separate queues:
+// - Fast queue: For high-priority jobs from workers in the priority list
+// - Slow queue: For regular jobs from all other workers
+//
+// The queue ensures thread-safe operations and provides statistics tracking.
 type PriorityQueue struct {
 	fastQueue  chan *types.Job
 	slowQueue  chan *types.Job
@@ -16,7 +23,8 @@ type PriorityQueue struct {
 	stats      *QueueStats
 }
 
-// QueueStats tracks queue metrics
+// QueueStats provides real-time metrics about queue performance.
+// All fields are thread-safe and can be accessed concurrently.
 type QueueStats struct {
 	mu              sync.RWMutex
 	FastQueueDepth  int
@@ -26,7 +34,13 @@ type QueueStats struct {
 	LastUpdateTime  time.Time
 }
 
-// NewPriorityQueue creates a new priority queue with specified buffer sizes
+// NewPriorityQueue creates a new priority queue with specified buffer sizes.
+//
+// Parameters:
+//   - fastQueueSize: Maximum number of jobs that can be buffered in the fast queue
+//   - slowQueueSize: Maximum number of jobs that can be buffered in the slow queue
+//
+// Returns a ready-to-use PriorityQueue instance with statistics tracking enabled.
 func NewPriorityQueue(fastQueueSize, slowQueueSize int) *PriorityQueue {
 	return &PriorityQueue{
 		fastQueue: make(chan *types.Job, fastQueueSize),
@@ -37,7 +51,13 @@ func NewPriorityQueue(fastQueueSize, slowQueueSize int) *PriorityQueue {
 	}
 }
 
-// EnqueueFast adds a job to the fast queue
+// EnqueueFast adds a job to the fast (high-priority) queue.
+//
+// This method is non-blocking and will return immediately.
+// Returns ErrQueueFull if the fast queue is at capacity.
+// Returns ErrQueueClosed if the queue has been closed.
+//
+// Thread-safe: Can be called concurrently from multiple goroutines.
 func (pq *PriorityQueue) EnqueueFast(job *types.Job) error {
 	pq.mu.RLock()
 	if pq.closed {
@@ -55,7 +75,13 @@ func (pq *PriorityQueue) EnqueueFast(job *types.Job) error {
 	}
 }
 
-// EnqueueSlow adds a job to the slow queue
+// EnqueueSlow adds a job to the slow (regular-priority) queue.
+//
+// This method is non-blocking and will return immediately.
+// Returns ErrQueueFull if the slow queue is at capacity.
+// Returns ErrQueueClosed if the queue has been closed.
+//
+// Thread-safe: Can be called concurrently from multiple goroutines.
 func (pq *PriorityQueue) EnqueueSlow(job *types.Job) error {
 	pq.mu.RLock()
 	if pq.closed {
@@ -73,7 +99,17 @@ func (pq *PriorityQueue) EnqueueSlow(job *types.Job) error {
 	}
 }
 
-// Dequeue retrieves a job, prioritizing the fast queue
+// Dequeue retrieves a job from the queue system.
+//
+// Priority order:
+// 1. Always checks fast queue first
+// 2. Only checks slow queue if fast queue is empty
+//
+// This method is non-blocking and returns immediately.
+// Returns ErrQueueEmpty if both queues are empty.
+// Returns ErrQueueClosed if the queue has been closed.
+//
+// Thread-safe: Can be called concurrently from multiple goroutines.
 func (pq *PriorityQueue) Dequeue() (*types.Job, error) {
 	pq.mu.RLock()
 	if pq.closed {
@@ -99,7 +135,18 @@ func (pq *PriorityQueue) Dequeue() (*types.Job, error) {
 	}
 }
 
-// DequeueBlocking retrieves a job with blocking, prioritizing the fast queue
+// DequeueBlocking retrieves a job from the queue system, blocking until one is available.
+//
+// Priority order:
+// 1. Continuously checks fast queue first
+// 2. Falls back to slow queue when fast queue is empty
+// 3. Blocks if both queues are empty, waiting for new jobs
+//
+// This method will block indefinitely until a job is available or the queue is closed.
+// Returns ErrQueueClosed if the queue has been closed.
+//
+// Thread-safe: Can be called concurrently from multiple goroutines.
+// Typically used by worker goroutines that process jobs.
 func (pq *PriorityQueue) DequeueBlocking() (*types.Job, error) {
 	pq.mu.RLock()
 	if pq.closed {
@@ -129,7 +176,14 @@ func (pq *PriorityQueue) DequeueBlocking() (*types.Job, error) {
 	}
 }
 
-// Close closes the priority queue
+// Close gracefully shuts down the priority queue.
+//
+// After calling Close:
+// - No new jobs can be enqueued (will return ErrQueueClosed)
+// - Existing jobs in the queues can still be dequeued
+// - DequeueBlocking will return ErrQueueClosed once queues are empty
+//
+// This method is idempotent and can be called multiple times safely.
 func (pq *PriorityQueue) Close() {
 	pq.mu.Lock()
 	defer pq.mu.Unlock()
@@ -141,7 +195,15 @@ func (pq *PriorityQueue) Close() {
 	}
 }
 
-// GetStats returns current queue statistics
+// GetStats returns a snapshot of current queue statistics.
+//
+// The returned statistics include:
+// - Current depth of both fast and slow queues
+// - Total number of jobs processed from each queue
+// - Timestamp of last statistics update
+//
+// This method is lightweight and can be called frequently for monitoring.
+// Thread-safe: Can be called concurrently from multiple goroutines.
 func (pq *PriorityQueue) GetStats() QueueStats {
 	pq.stats.mu.RLock()
 	defer pq.stats.mu.RUnlock()
@@ -155,7 +217,13 @@ func (pq *PriorityQueue) GetStats() QueueStats {
 	}
 }
 
-// updateStats updates queue statistics
+// updateStats updates internal queue statistics.
+//
+// Parameters:
+//   - isFast: true if the operation was on the fast queue, false for slow queue
+//   - isDequeue: true if this was a dequeue operation, false for enqueue
+//
+// This method is called internally after each queue operation to maintain accurate statistics.
 func (pq *PriorityQueue) updateStats(isFast bool, isDequeue bool) {
 	pq.stats.mu.Lock()
 	defer pq.stats.mu.Unlock()

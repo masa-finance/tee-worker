@@ -63,12 +63,14 @@ The external endpoint should return JSON in this format:
 ## Job Flow
 
 ```
-1. Job arrives with worker_id
-2. System checks if worker_id is in priority list
-3. If priority worker → Route to fast queue
-4. If regular worker → Route to slow queue
-5. Workers process fast queue first, then slow queue
+1. Job arrives from a submitter with their worker_id
+2. System checks if the submitter's worker_id is in priority list
+3. If priority submitter → Route to fast queue
+4. If regular submitter → Route to slow queue
+5. Tee-worker processes fast queue first, then slow queue
 ```
+
+**Important**: The priority is based on the job submitter's worker ID, not the tee-worker's own ID. This allows certain job submitters to have their requests processed faster.
 
 ## API Endpoints
 

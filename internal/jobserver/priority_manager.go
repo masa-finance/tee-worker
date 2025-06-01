@@ -9,7 +9,14 @@ import (
 	"time"
 )
 
-// PriorityManager manages the priority worker-id list
+// PriorityManager manages the list of worker IDs that receive priority processing.
+// It supports both static configuration and dynamic updates from an external endpoint.
+//
+// Key features:
+// - Maintains an in-memory set of priority worker IDs
+// - Optionally fetches updates from an external API endpoint
+// - Refreshes the priority list periodically (configurable interval)
+// - Thread-safe for concurrent access
 type PriorityManager struct {
 	mu                               sync.RWMutex
 	priorityWorkers                  map[string]bool
@@ -20,13 +27,28 @@ type PriorityManager struct {
 	cancel                           context.CancelFunc
 }
 
-// PriorityWorkerList represents the response from external priority endpoint
+// PriorityWorkerList represents the expected JSON response format from the external priority endpoint.
+// This structure should match the API response from the external service that provides
+// the list of worker IDs that should receive priority processing.
 type PriorityWorkerList struct {
 	WorkerIDs []string `json:"worker_ids"`
 	UpdatedAt string   `json:"updated_at"`
 }
 
-// NewPriorityManager creates a new priority manager
+// NewPriorityManager creates and initializes a new priority manager.
+//
+// Parameters:
+//   - externalWorkerIdPriorityEndpoint: URL of the external API to fetch priority worker IDs.
+//     If empty, only uses the built-in dummy data.
+//   - refreshInterval: How often to refresh the priority list from the external endpoint.
+//     If <= 0, defaults to 15 minutes.
+//
+// The manager will:
+// 1. Initialize with dummy data for testing
+// 2. Immediately fetch from the external endpoint (if configured)
+// 3. Start a background goroutine to refresh the list periodically
+//
+// Returns a fully initialized PriorityManager ready for use.
 func NewPriorityManager(externalWorkerIdPriorityEndpoint string, refreshInterval time.Duration) *PriorityManager {
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -66,8 +88,13 @@ func NewPriorityManager(externalWorkerIdPriorityEndpoint string, refreshInterval
 	return pm
 }
 
-// initializeDummyData sets up dummy priority worker IDs for testing
-// TODO: Replace this with actual external endpoint call
+// initializeDummyData populates the priority manager with test data.
+// This is useful for local development and testing without an external endpoint.
+//
+// The dummy data includes various worker ID patterns that can be used
+// to test the priority queue behavior.
+//
+// TODO: This method will be removed once real external endpoint integration is complete.
 func (pm *PriorityManager) initializeDummyData() {
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
@@ -87,14 +114,29 @@ func (pm *PriorityManager) initializeDummyData() {
 	}
 }
 
-// IsPriorityWorker checks if a worker ID is in the priority list
+// IsPriorityWorker checks if a given worker ID should receive priority processing.
+//
+// Parameters:
+//   - workerID: The worker ID to check
+//
+// Returns true if the worker ID is in the priority list, false otherwise.
+//
+// This method is designed to be called frequently (on every job submission)
+// and is optimized for performance with O(1) lookup time.
+// Thread-safe: Can be called concurrently from multiple goroutines.
 func (pm *PriorityManager) IsPriorityWorker(workerID string) bool {
 	pm.mu.RLock()
 	defer pm.mu.RUnlock()
 	return pm.priorityWorkers[workerID]
 }
 
-// GetPriorityWorkers returns the current list of priority worker IDs
+// GetPriorityWorkers returns a snapshot of all worker IDs currently in the priority list.
+//
+// Returns a slice containing all priority worker IDs. The order is not guaranteed.
+// The returned slice is a copy, so modifications won't affect the internal state.
+//
+// This method is useful for monitoring and debugging purposes.
+// Thread-safe: Can be called concurrently from multiple goroutines.
 func (pm *PriorityManager) GetPriorityWorkers() []string {
 	pm.mu.RLock()
 	defer pm.mu.RUnlock()
@@ -106,7 +148,15 @@ func (pm *PriorityManager) GetPriorityWorkers() []string {
 	return workers
 }
 
-// UpdatePriorityWorkers updates the priority worker list
+// UpdatePriorityWorkers replaces the entire priority worker list with a new set.
+//
+// Parameters:
+//   - workerIDs: The new complete list of worker IDs that should have priority
+//
+// This method completely replaces the existing priority list. Any worker IDs
+// not in the new list will lose their priority status.
+//
+// Thread-safe: Can be called concurrently with other methods.
 func (pm *PriorityManager) UpdatePriorityWorkers(workerIDs []string) {
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
@@ -120,7 +170,20 @@ func (pm *PriorityManager) UpdatePriorityWorkers(workerIDs []string) {
 	}
 }
 
-// fetchPriorityList fetches the priority list from external endpoint
+// fetchPriorityList retrieves the latest priority worker list from the external endpoint.
+//
+// This method:
+// 1. Makes an HTTP GET request to the configured endpoint
+// 2. Parses the JSON response into PriorityWorkerList format
+// 3. Updates the internal priority list with the new data
+//
+// Returns an error if:
+// - No external endpoint is configured
+// - The HTTP request fails
+// - The response cannot be parsed
+//
+// Note: Currently returns dummy data for testing. The TODO comment indicates
+// where real HTTP implementation should be added.
 func (pm *PriorityManager) fetchPriorityList() error {
 	if pm.externalWorkerIdPriorityEndpoint == "" {
 		return fmt.Errorf("no external worker ID priority endpoint configured")
@@ -163,7 +226,16 @@ func (pm *PriorityManager) fetchPriorityList() error {
 	return nil
 }
 
-// startBackgroundRefresh periodically refreshes the priority list
+// startBackgroundRefresh runs a background goroutine that periodically fetches
+// updates from the external endpoint.
+//
+// This method:
+// - Runs indefinitely until Stop() is called
+// - Refreshes at the interval specified during initialization
+// - Logs errors but continues running if a refresh fails
+//
+// This method should be called as a goroutine and is started automatically
+// by NewPriorityManager when an external endpoint is configured.
 func (pm *PriorityManager) startBackgroundRefresh() {
 	ticker := time.NewTicker(pm.refreshInterval)
 	defer ticker.Stop()
@@ -181,7 +253,16 @@ func (pm *PriorityManager) startBackgroundRefresh() {
 	}
 }
 
-// Stop stops the background refresh
+// Stop gracefully shuts down the priority manager.
+//
+// This method:
+// - Cancels the background refresh goroutine
+// - Ensures all resources are properly cleaned up
+//
+// After calling Stop, the manager can still be queried but will no longer
+// update from the external endpoint.
+//
+// This method is idempotent and can be called multiple times safely.
 func (pm *PriorityManager) Stop() {
 	pm.cancel()
 }
