@@ -9,6 +9,17 @@ import (
 )
 
 func (js *JobServer) worker(c context.Context) {
+	if js.usePriorityQueue && js.priorityQueue != nil {
+		// Use priority queue mode
+		js.priorityQueueWorker(c)
+	} else {
+		// Use legacy channel mode
+		js.legacyWorker(c)
+	}
+}
+
+// legacyWorker implements the original channel-based worker logic
+func (js *JobServer) legacyWorker(c context.Context) {
 	for {
 		select {
 		case <-c.Done():
@@ -19,6 +30,37 @@ func (js *JobServer) worker(c context.Context) {
 			fmt.Println("Job received: ", j)
 			if err := js.doWork(j); err != nil {
 				logrus.Errorf("Error while executing job %v: %s", j, err)
+			}
+		}
+	}
+}
+
+// priorityQueueWorker implements the priority queue-based worker logic
+func (js *JobServer) priorityQueueWorker(c context.Context) {
+	for {
+		select {
+		case <-c.Done():
+			logrus.Info("Worker shutting down: context done")
+			return
+		default:
+			// Try to get a job from the priority queue
+			job, err := js.priorityQueue.DequeueBlocking()
+			if err != nil {
+				if err == ErrQueueClosed {
+					logrus.Info("Worker shutting down: queue closed")
+					return
+				}
+				// For other errors, log and continue
+				logrus.Debugf("Dequeue error: %v", err)
+				continue
+			}
+
+			if job != nil {
+				logrus.Debugf("Job received from priority queue: %s (type: %s, worker: %s)", 
+					job.UUID, job.Type, job.WorkerID)
+				if err := js.doWork(*job); err != nil {
+					logrus.Errorf("Error while executing job %s: %v", job.UUID, err)
+				}
 			}
 		}
 	}

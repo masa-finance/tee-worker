@@ -104,12 +104,14 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 		- POST /job/add: Add a job to the queue
 		- GET /job/status/:job_id: Get the status of a job
 		- POST /job/result: Get the result of a job, decrypt it and return it
+		- GET /job/queue/stats: Get queue statistics (if priority queue enabled)
 	*/
 	job := e.Group("/job")
 	job.POST("/generate", generate)
 	job.POST("/add", add(jobServer))
 	job.GET("/status/:job_id", status(jobServer))
 	job.POST("/result", result)
+	job.GET("/queue/stats", queueStats(jobServer))
 
 	go func() {
 		<-ctx.Done()

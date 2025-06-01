@@ -3,6 +3,7 @@ package jobserver
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/sirupsen/logrus"
 
@@ -15,13 +16,18 @@ import (
 type JobServer struct {
 	sync.Mutex
 
-	jobChan chan types.Job
+	jobChan chan types.Job // Legacy channel for backward compatibility
 	workers int
 
 	results          *ResultCache
 	jobConfiguration types.JobConfiguration
 
 	jobWorkers map[string]*jobWorkerEntry
+
+	// Priority queue system
+	priorityQueue   *PriorityQueue
+	priorityManager *PriorityManager
+	usePriorityQueue bool
 }
 
 type jobWorkerEntry struct {
@@ -89,6 +95,34 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 
 	logrus.Info("Job workers setup completed.")
 
+	// Initialize priority queue system if enabled
+	var priorityQueue *PriorityQueue
+	var priorityManager *PriorityManager
+	usePriorityQueue := jc.GetBool("enable_priority_queue", true)
+	
+	if usePriorityQueue {
+		logrus.Info("Initializing priority queue system...")
+		
+		// Create priority queue with configurable sizes
+		fastQueueSize := jc.GetInt("fast_queue_size", 1000)
+		slowQueueSize := jc.GetInt("slow_queue_size", 5000)
+		priorityQueue = NewPriorityQueue(fastQueueSize, slowQueueSize)
+		
+		// Create priority manager
+		externalWorkerIdPriorityEndpoint := jc.GetString("external_worker_id_priority_endpoint", "")
+		// Default to 15 minutes (900 seconds) if not specified
+		refreshIntervalSecs := jc.GetInt("priority_refresh_interval_seconds", 900)
+		refreshInterval := time.Duration(refreshIntervalSecs) * time.Second
+		priorityManager = NewPriorityManager(externalWorkerIdPriorityEndpoint, refreshInterval)
+		
+		logrus.Infof("Priority queue initialized (fast: %d, slow: %d)", fastQueueSize, slowQueueSize)
+		if externalWorkerIdPriorityEndpoint != "" {
+			logrus.Infof("External worker ID priority endpoint: %s (refresh every %v)", externalWorkerIdPriorityEndpoint, refreshInterval)
+		} else {
+			logrus.Info("Using dummy priority list (no external worker ID priority endpoint configured)")
+		}
+	}
+
 	// Return the JobServer instance
 	logrus.Info("JobServer initialization complete.")
 	return &JobServer{
@@ -98,6 +132,9 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 		workers:          workers,
 		jobConfiguration: jc,
 		jobWorkers:       jobworkers,
+		priorityQueue:    priorityQueue,
+		priorityManager:  priorityManager,
+		usePriorityQueue: usePriorityQueue,
 	}
 }
 
@@ -113,14 +150,63 @@ func (js *JobServer) AddJob(j types.Job) string {
 	// TODO The default should come from config.go, but during tests the config is not necessarily read
 	j.Timeout = js.jobConfiguration.GetDuration("job_timeout_seconds", 300)
 	j.UUID = uuid.New().String()
-	defer func() {
+	
+	if js.usePriorityQueue && js.priorityQueue != nil {
+		// Route job based on worker ID priority
 		go func() {
-			js.jobChan <- j
+			jobCopy := j // Create a copy to avoid data races
+			if js.priorityManager.IsPriorityWorker(jobCopy.WorkerID) {
+				if err := js.priorityQueue.EnqueueFast(&jobCopy); err != nil {
+					logrus.Warnf("Failed to enqueue to fast queue: %v, trying slow queue", err)
+					if err := js.priorityQueue.EnqueueSlow(&jobCopy); err != nil {
+						logrus.Errorf("Failed to enqueue job %s: %v", jobCopy.UUID, err)
+					}
+				}
+			} else {
+				if err := js.priorityQueue.EnqueueSlow(&jobCopy); err != nil {
+					logrus.Errorf("Failed to enqueue job %s to slow queue: %v", jobCopy.UUID, err)
+				}
+			}
 		}()
-	}()
+	} else {
+		// Use legacy channel-based approach
+		defer func() {
+			go func() {
+				js.jobChan <- j
+			}()
+		}()
+	}
+	
 	return j.UUID
 }
 
 func (js *JobServer) GetJobResult(uuid string) (types.JobResult, bool) {
 	return js.results.Get(uuid)
+}
+
+// GetQueueStats returns the current queue statistics if priority queue is enabled
+func (js *JobServer) GetQueueStats() *QueueStats {
+	if !js.usePriorityQueue || js.priorityQueue == nil {
+		return nil
+	}
+	stats := js.priorityQueue.GetStats()
+	return &stats
+}
+
+// GetPriorityWorkers returns the current list of priority worker IDs
+func (js *JobServer) GetPriorityWorkers() []string {
+	if !js.usePriorityQueue || js.priorityManager == nil {
+		return []string{}
+	}
+	return js.priorityManager.GetPriorityWorkers()
+}
+
+// Shutdown gracefully shuts down the job server
+func (js *JobServer) Shutdown() {
+	if js.priorityManager != nil {
+		js.priorityManager.Stop()
+	}
+	if js.priorityQueue != nil {
+		js.priorityQueue.Close()
+	}
 }

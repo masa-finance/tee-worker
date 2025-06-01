@@ -121,3 +121,23 @@ func setKey(dataDir string) func(c echo.Context) error {
 		return c.JSON(http.StatusOK, types.KeyResponse{Status: "Key set"})
 	}
 }
+
+// queueStats returns the current queue statistics (for monitoring)
+func queueStats(jobServer *jobserver.JobServer) func(c echo.Context) error {
+	return func(c echo.Context) error {
+		stats := jobServer.GetQueueStats()
+		if stats == nil {
+			return c.JSON(http.StatusOK, map[string]string{
+				"status": "priority queue disabled",
+			})
+		}
+		
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"fast_queue_depth": stats.FastQueueDepth,
+			"slow_queue_depth": stats.SlowQueueDepth,
+			"fast_processed":   stats.FastProcessed,
+			"slow_processed":   stats.SlowProcessed,
+			"last_update":      stats.LastUpdateTime,
+		})
+	}
+}

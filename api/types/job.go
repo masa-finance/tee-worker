@@ -149,7 +149,18 @@ func (jc JobConfiguration) GetDuration(key string, defSecs int) time.Duration {
 
 func (jc JobConfiguration) GetString(key string, def string) string {
 	if v, ok := jc[key]; ok {
-		return v.(string)
+		if val, ok := v.(string); ok {
+			return val
+		}
+	}
+	return def
+}
+
+func (jc JobConfiguration) GetBool(key string, def bool) bool {
+	if v, ok := jc[key]; ok {
+		if val, ok := v.(bool); ok {
+			return val
+		}
 	}
 	return def
 }
