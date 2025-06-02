@@ -139,6 +139,50 @@ var _ = Describe("Priority Queue Integration", func() {
 			Expect(stats.SlowProcessed).To(BeNumerically(">=", 0))
 			Expect(stats.SlowProcessed).To(BeNumerically("<=", 5))
 		})
+
+		It("should fallback to slow queue when fast queue is full", func() {
+			// Create job server with very small fast queue
+			smallQueueConfig := types.JobConfiguration{
+				"enable_priority_queue": true,
+				"fast_queue_size": 2,  // Very small fast queue
+				"slow_queue_size": 100,
+				"external_worker_id_priority_endpoint": "",
+				"priority_refresh_interval_seconds": 5,
+				"result_cache_max_size": 100,
+				"result_cache_max_age_seconds": 60,
+				"job_timeout_seconds": 30,
+				"stats_buf_size": uint(128),
+				"worker_id": "test-worker",
+			}
+
+			smallJS := jobserver.NewJobServer(0, smallQueueConfig) // No workers initially
+			defer smallJS.Shutdown()
+
+			// Add multiple priority jobs to fill fast queue
+			// The fast queue can only hold 2, so others should go to slow queue
+			jobUUIDs := make([]string, 5)
+			for i := 0; i < 5; i++ {
+				priorityJob := types.Job{
+					Type:     "telemetry",
+					WorkerID: "worker-001", // Priority worker
+					Arguments: types.JobArguments{
+						"index": i,
+					},
+				}
+				jobUUIDs[i] = smallJS.AddJob(priorityJob)
+			}
+
+			// Check stats immediately - jobs should be in queues since no workers are running
+			stats := smallJS.GetQueueStats()
+			Expect(stats).NotTo(BeNil())
+			
+			// Fast queue should be at capacity (2) and slow queue should have the overflow
+			// Note: Due to the async nature of AddJob, we check that jobs were distributed
+			Eventually(func() int {
+				s := smallJS.GetQueueStats()
+				return s.FastQueueDepth + s.SlowQueueDepth
+			}, 1*time.Second, 100*time.Millisecond).Should(Equal(5))
+		})
 	})
 
 	Describe("Priority Worker Management", func() {

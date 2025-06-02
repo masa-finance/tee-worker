@@ -2,7 +2,6 @@ package jobserver
 
 import (
 	"context"
-	_ "encoding/json"
 	"fmt"
 	"net/http"
 	"sync"
@@ -22,7 +21,7 @@ import (
 type PriorityManager struct {
 	mu                               sync.RWMutex
 	priorityWorkers                  map[string]bool
-	externalWorkerIdPriorityEndpoint string
+	externalWorkerIDPriorityEndpoint string
 	refreshInterval                  time.Duration
 	httpClient                       *http.Client
 	ctx                              context.Context
@@ -51,7 +50,7 @@ type PriorityWorkerList struct {
 // 3. Start a background goroutine to refresh the list periodically
 //
 // Returns a fully initialized PriorityManager ready for use.
-func NewPriorityManager(externalWorkerIdPriorityEndpoint string, refreshInterval time.Duration) *PriorityManager {
+func NewPriorityManager(externalWorkerIDPriorityEndpoint string, refreshInterval time.Duration) *PriorityManager {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	// Default to 15 minutes if not specified
@@ -61,7 +60,7 @@ func NewPriorityManager(externalWorkerIdPriorityEndpoint string, refreshInterval
 
 	pm := &PriorityManager{
 		priorityWorkers:                  make(map[string]bool),
-		externalWorkerIdPriorityEndpoint: externalWorkerIdPriorityEndpoint,
+		externalWorkerIDPriorityEndpoint: externalWorkerIDPriorityEndpoint,
 		refreshInterval:                  refreshInterval,
 		httpClient: &http.Client{
 			Timeout: 10 * time.Second,
@@ -75,8 +74,8 @@ func NewPriorityManager(externalWorkerIdPriorityEndpoint string, refreshInterval
 	pm.initializeDummyData()
 
 	// Fetch initial priority list from external endpoint
-	if externalWorkerIdPriorityEndpoint != "" {
-		logrus.Infof("Fetching initial priority list from external endpoint: %s", externalWorkerIdPriorityEndpoint)
+	if externalWorkerIDPriorityEndpoint != "" {
+		logrus.Infof("Fetching initial priority list from external endpoint: %s", externalWorkerIDPriorityEndpoint)
 		if err := pm.fetchPriorityList(); err != nil {
 			logrus.Warnf("Failed to fetch initial priority list: %v (using dummy data)", err)
 		}
@@ -187,7 +186,7 @@ func (pm *PriorityManager) UpdatePriorityWorkers(workerIDs []string) {
 // Note: Currently returns dummy data for testing. The TODO comment indicates
 // where real HTTP implementation should be added.
 func (pm *PriorityManager) fetchPriorityList() error {
-	if pm.externalWorkerIdPriorityEndpoint == "" {
+	if pm.externalWorkerIDPriorityEndpoint == "" {
 		return fmt.Errorf("no external worker ID priority endpoint configured")
 	}
 
@@ -203,7 +202,7 @@ func (pm *PriorityManager) fetchPriorityList() error {
 
 	// Return dummy priority list
 	// In production, this would be replaced with:
-	// req, err := http.NewRequestWithContext(pm.ctx, http.MethodGet, pm.externalWorkerIdPriorityEndpoint, nil)
+	// req, err := http.NewRequestWithContext(pm.ctx, http.MethodGet, pm.externalWorkerIDPriorityEndpoint, nil)
 	// ... actual HTTP call logic ...
 
 	dummyResponse := PriorityWorkerList{

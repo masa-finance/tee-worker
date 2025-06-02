@@ -109,15 +109,15 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 		priorityQueue = NewPriorityQueue(fastQueueSize, slowQueueSize)
 		
 		// Create priority manager
-		externalWorkerIdPriorityEndpoint := jc.GetString("external_worker_id_priority_endpoint", "")
+		externalWorkerIDPriorityEndpoint := jc.GetString("external_worker_id_priority_endpoint", "")
 		// Default to 15 minutes (900 seconds) if not specified
 		refreshIntervalSecs := jc.GetInt("priority_refresh_interval_seconds", 900)
 		refreshInterval := time.Duration(refreshIntervalSecs) * time.Second
-		priorityManager = NewPriorityManager(externalWorkerIdPriorityEndpoint, refreshInterval)
+		priorityManager = NewPriorityManager(externalWorkerIDPriorityEndpoint, refreshInterval)
 		
 		logrus.Infof("Priority queue initialized (fast: %d, slow: %d)", fastQueueSize, slowQueueSize)
-		if externalWorkerIdPriorityEndpoint != "" {
-			logrus.Infof("External worker ID priority endpoint: %s (refresh every %v)", externalWorkerIdPriorityEndpoint, refreshInterval)
+		if externalWorkerIDPriorityEndpoint != "" {
+			logrus.Infof("External worker ID priority endpoint: %s (refresh every %v)", externalWorkerIDPriorityEndpoint, refreshInterval)
 		} else {
 			logrus.Info("Using dummy priority list (no external worker ID priority endpoint configured)")
 		}
@@ -184,10 +184,8 @@ func (js *JobServer) AddJob(j types.Job) string {
 		}()
 	} else {
 		// Use legacy channel-based approach
-		defer func() {
-			go func() {
-				js.jobChan <- j
-			}()
+		go func() {
+			js.jobChan <- j
 		}()
 	}
 	
