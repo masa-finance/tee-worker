@@ -2,6 +2,7 @@ package jobserver
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"sync"
@@ -32,8 +33,7 @@ type PriorityManager struct {
 // This structure should match the API response from the external service that provides
 // the list of worker IDs that should receive priority processing.
 type PriorityWorkerList struct {
-	WorkerIDs []string `json:"worker_ids"`
-	UpdatedAt string   `json:"updated_at"`
+	Workers []string `json:"workers"`
 }
 
 // NewPriorityManager creates and initializes a new priority manager.
@@ -69,21 +69,21 @@ func NewPriorityManager(externalWorkerIDPriorityEndpoint string, refreshInterval
 		cancel: cancel,
 	}
 
-	// Initialize with dummy data first
-	// TODO: Replace this with actual external endpoint call
-	pm.initializeDummyData()
-
 	// Fetch initial priority list from external endpoint
 	if externalWorkerIDPriorityEndpoint != "" {
 		logrus.Infof("Fetching initial priority list from external endpoint: %s", externalWorkerIDPriorityEndpoint)
 		if err := pm.fetchPriorityList(); err != nil {
-			logrus.Warnf("Failed to fetch initial priority list: %v (using dummy data)", err)
+			logrus.Warnf("Failed to fetch initial priority list: %v", err)
+			// Initialize with dummy data as fallback
+			pm.initializeDummyData()
 		}
 
 		// Start background refresh
 		go pm.startBackgroundRefresh()
 	} else {
 		logrus.Info("No external worker ID priority endpoint configured, using dummy priority list")
+		// Initialize with dummy data for testing
+		pm.initializeDummyData()
 	}
 
 	return pm
@@ -190,42 +190,45 @@ func (pm *PriorityManager) fetchPriorityList() error {
 		return fmt.Errorf("no external worker ID priority endpoint configured")
 	}
 
-	// TEMPORARY: This is a dummy implementation for development/testing
-	// TODO: Replace this entire section with real HTTP call for production use
-	// 
-	// Production implementation should:
-	// 1. Create HTTP request: req, err := http.NewRequestWithContext(pm.ctx, http.MethodGet, pm.externalWorkerIDPriorityEndpoint, nil)
-	// 2. Execute request: resp, err := pm.httpClient.Do(req)
-	// 3. Parse JSON response into PriorityWorkerList
-	// 4. Handle errors appropriately
-
-	// Simulate network delay for realistic testing
-	select {
-	case <-time.After(100 * time.Millisecond):
-	case <-pm.ctx.Done():
-		return fmt.Errorf("context cancelled")
+	// Create HTTP request with context
+	req, err := http.NewRequestWithContext(pm.ctx, http.MethodGet, pm.externalWorkerIDPriorityEndpoint, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
 	}
 
-	// DUMMY DATA: This will be replaced with actual HTTP response parsing
+	// Execute request
+	resp, err := pm.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to fetch priority list: %w", err)
+	}
+	defer resp.Body.Close()
 
-	dummyResponse := PriorityWorkerList{
-		WorkerIDs: []string{
-			"worker-001",
-			"worker-002",
-			"worker-005",
-			"worker-priority-1",
-			"worker-priority-2",
-			"worker-vip-1",
-			"worker-high-priority-3",
-			"worker-fast-lane-1",
-		},
-		UpdatedAt: time.Now().Format(time.RFC3339),
+	// Check response status
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
-	pm.UpdatePriorityWorkers(dummyResponse.WorkerIDs)
+	// Parse JSON response
+	var workerList PriorityWorkerList
+	if err := json.NewDecoder(resp.Body).Decode(&workerList); err != nil {
+		return fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	// Extract worker IDs from URLs
+	// The response contains full URLs like "https://20.245.90.64:50001"
+	// We need to extract just the worker IDs if they're embedded in the URLs
+	// For now, we'll use the full URLs as the worker IDs
+	workerIDs := make([]string, 0, len(workerList.Workers))
+	for _, workerURL := range workerList.Workers {
+		// You can add logic here to extract worker ID from URL if needed
+		// For example, if the worker ID is the host:port combination
+		workerIDs = append(workerIDs, workerURL)
+	}
+
+	pm.UpdatePriorityWorkers(workerIDs)
 
 	// Log the update for debugging
-	logrus.Debugf("Priority list updated with %d workers from external endpoint (dummy)", len(dummyResponse.WorkerIDs))
+	logrus.Infof("Priority list updated with %d workers from external endpoint", len(workerIDs))
 
 	return nil
 }

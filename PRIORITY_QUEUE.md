@@ -50,15 +50,16 @@ The external endpoint should return JSON in this format:
 
 ```json
 {
-  "worker_ids": [
-    "worker-001",
-    "worker-002",
-    "worker-priority-1",
-    "worker-vip-1"
-  ],
-  "updated_at": "2024-01-15T10:00:00Z"
+  "workers": [
+    "https://217.28.137.141:50035",
+    "https://20.245.90.64:50001",
+    "https://40.76.123.136:50042",
+    "https://172.214.189.153:18080"
+  ]
 }
 ```
+
+**Note**: The system currently uses the full URL as the worker ID. When submitting jobs, use the complete URL as the worker_id to match against the priority list.
 
 ## Job Flow
 
@@ -92,9 +93,16 @@ Response:
 
 ## Development & Testing
 
+### Using Real Endpoint
+
+To use the actual TEE workers endpoint:
+```bash
+export EXTERNAL_WORKER_ID_PRIORITY_ENDPOINT="https://tee-api.masa.ai/list-tee-workers"
+```
+
 ### Using Dummy Data
 
-When no external endpoint is configured, the system uses these dummy priority worker IDs:
+When no external endpoint is configured or if the endpoint fails, the system falls back to dummy priority worker IDs:
 - `worker-001`, `worker-002`, `worker-005`
 - `worker-priority-1`, `worker-priority-2`
 - `worker-vip-1`
@@ -160,10 +168,26 @@ curl http://localhost:8080/job/queue/stats
 }
 ```
 
+## Endpoint Integration Details
+
+### Automatic Refresh
+The priority list is automatically refreshed from the external endpoint:
+- Initial fetch on startup
+- Periodic refresh every 15 minutes (configurable)
+- Continues using last known good list if refresh fails
+- All errors are logged but don't stop the service
+
+### Monitoring Endpoint Status
+Check logs for endpoint status:
+```
+INFO[0000] Fetching initial priority list from external endpoint: https://tee-api.masa.ai/list-tee-workers
+INFO[0000] Priority list updated with 179 workers from external endpoint
+```
+
 ## Future Enhancements
 
 1. **Dynamic Queue Sizing**: Adjust queue sizes based on load
 2. **Priority Levels**: Multiple priority tiers (not just fast/slow)
 3. **Metrics Export**: Prometheus/Grafana integration
 4. **Queue Persistence**: Survive restarts without losing jobs
-5. **Real External Endpoint**: Replace dummy implementation with actual HTTP calls
+5. **Worker ID Extraction**: Extract worker ID from URL if needed (currently uses full URL)
