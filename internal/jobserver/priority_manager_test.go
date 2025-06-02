@@ -74,19 +74,20 @@ var _ = Describe("PriorityManager", func() {
 	})
 
 	Describe("With External Endpoint", func() {
-		It("should use dummy endpoint and fetch initial list", func() {
-			// Create manager with dummy external endpoint
+		It("should fall back to dummy data when endpoint fails", func() {
+			// Create manager with non-existent external endpoint
+			// This will fail to fetch and fall back to dummy data
 			pmWithEndpoint := jobserver.NewPriorityManager("https://api.example.com/priority-workers", 5*time.Minute)
 			defer pmWithEndpoint.Stop()
 
-			// Should have fetched and have priority workers
+			// Should have dummy workers after failed fetch
 			workers := pmWithEndpoint.GetPriorityWorkers()
 			Expect(len(workers)).To(BeNumerically(">", 0))
 
-			// Check for some expected workers from the dummy fetch
+			// Check for expected dummy workers
 			Expect(pmWithEndpoint.IsPriorityWorker("worker-001")).To(BeTrue())
-			Expect(pmWithEndpoint.IsPriorityWorker("worker-high-priority-3")).To(BeTrue())
-			Expect(pmWithEndpoint.IsPriorityWorker("worker-fast-lane-1")).To(BeTrue())
+			Expect(pmWithEndpoint.IsPriorityWorker("worker-priority-1")).To(BeTrue())
+			Expect(pmWithEndpoint.IsPriorityWorker("worker-vip-1")).To(BeTrue())
 		})
 	})
 
