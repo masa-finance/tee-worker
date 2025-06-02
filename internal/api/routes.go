@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/masa-finance/tee-worker/api/types"
@@ -133,7 +134,7 @@ func setKey(dataDir string) func(c echo.Context) error {
 //     "slow_queue_depth": 45,      // Current number of jobs waiting in slow queue  
 //     "fast_processed": 1234,      // Total jobs processed from fast queue
 //     "slow_processed": 5678,      // Total jobs processed from slow queue
-//     "last_update": "2024-01-15T10:30:00Z"  // Timestamp of statistics (null when disabled)
+//     "last_update": "2024-01-15T10:30:00Z"  // ISO8601 timestamp or null
 //   }
 //
 // The response always includes all fields for consistent client parsing.
@@ -154,8 +155,14 @@ func queueStats(jobServer *jobserver.JobServer) func(c echo.Context) error {
 				"slow_queue_depth": 0,
 				"fast_processed":   0,
 				"slow_processed":   0,
-				"last_update":      "", // Empty string for consistent type
+				"last_update":      nil, // Use nil for JSON null
 			})
+		}
+		
+		// Format timestamp as ISO8601 string or null if zero
+		var lastUpdate interface{} = nil
+		if !stats.LastUpdateTime.IsZero() {
+			lastUpdate = stats.LastUpdateTime.Format(time.RFC3339)
 		}
 		
 		return c.JSON(http.StatusOK, map[string]interface{}{
@@ -164,7 +171,7 @@ func queueStats(jobServer *jobserver.JobServer) func(c echo.Context) error {
 			"slow_queue_depth": stats.SlowQueueDepth,
 			"fast_processed":   stats.FastProcessed,
 			"slow_processed":   stats.SlowProcessed,
-			"last_update":      stats.LastUpdateTime,
+			"last_update":      lastUpdate,
 		})
 	}
 }

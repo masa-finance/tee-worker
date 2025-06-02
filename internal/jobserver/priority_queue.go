@@ -62,11 +62,11 @@ func NewPriorityQueue(fastQueueSize, slowQueueSize int) *PriorityQueue {
 // Thread-safe: Can be called concurrently from multiple goroutines.
 func (pq *PriorityQueue) EnqueueFast(job *types.Job) error {
 	pq.mu.RLock()
+	defer pq.mu.RUnlock()
+	
 	if pq.closed {
-		pq.mu.RUnlock()
 		return ErrQueueClosed
 	}
-	pq.mu.RUnlock()
 
 	select {
 	case pq.fastQueue <- job:
@@ -86,11 +86,11 @@ func (pq *PriorityQueue) EnqueueFast(job *types.Job) error {
 // Thread-safe: Can be called concurrently from multiple goroutines.
 func (pq *PriorityQueue) EnqueueSlow(job *types.Job) error {
 	pq.mu.RLock()
+	defer pq.mu.RUnlock()
+	
 	if pq.closed {
-		pq.mu.RUnlock()
 		return ErrQueueClosed
 	}
-	pq.mu.RUnlock()
 
 	select {
 	case pq.slowQueue <- job:
@@ -165,10 +165,7 @@ func (pq *PriorityQueue) DequeueBlocking() (*types.Job, error) {
 
 		// First, always try fast queue non-blocking
 		select {
-		case job, ok := <-pq.fastQueue:
-			if !ok {
-				return nil, ErrQueueClosed
-			}
+		case job := <-pq.fastQueue:
 			pq.updateStats(true, true)
 			return job, nil
 		default:
@@ -177,16 +174,10 @@ func (pq *PriorityQueue) DequeueBlocking() (*types.Job, error) {
 
 		// Blocking select on both queues with periodic fast queue re-check
 		select {
-		case job, ok := <-pq.fastQueue:
-			if !ok {
-				return nil, ErrQueueClosed
-			}
+		case job := <-pq.fastQueue:
 			pq.updateStats(true, true)
 			return job, nil
-		case job, ok := <-pq.slowQueue:
-			if !ok {
-				return nil, ErrQueueClosed
-			}
+		case job := <-pq.slowQueue:
 			pq.updateStats(false, true)
 			return job, nil
 		case <-ticker.C:
@@ -205,14 +196,18 @@ func (pq *PriorityQueue) DequeueBlocking() (*types.Job, error) {
 // - DequeueBlocking will return ErrQueueClosed once queues are empty
 //
 // This method is idempotent and can be called multiple times safely.
+//
+// Note: This implementation does not close the channels to avoid potential
+// panics from concurrent sends. The channels will be garbage collected
+// when no longer referenced.
 func (pq *PriorityQueue) Close() {
 	pq.mu.Lock()
 	defer pq.mu.Unlock()
 
 	if !pq.closed {
 		pq.closed = true
-		close(pq.fastQueue)
-		close(pq.slowQueue)
+		// Do not close channels to avoid panic from concurrent sends
+		// Channels will be garbage collected when no longer referenced
 	}
 }
 
