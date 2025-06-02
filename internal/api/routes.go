@@ -128,14 +128,15 @@ func setKey(dataDir string) func(c echo.Context) error {
 //
 // Response format:
 //   {
+//     "enabled": true,             // Whether priority queue is enabled
 //     "fast_queue_depth": 10,      // Current number of jobs waiting in fast queue
 //     "slow_queue_depth": 45,      // Current number of jobs waiting in slow queue  
 //     "fast_processed": 1234,      // Total jobs processed from fast queue
 //     "slow_processed": 5678,      // Total jobs processed from slow queue
-//     "last_update": "2024-01-15T10:30:00Z"  // Timestamp of statistics
+//     "last_update": "2024-01-15T10:30:00Z"  // Timestamp of statistics (null when disabled)
 //   }
 //
-// Returns {"status": "priority queue disabled"} if the priority queue system is not enabled.
+// The response always includes all fields for consistent client parsing.
 //
 // This endpoint is useful for:
 // - Monitoring queue health and performance
@@ -153,7 +154,7 @@ func queueStats(jobServer *jobserver.JobServer) func(c echo.Context) error {
 				"slow_queue_depth": 0,
 				"fast_processed":   0,
 				"slow_processed":   0,
-				"last_update":      nil,
+				"last_update":      "", // Empty string for consistent type
 			})
 		}
 		

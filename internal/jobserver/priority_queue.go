@@ -28,12 +28,12 @@ type PriorityQueue struct {
 // Queue depths are calculated dynamically in GetStats() to avoid update overhead.
 // Processing counters use atomic operations for lock-free updates under high concurrency.
 type QueueStats struct {
-	FastQueueDepth  int       // Calculated dynamically, not stored
-	SlowQueueDepth  int       // Calculated dynamically, not stored
-	FastProcessed   int64     // Total jobs processed from fast queue (atomic)
-	SlowProcessed   int64     // Total jobs processed from slow queue (atomic)
-	LastUpdateTime  time.Time // Last time stats were updated
-	lastUpdateNano  int64     // Atomic storage for LastUpdateTime as UnixNano
+	FastQueueDepth  int   // Calculated dynamically, not stored
+	SlowQueueDepth  int   // Calculated dynamically, not stored
+	FastProcessed   int64 // Total jobs processed from fast queue (atomic)
+	SlowProcessed   int64 // Total jobs processed from slow queue (atomic)
+	LastUpdateTime  time.Time // Calculated from lastUpdateNano in GetStats()
+	lastUpdateNano  int64 // Atomic storage for LastUpdateTime as UnixNano
 }
 
 // NewPriorityQueue creates a new priority queue with specified buffer sizes.
@@ -44,13 +44,11 @@ type QueueStats struct {
 //
 // Returns a ready-to-use PriorityQueue instance with statistics tracking enabled.
 func NewPriorityQueue(fastQueueSize, slowQueueSize int) *PriorityQueue {
-	now := time.Now()
 	return &PriorityQueue{
 		fastQueue: make(chan *types.Job, fastQueueSize),
 		slowQueue: make(chan *types.Job, slowQueueSize),
 		stats: &QueueStats{
-			LastUpdateTime: now,
-			lastUpdateNano: now.UnixNano(),
+			lastUpdateNano: time.Now().UnixNano(),
 		},
 	}
 }
@@ -250,6 +248,7 @@ func (pq *PriorityQueue) GetStats() QueueStats {
 //
 // This method is called internally after each queue operation to maintain accurate statistics.
 // Uses atomic operations for lock-free updates under high concurrency.
+// Note: Timestamp updates are rate-limited to reduce overhead under high throughput.
 func (pq *PriorityQueue) updateStats(isFast bool, isDequeue bool) {
 	if isDequeue {
 		if isFast {
@@ -257,7 +256,9 @@ func (pq *PriorityQueue) updateStats(isFast bool, isDequeue bool) {
 		} else {
 			atomic.AddInt64(&pq.stats.SlowProcessed, 1)
 		}
+		
+		// Update timestamp only on dequeue operations to reduce overhead
+		// This provides a good balance between accuracy and performance
+		atomic.StoreInt64(&pq.stats.lastUpdateNano, time.Now().UnixNano())
 	}
-	// Update timestamp atomically
-	atomic.StoreInt64(&pq.stats.lastUpdateNano, time.Now().UnixNano())
 }
