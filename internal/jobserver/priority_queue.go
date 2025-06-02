@@ -152,29 +152,48 @@ func (pq *PriorityQueue) Dequeue() (*types.Job, error) {
 // Thread-safe: Can be called concurrently from multiple goroutines.
 // Typically used by worker goroutines that process jobs.
 func (pq *PriorityQueue) DequeueBlocking() (*types.Job, error) {
-	pq.mu.RLock()
-	if pq.closed {
-		pq.mu.RUnlock()
-		return nil, ErrQueueClosed
-	}
-	pq.mu.RUnlock()
-
 	for {
-		// Check fast queue first
+		// Check if queue is closed
+		pq.mu.RLock()
+		if pq.closed {
+			pq.mu.RUnlock()
+			return nil, ErrQueueClosed
+		}
+		pq.mu.RUnlock()
+
+		// Try fast queue first
 		select {
-		case job := <-pq.fastQueue:
-			pq.updateStats(true, true)
-			return job, nil
-		default:
-			// Fast queue empty, check slow queue
-			select {
-			case job := <-pq.slowQueue:
-				pq.updateStats(false, true)
-				return job, nil
-			case job := <-pq.fastQueue:
-				// Check fast queue again in case something was added
+		case job, ok := <-pq.fastQueue:
+			if !ok {
+				// Channel is closed
+				return nil, ErrQueueClosed
+			}
+			if job != nil {
 				pq.updateStats(true, true)
 				return job, nil
+			}
+		default:
+			// Fast queue empty, try slow queue
+			select {
+			case job, ok := <-pq.slowQueue:
+				if !ok {
+					// Channel is closed
+					return nil, ErrQueueClosed
+				}
+				if job != nil {
+					pq.updateStats(false, true)
+					return job, nil
+				}
+			case job, ok := <-pq.fastQueue:
+				if !ok {
+					// Channel is closed
+					return nil, ErrQueueClosed
+				}
+				if job != nil {
+					// Fast queue got a job while we were checking slow
+					pq.updateStats(true, true)
+					return job, nil
+				}
 			}
 		}
 	}
