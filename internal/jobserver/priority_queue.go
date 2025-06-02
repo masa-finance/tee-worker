@@ -171,10 +171,8 @@ func (pq *PriorityQueue) DequeueBlocking() (*types.Job, error) {
 			if !ok {
 				return nil, ErrQueueClosed
 			}
-			if job != nil {
-				pq.updateStats(true, true)
-				return job, nil
-			}
+			pq.updateStats(true, true)
+			return job, nil
 		default:
 			// Fast queue is empty, continue to blocking select
 		}
@@ -185,18 +183,14 @@ func (pq *PriorityQueue) DequeueBlocking() (*types.Job, error) {
 			if !ok {
 				return nil, ErrQueueClosed
 			}
-			if job != nil {
-				pq.updateStats(true, true)
-				return job, nil
-			}
+			pq.updateStats(true, true)
+			return job, nil
 		case job, ok := <-pq.slowQueue:
 			if !ok {
 				return nil, ErrQueueClosed
 			}
-			if job != nil {
-				pq.updateStats(false, true)
-				return job, nil
-			}
+			pq.updateStats(false, true)
+			return job, nil
 		case <-ticker.C:
 			// Periodically loop back to check fast queue first
 			// This ensures we don't miss fast queue jobs while blocked on slow queue

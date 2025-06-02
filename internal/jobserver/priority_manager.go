@@ -190,20 +190,23 @@ func (pm *PriorityManager) fetchPriorityList() error {
 		return fmt.Errorf("no external worker ID priority endpoint configured")
 	}
 
-	// TODO: Replace this with actual external endpoint call
-	// For now, simulate the external API call with a dummy response
+	// TEMPORARY: This is a dummy implementation for development/testing
+	// TODO: Replace this entire section with real HTTP call for production use
+	// 
+	// Production implementation should:
+	// 1. Create HTTP request: req, err := http.NewRequestWithContext(pm.ctx, http.MethodGet, pm.externalWorkerIDPriorityEndpoint, nil)
+	// 2. Execute request: resp, err := pm.httpClient.Do(req)
+	// 3. Parse JSON response into PriorityWorkerList
+	// 4. Handle errors appropriately
 
-	// Simulate network delay
+	// Simulate network delay for realistic testing
 	select {
 	case <-time.After(100 * time.Millisecond):
 	case <-pm.ctx.Done():
 		return fmt.Errorf("context cancelled")
 	}
 
-	// Return dummy priority list
-	// In production, this would be replaced with:
-	// req, err := http.NewRequestWithContext(pm.ctx, http.MethodGet, pm.externalWorkerIDPriorityEndpoint, nil)
-	// ... actual HTTP call logic ...
+	// DUMMY DATA: This will be replaced with actual HTTP response parsing
 
 	dummyResponse := PriorityWorkerList{
 		WorkerIDs: []string{
