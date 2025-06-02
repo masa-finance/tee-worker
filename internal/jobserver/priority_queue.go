@@ -141,17 +141,21 @@ func (pq *PriorityQueue) Dequeue() (*types.Job, error) {
 
 // DequeueBlocking retrieves a job from the queue system, blocking until one is available.
 //
-// Priority order:
-// 1. Continuously checks fast queue first
-// 2. Falls back to slow queue when fast queue is empty
-// 3. Blocks if both queues are empty, waiting for new jobs
+// This method implements a priority-aware blocking dequeue that:
+// 1. Always checks the fast queue first
+// 2. Only processes slow queue jobs when fast queue is empty
+// 3. Blocks efficiently when both queues are empty
 //
-// This method will block indefinitely until a job is available or the queue is closed.
+// The implementation uses a single select statement for clarity while maintaining
+// the priority semantics through periodic fast queue checks.
+//
 // Returns ErrQueueClosed if the queue has been closed.
-//
 // Thread-safe: Can be called concurrently from multiple goroutines.
-// Typically used by worker goroutines that process jobs.
 func (pq *PriorityQueue) DequeueBlocking() (*types.Job, error) {
+	// Create a ticker to periodically check fast queue
+	ticker := time.NewTicker(10 * time.Millisecond)
+	defer ticker.Stop()
+
 	for {
 		// Check if queue is closed
 		pq.mu.RLock()
@@ -161,11 +165,10 @@ func (pq *PriorityQueue) DequeueBlocking() (*types.Job, error) {
 		}
 		pq.mu.RUnlock()
 
-		// Try fast queue first
+		// First, always try fast queue non-blocking
 		select {
 		case job, ok := <-pq.fastQueue:
 			if !ok {
-				// Channel is closed
 				return nil, ErrQueueClosed
 			}
 			if job != nil {
@@ -173,28 +176,31 @@ func (pq *PriorityQueue) DequeueBlocking() (*types.Job, error) {
 				return job, nil
 			}
 		default:
-			// Fast queue empty, try slow queue
-			select {
-			case job, ok := <-pq.slowQueue:
-				if !ok {
-					// Channel is closed
-					return nil, ErrQueueClosed
-				}
-				if job != nil {
-					pq.updateStats(false, true)
-					return job, nil
-				}
-			case job, ok := <-pq.fastQueue:
-				if !ok {
-					// Channel is closed
-					return nil, ErrQueueClosed
-				}
-				if job != nil {
-					// Fast queue got a job while we were checking slow
-					pq.updateStats(true, true)
-					return job, nil
-				}
+			// Fast queue is empty, continue to blocking select
+		}
+
+		// Blocking select on both queues with periodic fast queue re-check
+		select {
+		case job, ok := <-pq.fastQueue:
+			if !ok {
+				return nil, ErrQueueClosed
 			}
+			if job != nil {
+				pq.updateStats(true, true)
+				return job, nil
+			}
+		case job, ok := <-pq.slowQueue:
+			if !ok {
+				return nil, ErrQueueClosed
+			}
+			if job != nil {
+				pq.updateStats(false, true)
+				return job, nil
+			}
+		case <-ticker.C:
+			// Periodically loop back to check fast queue first
+			// This ensures we don't miss fast queue jobs while blocked on slow queue
+			continue
 		}
 	}
 }
