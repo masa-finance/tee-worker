@@ -146,12 +146,19 @@ func queueStats(jobServer *jobserver.JobServer) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		stats := jobServer.GetQueueStats()
 		if stats == nil {
-			return c.JSON(http.StatusOK, map[string]string{
-				"status": "priority queue disabled",
+			// Return consistent schema even when disabled
+			return c.JSON(http.StatusOK, map[string]interface{}{
+				"enabled":          false,
+				"fast_queue_depth": 0,
+				"slow_queue_depth": 0,
+				"fast_processed":   0,
+				"slow_processed":   0,
+				"last_update":      nil,
 			})
 		}
 		
 		return c.JSON(http.StatusOK, map[string]interface{}{
+			"enabled":          true,
 			"fast_queue_depth": stats.FastQueueDepth,
 			"slow_queue_depth": stats.SlowQueueDepth,
 			"fast_processed":   stats.FastProcessed,

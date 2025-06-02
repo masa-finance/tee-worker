@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"sync"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 // PriorityManager manages the list of worker IDs that receive priority processing.
@@ -74,15 +76,15 @@ func NewPriorityManager(externalWorkerIdPriorityEndpoint string, refreshInterval
 
 	// Fetch initial priority list from external endpoint
 	if externalWorkerIdPriorityEndpoint != "" {
-		fmt.Printf("Fetching initial priority list from external endpoint: %s\n", externalWorkerIdPriorityEndpoint)
+		logrus.Infof("Fetching initial priority list from external endpoint: %s", externalWorkerIdPriorityEndpoint)
 		if err := pm.fetchPriorityList(); err != nil {
-			fmt.Printf("Warning: Failed to fetch initial priority list: %v (using dummy data)\n", err)
+			logrus.Warnf("Failed to fetch initial priority list: %v (using dummy data)", err)
 		}
 
 		// Start background refresh
 		go pm.startBackgroundRefresh()
 	} else {
-		fmt.Println("No external worker ID priority endpoint configured, using dummy priority list")
+		logrus.Info("No external worker ID priority endpoint configured, using dummy priority list")
 	}
 
 	return pm
@@ -221,7 +223,7 @@ func (pm *PriorityManager) fetchPriorityList() error {
 	pm.UpdatePriorityWorkers(dummyResponse.WorkerIDs)
 
 	// Log the update for debugging
-	fmt.Printf("Priority list updated with %d workers from external endpoint (dummy)\n", len(dummyResponse.WorkerIDs))
+	logrus.Debugf("Priority list updated with %d workers from external endpoint (dummy)", len(dummyResponse.WorkerIDs))
 
 	return nil
 }
@@ -247,7 +249,7 @@ func (pm *PriorityManager) startBackgroundRefresh() {
 		case <-ticker.C:
 			if err := pm.fetchPriorityList(); err != nil {
 				// Log error but continue running
-				fmt.Printf("Error refreshing priority list: %v\n", err)
+				logrus.Errorf("Error refreshing priority list: %v", err)
 			}
 		}
 	}

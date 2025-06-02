@@ -4,6 +4,7 @@ package jobserver
 
 import (
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/masa-finance/tee-worker/api/types"
@@ -24,14 +25,15 @@ type PriorityQueue struct {
 }
 
 // QueueStats provides real-time metrics about queue performance.
-// All fields are thread-safe and can be accessed concurrently.
+// Queue depths are calculated dynamically in GetStats() to avoid update overhead.
+// Processing counters use atomic operations for lock-free updates under high concurrency.
 type QueueStats struct {
-	mu              sync.RWMutex
-	FastQueueDepth  int
-	SlowQueueDepth  int
-	FastProcessed   int64
-	SlowProcessed   int64
-	LastUpdateTime  time.Time
+	FastQueueDepth  int       // Calculated dynamically, not stored
+	SlowQueueDepth  int       // Calculated dynamically, not stored
+	FastProcessed   int64     // Total jobs processed from fast queue (atomic)
+	SlowProcessed   int64     // Total jobs processed from slow queue (atomic)
+	LastUpdateTime  time.Time // Last time stats were updated
+	lastUpdateNano  int64     // Atomic storage for LastUpdateTime as UnixNano
 }
 
 // NewPriorityQueue creates a new priority queue with specified buffer sizes.
@@ -42,11 +44,13 @@ type QueueStats struct {
 //
 // Returns a ready-to-use PriorityQueue instance with statistics tracking enabled.
 func NewPriorityQueue(fastQueueSize, slowQueueSize int) *PriorityQueue {
+	now := time.Now()
 	return &PriorityQueue{
 		fastQueue: make(chan *types.Job, fastQueueSize),
 		slowQueue: make(chan *types.Job, slowQueueSize),
 		stats: &QueueStats{
-			LastUpdateTime: time.Now(),
+			LastUpdateTime: now,
+			lastUpdateNano: now.UnixNano(),
 		},
 	}
 }
@@ -198,22 +202,24 @@ func (pq *PriorityQueue) Close() {
 // GetStats returns a snapshot of current queue statistics.
 //
 // The returned statistics include:
-// - Current depth of both fast and slow queues
+// - Current depth of both fast and slow queues (calculated dynamically)
 // - Total number of jobs processed from each queue
 // - Timestamp of last statistics update
 //
 // This method is lightweight and can be called frequently for monitoring.
 // Thread-safe: Can be called concurrently from multiple goroutines.
 func (pq *PriorityQueue) GetStats() QueueStats {
-	pq.stats.mu.RLock()
-	defer pq.stats.mu.RUnlock()
+	// Use atomic loads for lock-free reading
+	fast := atomic.LoadInt64(&pq.stats.FastProcessed)
+	slow := atomic.LoadInt64(&pq.stats.SlowProcessed)
+	lastNano := atomic.LoadInt64(&pq.stats.lastUpdateNano)
 
 	return QueueStats{
 		FastQueueDepth:  len(pq.fastQueue),
 		SlowQueueDepth:  len(pq.slowQueue),
-		FastProcessed:   pq.stats.FastProcessed,
-		SlowProcessed:   pq.stats.SlowProcessed,
-		LastUpdateTime:  pq.stats.LastUpdateTime,
+		FastProcessed:   fast,
+		SlowProcessed:   slow,
+		LastUpdateTime:  time.Unix(0, lastNano),
 	}
 }
 
@@ -224,16 +230,15 @@ func (pq *PriorityQueue) GetStats() QueueStats {
 //   - isDequeue: true if this was a dequeue operation, false for enqueue
 //
 // This method is called internally after each queue operation to maintain accurate statistics.
+// Uses atomic operations for lock-free updates under high concurrency.
 func (pq *PriorityQueue) updateStats(isFast bool, isDequeue bool) {
-	pq.stats.mu.Lock()
-	defer pq.stats.mu.Unlock()
-
 	if isDequeue {
 		if isFast {
-			pq.stats.FastProcessed++
+			atomic.AddInt64(&pq.stats.FastProcessed, 1)
 		} else {
-			pq.stats.SlowProcessed++
+			atomic.AddInt64(&pq.stats.SlowProcessed, 1)
 		}
 	}
-	pq.stats.LastUpdateTime = time.Now()
+	// Update timestamp atomically
+	atomic.StoreInt64(&pq.stats.lastUpdateNano, time.Now().UnixNano())
 }
