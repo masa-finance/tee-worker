@@ -41,7 +41,10 @@ func NewClient(baseURL string, opts ...Option) (*Client, error) {
 	}
 	if options.ignoreTLSCert {
 		c.HTTPClient.Transport = &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			TLSClientConfig:     &tls.Config{InsecureSkipVerify: true},
+			MaxIdleConns:        500,
+			MaxIdleConnsPerHost: 50,
+			MaxConnsPerHost:     100,
 		}
 	}
 
