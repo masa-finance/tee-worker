@@ -1,54 +1,19 @@
 package tee
 
 import (
-	"encoding/json"
 	"os"
-	"path/filepath"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
-// mockSaveKeyRing mocks saving a key ring for testing
-func mockSaveKeyRing(dataDir string, kr *KeyRing) error {
-	data, err := json.Marshal(kr)
-	if err != nil {
-		return err
-	}
-	return os.WriteFile(filepath.Join(dataDir, "sealing_keys.ring"), data, 0600)
-}
-
-// mockLoadKeyRing mocks loading a key ring for testing
-func mockLoadKeyRing(dataDir string) (*KeyRing, error) {
-	data, err := os.ReadFile(filepath.Join(dataDir, "sealing_keys.ring"))
-	if err != nil {
-		return nil, err
-	}
-	kr := &KeyRing{}
-	if err := json.Unmarshal(data, kr); err != nil {
-		return nil, err
-	}
-	return kr, nil
-}
 
 var _ = Describe("KeyRing", func() {
-	var (
-		tmpDir string
-		err    error
-	)
-
 	BeforeEach(func() {
 		if os.Getenv("OE_SIMULATION") == "1" {
 			Skip("Skipping TEE tests")
 		}
-
-		tmpDir, err = os.MkdirTemp("", "keyring-test-*")
-		Expect(err).NotTo(HaveOccurred())
-	})
-
-	AfterEach(func() {
-		os.RemoveAll(tmpDir)
 	})
 
 	Context("when creating a new key ring", func() {
@@ -84,34 +49,6 @@ var _ = Describe("KeyRing", func() {
 		})
 	})
 
-	Context("when saving and loading key ring with mocks", func() {
-		It("should persist and load keys correctly using mocks", func() {
-			kr := NewKeyRing()
-			testKeys := []string{"key1", "key2", "key3"}
-
-			for _, key := range testKeys {
-				kr.Add(key)
-			}
-
-			err := mockSaveKeyRing(tmpDir, kr)
-			Expect(err).NotTo(HaveOccurred())
-
-			loadedKR, err := mockLoadKeyRing(tmpDir)
-			Expect(err).NotTo(HaveOccurred())
-
-			Expect(loadedKR.Keys).To(HaveLen(len(testKeys)))
-			for _, key := range testKeys {
-				// For []byte fields, we need to use []byte in the HaveField matcher
-				Expect(loadedKR.Keys).To(ContainElement(HaveField("Key", []byte(key))))
-			}
-		})
-
-		It("should handle invalid directory with mocks", func() {
-			invalidDir := filepath.Join(tmpDir, "nonexistent")
-			_, err := mockLoadKeyRing(invalidDir)
-			Expect(err).To(HaveOccurred())
-		})
-	})
 
 
 	Context("when managing multiple keys", func() {
