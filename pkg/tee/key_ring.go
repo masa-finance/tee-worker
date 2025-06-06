@@ -3,10 +3,7 @@ package tee
 import (
 	"bytes"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
-	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -18,8 +15,6 @@ import (
 const (
 	// MaxKeysInRing is the number of keys to keep in the ring buffer
 	MaxKeysInRing = 3
-	// keyRingFilename is the file where the key ring is stored
-	keyRingFilename = "sealing_keys.ring"
 )
 
 // KeyEntry represents a single key in the key ring with metadata
@@ -113,147 +108,8 @@ func (kr *KeyRing) MostRecentKey() string {
 	return kr.LatestKey()
 }
 
-// LoadKeyRing loads a key ring from disk
-func LoadKeyRing(dataDir string) (*KeyRing, error) {
-	// Create the file path
-	ringPath := filepath.Join(dataDir, keyRingFilename)
-	legacyPath := filepath.Join(dataDir, "sealing_key")
 
-	// Check if the key ring file exists
-	if _, err := os.Stat(ringPath); os.IsNotExist(err) {
-		// If the legacy file exists, migrate it
-		if _, err := os.Stat(legacyPath); err == nil {
-			// Try loading the legacy key
-			key, err := loadLegacyKey(dataDir)
-			if err != nil {
-				return nil, fmt.Errorf("failed to load legacy key: %w", err)
-			}
 
-			// Create a new key ring with the legacy key
-			keyRing := NewKeyRing()
-			keyRing.Add(key)
-			logrus.Info("Migrated legacy key to key ring")
-
-			// Save the new key ring
-			if err := keyRing.Save(dataDir); err != nil {
-				return nil, fmt.Errorf("failed to save migrated key ring: %w", err)
-			}
-
-			return keyRing, nil
-		}
-
-		// No key ring or legacy key found
-		return NewKeyRing(), nil
-	}
-
-	// Read the encrypted key ring
-	encryptedData, err := os.ReadFile(ringPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read key ring file: %w", err)
-	}
-
-	// Unseal the data
-	var data []byte
-	if SealStandaloneMode {
-		// In test mode or standalone mode, read as plain text
-		data = encryptedData
-		logrus.Debug("Reading key ring as plain text in test/standalone mode")
-	} else {
-		// In normal mode, unseal the data
-		data, err = ecrypto.Unseal(encryptedData, []byte{})
-		if err != nil {
-			return nil, fmt.Errorf("failed to unseal key ring: %w", err)
-		}
-	}
-
-	// Unmarshal the key ring
-	var keyRing KeyRing
-	if err := json.Unmarshal(data, &keyRing); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal key ring: %w", err)
-	}
-
-	// Log key ring status
-	if len(keyRing.Keys) > 0 {
-		logrus.Infof("Loaded key ring with %d keys", len(keyRing.Keys))
-	} else {
-		logrus.Warn("Loaded key ring is empty")
-	}
-
-	return &keyRing, nil
-}
-
-// Save saves the key ring to disk
-func (kr *KeyRing) Save(dataDir string) error {
-	if kr == nil {
-		return fmt.Errorf("key ring is nil")
-	}
-
-	// Create the file path
-	ringPath := filepath.Join(dataDir, keyRingFilename)
-
-	// Ensure the directory exists
-	if err := os.MkdirAll(dataDir, 0755); err != nil {
-		logrus.Errorf("failed to create directory, %s: %v", dataDir, err)
-		return fmt.Errorf("failed to create directory, %s: %w", dataDir, err)
-	}
-
-	// Marshal the key ring
-	kr.mu.RLock()
-	data, err := json.Marshal(kr)
-	kr.mu.RUnlock()
-	if err != nil {
-		logrus.Errorf("failed to marshal key ring to JSON: %v", err)
-		return fmt.Errorf("failed to marshal key ring to JSON: %w", err)
-	}
-
-	// Seal the data
-	var encryptedData []byte
-
-	// In standalone mode, use plain text
-	if SealStandaloneMode {
-		// Store as plain text for standalone mode
-		encryptedData = data
-		logrus.Debug("Using plain text storage for key ring in standalone mode")
-	} else {
-		// In normal mode, use SGX sealing
-		encryptedData, err = ecrypto.SealWithProductKey(data, []byte{})
-		if err != nil {
-			logrus.Errorf("failed to seal key ring, %v", err)
-			return fmt.Errorf("failed to seal key ring, %w", err)
-		}
-	}
-
-	// Write the file
-	if err := os.WriteFile(ringPath, encryptedData, 0600); err != nil {
-		logrus.Errorf("failed to write the key ring file at path '%s': %v", ringPath, err)
-		return fmt.Errorf("failed to write the key ring file at path '%s': %w", ringPath, err)
-	}
-
-	logrus.Infof("Saved key ring with %d keys", len(kr.Keys))
-	return nil
-}
-
-// loadLegacyKey loads a key from the legacy format
-func loadLegacyKey(dataDir string) (string, error) {
-	legacyPath := filepath.Join(dataDir, "sealing_key")
-	encryptedKey, err := os.ReadFile(legacyPath)
-	if err != nil {
-		logrus.Errorf("failed to read legacy key file at path %q: %v", legacyPath, err)
-		return "", fmt.Errorf("failed to read legacy key from file %q: %w", legacyPath, err)
-	}
-
-	key, err := ecrypto.Unseal(encryptedKey, []byte{})
-	if err != nil {
-		// In standalone mode, try reading as plain text
-		if SealStandaloneMode {
-			return string(encryptedKey), nil
-		}
-		logrus.Errorf("failed to unseal legacy key: %v", err)
-		return "", fmt.Errorf("failed to unseal legacy key: %w", err)
-	}
-
-	return string(key), nil
-}
 
 // Decrypt attempts to decrypt with all keys in the ring
 // Parameters:
