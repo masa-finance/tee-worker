@@ -5,5 +5,5 @@ var (
 
 	// XXX: Bump this value only when there are protocol changes that makes the oracle
 	// incompatible between version!
-	TEEWorkerVersion = `alpha`
+	TEEWorkerVersion = `beta`
 )
