@@ -12,16 +12,6 @@ var (
 	CurrentKeyRing       *KeyRing
 )
 
-// LoadKey loads the key ring from the data directory.
-func LoadKey(datadir string) error {
-	// SECURITY: Disabled to prevent loading sealing keys from disk
-	logrus.Debug("Key ring loading disabled for security")
-	
-	// Initialize an empty key ring
-	CurrentKeyRing = NewKeyRing()
-	
-	return nil
-}
 
 // SetKeyBytes sets a new binary key, verifying the signature and adding it to the key ring.
 // The key must be exactly 32 bytes long for AES-256 encryption.

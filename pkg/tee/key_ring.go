@@ -15,8 +15,6 @@ import (
 const (
 	// MaxKeysInRing is the number of keys to keep in the ring buffer
 	MaxKeysInRing = 3
-	// keyRingFilename is the file where the key ring is stored
-	keyRingFilename = "sealing_keys.ring"
 )
 
 // KeyEntry represents a single key in the key ring with metadata
@@ -110,25 +108,6 @@ func (kr *KeyRing) MostRecentKey() string {
 	return kr.LatestKey()
 }
 
-// LoadKeyRing loads a key ring from disk
-func LoadKeyRing(dataDir string) (*KeyRing, error) {
-	// Disabled to prevent loading sealing keys from disk
-	logrus.Debug("Key ring load disabled for security")
-	return NewKeyRing(), nil
-}
-
-// Save saves the key ring to disk
-func (kr *KeyRing) Save(dataDir string) error {
-	// Disabled to prevent sealing keys from being persisted to disk
-	logrus.Debug("Key ring save disabled for security")
-	return nil
-}
-
-// loadLegacyKey loads a key from the legacy format
-func loadLegacyKey(dataDir string) (string, error) {
-	// SECURITY: Disabled to prevent loading sealing keys from disk
-	return "", fmt.Errorf("legacy key loading disabled for security")
-}
 
 // Decrypt attempts to decrypt with all keys in the ring
 // Parameters:
