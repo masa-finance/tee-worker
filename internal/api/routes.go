@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/masa-finance/tee-worker/api/types"
@@ -119,5 +120,58 @@ func setKey(dataDir string) func(c echo.Context) error {
 		}
 
 		return c.JSON(http.StatusOK, types.KeyResponse{Status: "Key set"})
+	}
+}
+
+// queueStats returns the current queue statistics for monitoring the priority queue system.
+//
+// GET /job/queue/stats
+//
+// Response format:
+//   {
+//     "enabled": true,             // Whether priority queue is enabled
+//     "fast_queue_depth": 10,      // Current number of jobs waiting in fast queue
+//     "slow_queue_depth": 45,      // Current number of jobs waiting in slow queue  
+//     "fast_processed": 1234,      // Total jobs processed from fast queue
+//     "slow_processed": 5678,      // Total jobs processed from slow queue
+//     "last_update": "2024-01-15T10:30:00Z"  // ISO8601 timestamp or null
+//   }
+//
+// The response always includes all fields for consistent client parsing.
+//
+// This endpoint is useful for:
+// - Monitoring queue health and performance
+// - Detecting queue backlogs
+// - Verifying priority routing is working correctly
+// - Calculating processing rates
+func queueStats(jobServer *jobserver.JobServer) func(c echo.Context) error {
+	return func(c echo.Context) error {
+		stats := jobServer.GetQueueStats()
+		if stats == nil {
+			// Return consistent schema even when disabled
+			return c.JSON(http.StatusOK, map[string]interface{}{
+				"enabled":          false,
+				"fast_queue_depth": 0,
+				"slow_queue_depth": 0,
+				"fast_processed":   0,
+				"slow_processed":   0,
+				"last_update":      nil, // Use nil for JSON null
+			})
+		}
+		
+		// Format timestamp as ISO8601 string or null if zero
+		var lastUpdate interface{} = nil
+		if !stats.LastUpdateTime.IsZero() {
+			lastUpdate = stats.LastUpdateTime.Format(time.RFC3339)
+		}
+		
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"enabled":          true,
+			"fast_queue_depth": stats.FastQueueDepth,
+			"slow_queue_depth": stats.SlowQueueDepth,
+			"fast_processed":   stats.FastProcessed,
+			"slow_processed":   stats.SlowProcessed,
+			"last_update":      lastUpdate,
+		})
 	}
 }
