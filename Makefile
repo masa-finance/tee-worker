@@ -37,6 +37,9 @@ run-sgx: docker-build
 tee/private.pem:
 	@openssl genrsa -out tee/private.pem -3 3072
 
+tee/public.pub:
+	@openssl rsa -in tee/private.pem -pubout -out tee/public.pem
+
 tee/keybroker.pem:
 	@openssl genrsa -out tee/keybroker.pem -3 4092
 
