@@ -74,8 +74,8 @@ func mockSaveKeyRingEntry(datadir, key string) error {
 	// Add the key
 	keyRing.Add(key)
 
-	// Save the keyring
-	return keyRing.Save(datadir)
+	// No longer saving to disk
+	return nil
 }
 
 // mockVerifySignature mocks signature verification for testing
