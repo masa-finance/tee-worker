@@ -69,8 +69,9 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 	// API Key Authentication Middleware
 	e.Use(APIKeyAuthMiddleware(config))
 
+	// Initialize empty key ring (loading from disk disabled for security)
 	if err := tee.LoadKey(dataDIR); err != nil {
-		logrus.Warnf("Error loading key from %s: %s", dataDIR, err)
+		logrus.Warnf("Error initializing key ring: %s", err)
 	}
 
 	// Routes

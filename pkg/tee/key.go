@@ -3,7 +3,6 @@ package tee
 import (
 	"encoding/base64"
 	"fmt"
-	"os"
 
 	"github.com/sirupsen/logrus"
 )
@@ -15,28 +14,12 @@ var (
 
 // LoadKey loads the key ring from the data directory.
 func LoadKey(datadir string) error {
-	logrus.Debug("Loading key ring")
-
-	// Check if directory exists
-	if _, err := os.Stat(datadir); os.IsNotExist(err) {
-		err := fmt.Errorf("loading key ring: directory does not exist: %s", datadir)
-		logrus.Warn(err)
-		return err
-	}
-
-	// Load the key ring
-	var err error
-	CurrentKeyRing, err = LoadKeyRing(datadir)
-	if err != nil {
-		logrus.Warnf("Failed to load key ring: %v", err)
-		return err
-	}
-
-	// If the key ring is empty, log warning
-	if len(CurrentKeyRing.Keys) == 0 {
-		logrus.Warn("Loaded key ring is empty, no keys available")
-	}
-
+	// SECURITY: Disabled to prevent loading sealing keys from disk
+	logrus.Debug("Key ring loading disabled for security")
+	
+	// Initialize an empty key ring
+	CurrentKeyRing = NewKeyRing()
+	
 	return nil
 }
 
@@ -63,23 +46,16 @@ func SetKeyBytes(datadir string, keyBytes []byte, signatureBytes []byte) error {
 		return fmt.Errorf("invalid key length: got %d bytes, expected 32 bytes for AES-256 encryption", len(keyBytes))
 	}
 
-	// Initialize or load the key ring if needed
+	// Initialize the key ring if needed
 	if CurrentKeyRing == nil {
-		CurrentKeyRing, err = LoadKeyRing(datadir)
-		if err != nil {
-			logrus.Warnf("Failed to load key ring: %v. Creating new one.", err)
-			CurrentKeyRing = NewKeyRing()
-		}
+		CurrentKeyRing = NewKeyRing()
 	}
 
 	// Add the key to the ring
 	added := CurrentKeyRing.AddBytes(keyBytes)
-
-	// Save the key ring to persist the change
+	
 	if added {
-		if err := CurrentKeyRing.Save(datadir); err != nil {
-			return fmt.Errorf("failed to save key ring: %w", err)
-		}
+		logrus.Info("Key added to ring (not persisted to disk for security)")
 	}
 
 	return nil
