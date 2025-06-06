@@ -68,8 +68,8 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 	// API Key Authentication Middleware
 	e.Use(APIKeyAuthMiddleware(config))
 
-	// Load already existing key
-	tee.LoadKey(dataDIR)
+	// Initialize empty key ring
+	tee.CurrentKeyRing = tee.NewKeyRing()
 
 	// Routes
 
