@@ -11,6 +11,7 @@ import (
 	"github.com/masa-finance/tee-worker/api/types"
 	"github.com/masa-finance/tee-worker/internal/jobs"
 	"github.com/masa-finance/tee-worker/internal/jobs/stats"
+	"github.com/masa-finance/tee-worker/pkg/tee"
 )
 
 type JobServer struct {
@@ -121,6 +122,10 @@ func (js *JobServer) AddJob(j types.Job) (string, error) {
 	}
 
 	js.executedJobs[j.Nonce] = true
+
+	if j.TargetWorker != "" && j.TargetWorker != tee.WorkerID {
+		return "", errors.New("this job is not for this worker")
+	}
 
 	// TODO The default should come from config.go, but during tests the config is not necessarily read
 	j.Timeout = js.jobConfiguration.GetDuration("job_timeout_seconds", 300)
