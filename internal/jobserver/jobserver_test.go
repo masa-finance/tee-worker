@@ -16,7 +16,7 @@ var _ = Describe("Jobserver", func() {
 	It("runs jobs", func() {
 		jobserver := NewJobServer(2, types.JobConfiguration{})
 
-		uuid := jobserver.AddJob(types.Job{
+		uuid, err := jobserver.AddJob(types.Job{
 			Type: "web-scraper",
 			Arguments: map[string]interface{}{
 				"url": "google",
@@ -24,6 +24,7 @@ var _ = Describe("Jobserver", func() {
 		})
 
 		Expect(uuid).ToNot(BeEmpty())
+		Expect(err).ToNot(HaveOccurred())
 
 		_, exists := jobserver.GetJobResult(uuid)
 		Expect(exists).ToNot(BeTrue())
