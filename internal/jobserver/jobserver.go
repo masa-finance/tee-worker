@@ -2,6 +2,7 @@ package jobserver
 
 import (
 	"context"
+	"errors"
 	"sync"
 
 	"github.com/sirupsen/logrus"
@@ -21,7 +22,8 @@ type JobServer struct {
 	results          *ResultCache
 	jobConfiguration types.JobConfiguration
 
-	jobWorkers map[string]*jobWorkerEntry
+	jobWorkers   map[string]*jobWorkerEntry
+	executedJobs map[string]bool
 }
 
 type jobWorkerEntry struct {
@@ -94,10 +96,11 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 	return &JobServer{
 		jobChan: make(chan types.Job),
 		// TODO The defaults here should come from config.go, but during tests the config is not necessarily read
-		results: NewResultCache(jc.GetInt("result_cache_max_size", 1000), jc.GetDuration("result_cache_max_age_seconds", 600)),
+		results:          NewResultCache(jc.GetInt("result_cache_max_size", 1000), jc.GetDuration("result_cache_max_age_seconds", 600)),
 		workers:          workers,
 		jobConfiguration: jc,
 		jobWorkers:       jobworkers,
+		executedJobs:     make(map[string]bool),
 	}
 }
 
@@ -109,16 +112,27 @@ func (js *JobServer) Run(ctx context.Context) {
 	<-ctx.Done()
 }
 
-func (js *JobServer) AddJob(j types.Job) string {
+func (js *JobServer) AddJob(j types.Job) (string, error) {
+	js.Lock()
+	defer js.Unlock()
+
+	if _, ok := js.executedJobs[j.Nonce]; ok {
+		return "", errors.New("job already executed")
+	}
+
+	js.executedJobs[j.Nonce] = true
+
 	// TODO The default should come from config.go, but during tests the config is not necessarily read
 	j.Timeout = js.jobConfiguration.GetDuration("job_timeout_seconds", 300)
-	j.UUID = uuid.New().String()
-	defer func() {
-		go func() {
-			js.jobChan <- j
-		}()
+
+	jobUUID := uuid.New().String()
+	j.UUID = jobUUID
+
+	go func() {
+		js.jobChan <- j
 	}()
-	return j.UUID
+
+	return jobUUID, nil
 }
 
 func (js *JobServer) GetJobResult(uuid string) (types.JobResult, bool) {

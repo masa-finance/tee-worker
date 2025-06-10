@@ -52,7 +52,10 @@ func add(jobServer *jobserver.JobServer) func(c echo.Context) error {
 			return err
 		}
 
-		uuid := jobServer.AddJob(*job)
+		uuid, err := jobServer.AddJob(*job)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, types.JobError{Error: err.Error()})
+		}
 
 		// check if uuid is empty
 		if uuid == "" {
