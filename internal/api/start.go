@@ -17,7 +17,6 @@ import (
 	"github.com/masa-finance/tee-worker/api/types"
 	"github.com/masa-finance/tee-worker/internal/jobserver"
 	"github.com/masa-finance/tee-worker/pkg/tee"
-	"github.com/sirupsen/logrus"
 )
 
 func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, config types.JobConfiguration) error {
@@ -69,9 +68,8 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 	// API Key Authentication Middleware
 	e.Use(APIKeyAuthMiddleware(config))
 
-	if err := tee.LoadKey(dataDIR); err != nil {
-		logrus.Warnf("Error loading key from %s: %s", dataDIR, err)
-	}
+	// Initialize empty key ring
+	tee.CurrentKeyRing = tee.NewKeyRing()
 
 	// Routes
 

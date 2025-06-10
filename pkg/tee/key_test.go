@@ -3,7 +3,6 @@ package tee
 import (
 	"encoding/base64"
 	"os"
-	"path/filepath"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -56,38 +55,6 @@ var _ = Describe("Key Management", func() {
 		})
 	})
 
-	Context("when loading keys", func() {
-		It("should handle directory creation and cleanup", func() {
-			// First test that a non-existent directory fails
-			nonExistentDir := filepath.Join(tmpDir, "nonexistent")
-			err := LoadKey(nonExistentDir)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("directory does not exist"))
-
-			// Now create the directory
-			err = os.MkdirAll(nonExistentDir, 0755)
-			Expect(err).NotTo(HaveOccurred())
-
-			// Test that LoadKey now works with the created directory
-			err = LoadKey(nonExistentDir)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(CurrentKeyRing).NotTo(BeNil())
-			Expect(CurrentKeyRing.Keys).To(BeEmpty())
-
-			// Add a key to test saving works
-			testKey := "test-key-for-created-dir"
-			CurrentKeyRing.Add(testKey)
-			Expect(CurrentKeyRing.MostRecentKey()).To(Equal(testKey))
-
-			// Save the keyring
-			err = CurrentKeyRing.Save(nonExistentDir)
-			Expect(err).NotTo(HaveOccurred())
-
-			// Clean up - remove the directory after testing
-			err = os.RemoveAll(nonExistentDir)
-			Expect(err).NotTo(HaveOccurred())
-		})
-	})
 
 	Context("when working with the key ring", func() {
 		It("should properly initialize the key ring", func() {
@@ -95,9 +62,7 @@ var _ = Describe("Key Management", func() {
 			keyRing := NewKeyRing()
 			keyRing.Add(testKey)
 
-			// Save the key ring
-			err := keyRing.Save(tmpDir)
-			Expect(err).NotTo(HaveOccurred())
+			// No longer saving to disk
 
 			// Verify key ring contains the key
 			Expect(keyRing).NotTo(BeNil())
@@ -106,26 +71,6 @@ var _ = Describe("Key Management", func() {
 			Expect(keyRing.MostRecentKey()).To(Equal(testKey))
 		})
 
-		It("should properly load the key ring", func() {
-			// Clear current key ring
-			CurrentKeyRing = nil
-
-			// Create and save a key ring
-			keyRing := NewKeyRing()
-			keyRing.Add(testKey)
-			err := keyRing.Save(tmpDir)
-			Expect(err).NotTo(HaveOccurred())
-
-			// Load key ring
-			err = LoadKey(tmpDir)
-			Expect(err).NotTo(HaveOccurred())
-
-			// Verify key ring was loaded
-			Expect(CurrentKeyRing).NotTo(BeNil())
-			// Use Gomega matcher for cleaner test code
-			Expect(CurrentKeyRing.Keys).To(ContainElement(HaveField("Key", []byte(testKey))), "Key not found in key ring")
-			Expect(CurrentKeyRing.MostRecentKey()).To(Equal(testKey))
-		})
 	})
 })
 
