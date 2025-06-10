@@ -21,12 +21,13 @@ func (ja JobArguments) Unmarshal(i interface{}) error {
 }
 
 type Job struct {
-	Type      string        `json:"type"`
-	Arguments JobArguments  `json:"arguments"`
-	UUID      string        `json:"-"`
-	Nonce     string        `json:"quote"`
-	WorkerID  string        `json:"worker_id"`
-	Timeout   time.Duration `json:"-"`
+	Type         string        `json:"type"`
+	Arguments    JobArguments  `json:"arguments"`
+	UUID         string        `json:"-"`
+	Nonce        string        `json:"quote"`
+	WorkerID     string        `json:"worker_id"`
+	TargetWorker string        `json:"target_worker"`
+	Timeout      time.Duration `json:"-"`
 }
 
 var letterRunes = []rune("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()_+")
