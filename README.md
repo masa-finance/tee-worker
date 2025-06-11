@@ -56,6 +56,10 @@ The tee-worker requires various environment variables for operation. These shoul
 - `TWITTER_ACCOUNTS`: Comma-separated list of Twitter credentials in `username:password` format.
 - `TWITTER_API_KEYS`: Comma-separated list of Twitter Bearer API tokens.
 - `TWITTER_SKIP_LOGIN_VERIFICATION`: Set to `true` to skip Twitter's login verification step. This can help avoid rate limiting issues with Twitter's verify_credentials API endpoint when running multiple workers or processing large volumes of requests.
+- `TIKTOK_DEFAULT_LANGUAGE`: Default language for TikTok transcriptions (default: `eng-US`).
+- `TIKTOK_API_ORIGIN`: Origin header for TikTok API requests (default: `https://submagic-free-tools.fly.dev`).
+- `TIKTOK_API_REFERER`: Referer header for TikTok API requests (default: `https://submagic-free-tools.fly.dev/tiktok-transcription`).
+- `TIKTOK_API_USER_AGENT`: User-Agent header for TikTok API requests (default: standard mobile browser user agent).
 - `LISTEN_ADDRESS`: The address the service listens on (default: `:8080`).
 - `RESULT_CACHE_MAX_SIZE`: Maximum number of job results to keep in the result cache (default: `1000`).
 - `RESULT_CACHE_MAX_AGE_SECONDS`: Maximum age (in seconds) to keep a result in the cache (default: `600`).
@@ -264,6 +268,40 @@ curl localhost:8080/job/result \
   }'
 ```
 
+### Example 4: TikTok Transcription
+
+```bash
+# 1. Generate job signature for TikTok transcription
+SIG=$(curl -s "localhost:8080/job/generate" \
+  -H "Authorization: Bearer ${AUTH_TOKEN}" \
+  -X POST \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "tiktok-transcription",
+    "arguments": {
+      "video_url": "https://www.tiktok.com/@example/video/1234567890",
+      "language": "eng-US"
+    }
+  }')
+
+# 2. Submit the job
+uuid=$(curl localhost:8080/job/add \
+  -H "Content-Type: application/json" \
+  -d '{ "encrypted_job": "'$SIG'" }' \
+  | jq -r .uid)
+
+# 3. Check job status
+result=$(curl localhost:8080/job/status/$uuid)
+
+# 4. Decrypt job results
+curl localhost:8080/job/result \
+  -H "Content-Type: application/json" \
+  -d '{
+    "encrypted_result": "'$result'", 
+    "encrypted_request": "'$SIG'" 
+  }'
+```
+
 ### Golang client
 
 It is available a simple golang client to interact with the API:
@@ -309,7 +347,7 @@ func main() {
 
 ### Job types
 
-The tee-worker currently supports 3 job types:
+The tee-worker currently supports 4 job types:
 
 **TODO:** Add descriptions of the return values.
 
@@ -378,6 +416,23 @@ Some job types now support cursor-based pagination. For these jobs:
   - Same as `twitter-scraper`.
 - **Returns:**
   - Same as `twitter-scraper`.
+
+#### `tiktok-transcription`
+
+Transcribes TikTok videos and extracts text from them.
+
+**Arguments**
+
+* `video_url` (string): The TikTok video URL to transcribe.
+* `language` (string, optional): The desired language for transcription (e.g., "eng-US"). If not specified, uses the configured default or auto-detects.
+
+**Returns**
+
+* `transcription_text` (string): The extracted text from the video
+* `detected_language` (string): The language detected/used for transcription
+* `video_title` (string): The title of the TikTok video
+* `original_url` (string): The original video URL
+* `thumbnail_url` (string): URL to the video thumbnail (if available)
 
 #### `telemetry`
 
