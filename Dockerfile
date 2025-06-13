@@ -23,7 +23,7 @@ RUN make bundle
 
 # Use the official Ubuntu 22.04 image as a base for the final image
 FROM ${baseimage} AS base
-ARG pccs_server=https://pccs.dev.masalabs.ai
+ARG pccs_server=https://pccs.masa.ai
 
 # Install Intel SGX DCAP driver
 RUN apt-get update && \
