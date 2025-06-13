@@ -42,35 +42,24 @@ type TikTokTranscriber struct {
 
 
 // NewTikTokTranscriber creates and initializes a new TikTokTranscriber.
-// It populates its configuration from the global job configuration map (jc)
-// which is initially loaded by readConfig() in main.go.
+// It sets default values for the API configuration.
 func NewTikTokTranscriber(jc types.JobConfiguration, statsCollector *stats.StatsCollector) *TikTokTranscriber {
 	config := TikTokTranscriptionConfiguration{}
 
-	// Manually unmarshal from jc (map[string]interface{}) to config struct
-	if err := jc.Unmarshal(&config); err != nil {
-		logrus.WithError(err).Error("TikTokTranscriber: Failed to unmarshal job configuration into TikTokTranscriptionConfiguration")
-		// Depending on policy, could return nil or a non-functional transcriber.
-		// For now, proceed with potentially zero-value config, ExecuteJob should check critical fields.
-	}
-
-	// Hardcode the TranscriptionEndpoint, overriding any value from jc
+	// Set default values directly
 	config.TranscriptionEndpoint = tiktokTranscriptionEndpoint
-	logrus.Info("TikTokTranscriber: Using hardcoded TranscriptionEndpoint: ", config.TranscriptionEndpoint)
-
-	if config.APIOrigin == "" {
-		config.APIOrigin = "https://submagic-free-tools.fly.dev"
-		logrus.Info("TikTokTranscriber: APIOrigin not configured, using default: ", config.APIOrigin)
+	config.APIOrigin = "https://submagic-free-tools.fly.dev"
+	config.APIReferer = "https://submagic-free-tools.fly.dev/tiktok-transcription"
+	config.APIUserAgent = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Mobile Safari/537.36"
+	
+	// Still get the default language from config if available
+	if err := jc.Unmarshal(&config); err != nil {
+		logrus.WithError(err).Debug("TikTokTranscriber: Could not unmarshal job configuration, using all defaults")
 	}
-
-	if config.APIReferer == "" {
-		config.APIReferer = "https://submagic-free-tools.fly.dev/tiktok-transcription"
-		logrus.Info("TikTokTranscriber: APIReferer not configured, using default: ", config.APIReferer)
-	}
-
-	if config.APIUserAgent == "" {
-		config.APIUserAgent = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Mobile Safari/537.36"
-		logrus.Info("TikTokTranscriber: APIUserAgent not configured, using default.")
+	
+	// Ensure default language is set
+	if config.DefaultLanguage == "" {
+		config.DefaultLanguage = "eng-US"
 	}
 
 	httpClient := &http.Client{
