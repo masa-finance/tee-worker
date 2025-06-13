@@ -104,7 +104,11 @@ func readConfig() types.JobConfiguration {
 	}
 	jc["tiktok_default_language"] = tikTokLang
 
-	// TikTok API configuration now uses hardcoded defaults in NewTikTokTranscriber
+	// TikTok API Origin and Referer now use hardcoded defaults in NewTikTokTranscriber
+	
+	if userAgent := os.Getenv("TIKTOK_API_USER_AGENT"); userAgent != "" {
+		jc["tiktok_api_user_agent"] = userAgent
+	} // Default for userAgent is set in NewTikTokTranscriber
 
 	jc["stats_buf_size"] = statsBufSize()
 

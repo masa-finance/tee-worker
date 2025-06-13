@@ -50,16 +50,19 @@ func NewTikTokTranscriber(jc types.JobConfiguration, statsCollector *stats.Stats
 	config.TranscriptionEndpoint = tiktokTranscriptionEndpoint
 	config.APIOrigin = "https://submagic-free-tools.fly.dev"
 	config.APIReferer = "https://submagic-free-tools.fly.dev/tiktok-transcription"
-	config.APIUserAgent = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Mobile Safari/537.36"
 	
-	// Still get the default language from config if available
+	// Get configurable values from job configuration
 	if err := jc.Unmarshal(&config); err != nil {
 		logrus.WithError(err).Debug("TikTokTranscriber: Could not unmarshal job configuration, using all defaults")
 	}
 	
-	// Ensure default language is set
+	// Set defaults for configurable values if not provided
 	if config.DefaultLanguage == "" {
 		config.DefaultLanguage = "eng-US"
+	}
+	
+	if config.APIUserAgent == "" {
+		config.APIUserAgent = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Mobile Safari/537.36"
 	}
 	
 	// Log the actual configuration values being used
