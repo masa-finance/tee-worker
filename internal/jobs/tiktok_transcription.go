@@ -61,6 +61,15 @@ func NewTikTokTranscriber(jc types.JobConfiguration, statsCollector *stats.Stats
 	if config.DefaultLanguage == "" {
 		config.DefaultLanguage = "eng-US"
 	}
+	
+	// Log the actual configuration values being used
+	logrus.WithFields(logrus.Fields{
+		"transcription_endpoint": config.TranscriptionEndpoint,
+		"api_origin":            config.APIOrigin,
+		"api_referer":           config.APIReferer,
+		"api_user_agent":        config.APIUserAgent,
+		"default_language":      config.DefaultLanguage,
+	}).Info("TikTokTranscriber initialized with configuration")
 
 	httpClient := &http.Client{
 		Timeout: 30 * time.Second, // Sensible default timeout
