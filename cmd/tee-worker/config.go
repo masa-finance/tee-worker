@@ -104,14 +104,8 @@ func readConfig() types.JobConfiguration {
 	}
 	jc["tiktok_default_language"] = tikTokLang
 
-	if origin := os.Getenv("TIKTOK_API_ORIGIN"); origin != "" {
-		jc["tiktok_api_origin"] = origin
-	} // Default for origin will be set in NewTikTokTranscriber if default endpoint is used
-
-	if referer := os.Getenv("TIKTOK_API_REFERER"); referer != "" {
-		jc["tiktok_api_referer"] = referer
-	} // Default for referer will be set in NewTikTokTranscriber if default endpoint is used
-
+	// TikTok API Origin and Referer now use hardcoded defaults in NewTikTokTranscriber
+	
 	if userAgent := os.Getenv("TIKTOK_API_USER_AGENT"); userAgent != "" {
 		jc["tiktok_api_user_agent"] = userAgent
 	} // Default for userAgent is set in NewTikTokTranscriber
