@@ -111,6 +111,10 @@ func (kr *KeyRing) ValidateAndPrune() int {
 
 	pruned := 0
 	if len(kr.Keys) > MaxKeysInRing {
+		// Sort keys by InsertedAt in descending order
+		sort.Slice(kr.Keys, func(i, j int) bool {
+			return kr.Keys[i].InsertedAt.After(kr.Keys[j].InsertedAt)
+		})
 		pruned = len(kr.Keys) - MaxKeysInRing
 		kr.Keys = kr.Keys[:MaxKeysInRing]
 		logrus.Warnf("Pruned %d excess keys from keyring to enforce %d key limit", pruned, MaxKeysInRing)
