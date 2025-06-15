@@ -14,7 +14,8 @@ import (
 
 const (
 	// MaxKeysInRing is the number of keys to keep in the ring buffer
-	MaxKeysInRing = 3
+	// Limited to 2 keys to prevent job recycling and replay attacks
+	MaxKeysInRing = 2
 )
 
 // KeyEntry represents a single key in the key ring with metadata
@@ -101,13 +102,35 @@ func (kr *KeyRing) LatestKey() string {
 	return string(kr.Keys[0].Key)
 }
 
+// ValidateAndPrune ensures the keyring doesn't exceed the maximum allowed keys
+// If there are more than MaxKeysInRing keys, it keeps only the most recent ones
+// Returns the number of keys that were pruned
+func (kr *KeyRing) ValidateAndPrune() int {
+	kr.mu.Lock()
+	defer kr.mu.Unlock()
+
+	pruned := 0
+	if len(kr.Keys) > MaxKeysInRing {
+		pruned = len(kr.Keys) - MaxKeysInRing
+		kr.Keys = kr.Keys[:MaxKeysInRing]
+		logrus.Warnf("Pruned %d excess keys from keyring to enforce %d key limit", pruned, MaxKeysInRing)
+	}
+	return pruned
+}
+
+// Size returns the current number of keys in the ring
+func (kr *KeyRing) Size() int {
+	kr.mu.RLock()
+	defer kr.mu.RUnlock()
+	return len(kr.Keys)
+}
+
 // MostRecentKey returns the most recent key, or empty string if no keys
 // Deprecated: Use LatestKey instead
 func (kr *KeyRing) MostRecentKey() string {
 	// For backward compatibility
 	return kr.LatestKey()
 }
-
 
 // Decrypt attempts to decrypt with all keys in the ring
 // Parameters:
