@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
-	"sort"
 	"strings"
 	"sync"
 	"time"
