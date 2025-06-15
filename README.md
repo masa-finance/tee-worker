@@ -147,6 +147,10 @@ tee.CurrentKeyRing = keyRing
 2. The sealing mechanism uses the TEE's product key in production mode
 3. Key rings help manage multiple encryption keys and support key rotation
 4. Salt-based key derivation adds an extra layer of security by deriving unique keys for different contexts
+5. **Security Enhancement**: The keyring is now limited to a maximum of 2 keys per worker
+   - This restriction prevents job recycling and potential replay attacks
+   - Workers with more than 2 keys will be automatically pruned to the 2 most recent keys
+   - The system enforces this limit when adding new keys and during startup validation
 
 ## API
 
