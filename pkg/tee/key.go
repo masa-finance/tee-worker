@@ -46,6 +46,8 @@ func SetKeyBytes(datadir string, keyBytes []byte, signatureBytes []byte) error {
 	
 	if added {
 		logrus.Info("Key added to ring (not persisted to disk for security)")
+		// Validate the keyring after adding to ensure compliance
+		CurrentKeyRing.ValidateAndPrune()
 	}
 
 	return nil

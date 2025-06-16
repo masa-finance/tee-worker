@@ -70,6 +70,11 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 
 	// Initialize empty key ring
 	tee.CurrentKeyRing = tee.NewKeyRing()
+	
+	// Validate keyring to ensure it doesn't exceed the maximum allowed keys
+	if tee.CurrentKeyRing != nil {
+		tee.CurrentKeyRing.ValidateAndPrune()
+	}
 
 	// Routes
 
