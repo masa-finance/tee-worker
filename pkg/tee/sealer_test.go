@@ -184,7 +184,9 @@ var _ = Describe("Key Ring Decryption", func() {
 		})
 
 		It("should decrypt successfully with each key", func() {
-			for _, key := range keys {
+			// Only test with the keys that are actually in the ring (last 2 keys due to MaxKeysInRing=2)
+			actualKeys := kr.GetAllKeys()
+			for _, key := range actualKeys {
 				// Use a temporary key ring with just this key
 				tempKR := NewKeyRing()
 				tempKR.Add(key)
@@ -193,6 +195,8 @@ var _ = Describe("Key Ring Decryption", func() {
 				sealed, err := SealWithKey(testSalt, testPlaintext)
 				Expect(err).NotTo(HaveOccurred())
 
+				// Reset CurrentKeyRing to the original kr for decryption
+				CurrentKeyRing = kr
 				decrypted, err := kr.Decrypt(testSalt, sealed)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(decrypted).To(Equal(testPlaintext))
