@@ -6,10 +6,31 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/masa-finance/tee-worker/api/types"
 )
+
+var httpClient *http.Client
+var once sync.Once
+
+func getHttpClient(opts *Options) *http.Client {
+	once.Do(func() {
+		httpClient = &http.Client{
+			Timeout: opts.Timeout,
+		}
+
+		t := http.DefaultTransport.(*http.Transport).Clone()
+		t.IdleConnTimeout = opts.IdleConnTimeout
+		t.MaxIdleConns = opts.MaxIdleConns
+		t.MaxIdleConnsPerHost = opts.MaxIdleConnsPerHost
+		t.MaxConnsPerHost = opts.MaxConnsPerHost
+		t.TLSClientConfig.InsecureSkipVerify = opts.ignoreTLSCert
+		httpClient.Transport = t
+	})
+	return httpClient
+}
 
 // Client represents a client to interact with the job server.
 type Client struct {
@@ -32,21 +53,10 @@ func NewClient(baseURL string, opts ...Option) (*Client, error) {
 		return nil, err
 	}
 	c := &Client{
-		BaseURL: baseURL,
-		options: options,
-		HTTPClient: &http.Client{
-			Timeout: options.Timeout,
-		},
+		BaseURL:    baseURL,
+		options:    options,
+		HTTPClient: getHttpClient(options),
 	}
-
-	t := http.DefaultTransport.(*http.Transport).Clone()
-	t.IdleConnTimeout = options.IdleConnTimeout
-	t.MaxIdleConns = options.MaxIdleConns
-	t.MaxIdleConnsPerHost = options.MaxIdleConnsPerHost
-	t.MaxConnsPerHost = options.MaxConnsPerHost
-	t.TLSClientConfig.InsecureSkipVerify = options.ignoreTLSCert
-
-	c.HTTPClient.Transport = t
 
 	return c, nil
 }
