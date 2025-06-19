@@ -31,22 +31,12 @@ func NewClient(baseURL string, opts ...Option) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	c := &Client{
-		BaseURL: baseURL,
-		options: options,
-		HTTPClient: &http.Client{
-			Timeout: options.Timeout,
-		},
+		BaseURL:    baseURL,
+		options:    options,
+		HTTPClient: options.HttpClient,
 	}
-
-	t := http.DefaultTransport.(*http.Transport).Clone()
-	t.IdleConnTimeout = options.IdleConnTimeout
-	t.MaxIdleConns = options.MaxIdleConns
-	t.MaxIdleConnsPerHost = options.MaxIdleConnsPerHost
-	t.MaxConnsPerHost = options.MaxConnsPerHost
-	t.TLSClientConfig.InsecureSkipVerify = options.ignoreTLSCert
-
-	c.HTTPClient.Transport = t
 
 	return c, nil
 }
