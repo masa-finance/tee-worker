@@ -6,31 +6,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/masa-finance/tee-worker/api/types"
 )
-
-var httpClient *http.Client
-var once sync.Once
-
-func getHttpClient(opts *Options) *http.Client {
-	once.Do(func() {
-		httpClient = &http.Client{
-			Timeout: opts.Timeout,
-		}
-
-		t := http.DefaultTransport.(*http.Transport).Clone()
-		t.IdleConnTimeout = opts.IdleConnTimeout
-		t.MaxIdleConns = opts.MaxIdleConns
-		t.MaxIdleConnsPerHost = opts.MaxIdleConnsPerHost
-		t.MaxConnsPerHost = opts.MaxConnsPerHost
-		t.TLSClientConfig.InsecureSkipVerify = opts.ignoreTLSCert
-		httpClient.Transport = t
-	})
-	return httpClient
-}
 
 // Client represents a client to interact with the job server.
 type Client struct {
@@ -46,16 +25,31 @@ func (c *Client) setAPIKeyHeader(req *http.Request) {
 	}
 }
 
-// NewClient creates a new Client instance.
-func NewClient(baseURL string, opts ...Option) (*Client, error) {
+// NewClient creates a new Client instance. It will use the given http.Client, or create a new one with the given options if you pass in nil.
+func NewClient(baseURL string, httpClient *http.Client, opts ...Option) (*Client, error) {
 	options, err := NewOptions(opts...)
 	if err != nil {
 		return nil, err
 	}
+
+	if httpClient == nil {
+		httpClient = &http.Client{
+			Timeout: options.Timeout,
+		}
+
+		t := http.DefaultTransport.(*http.Transport).Clone()
+		t.IdleConnTimeout = options.IdleConnTimeout
+		t.MaxIdleConns = options.MaxIdleConns
+		t.MaxIdleConnsPerHost = options.MaxIdleConnsPerHost
+		t.MaxConnsPerHost = options.MaxConnsPerHost
+		t.TLSClientConfig.InsecureSkipVerify = options.ignoreTLSCert
+		httpClient.Transport = t
+	}
+
 	c := &Client{
 		BaseURL:    baseURL,
 		options:    options,
-		HTTPClient: getHttpClient(options),
+		HTTPClient: httpClient,
 	}
 
 	return c, nil

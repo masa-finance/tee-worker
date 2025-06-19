@@ -38,7 +38,7 @@ var _ = Describe("API", func() {
 		// Wait for the server to start
 		Eventually(func() error {
 
-			c, err := client.NewClient("http://localhost:40912")
+			c, err := client.NewClient("http://localhost:40912", nil)
 			if err != nil {
 				return err
 			}
@@ -60,7 +60,7 @@ var _ = Describe("API", func() {
 		}, 10*time.Second).Should(Succeed())
 
 		// Initialize the client
-		clientInstance, _ = client.NewClient("http://localhost:40912")
+		clientInstance, _ = client.NewClient("http://localhost:40912", nil)
 	})
 
 	AfterEach(func() {

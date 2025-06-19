@@ -48,7 +48,7 @@ var _ = Describe("Client", func() {
 		}))
 
 		var err error
-		client, err = NewClient(mockServer.URL)
+		client, err = NewClient(mockServer.URL, nil)
 		Expect(err).NotTo(HaveOccurred())
 	})
 
