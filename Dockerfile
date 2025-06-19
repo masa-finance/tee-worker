@@ -13,6 +13,7 @@ COPY . .
 # Build the Go binary in a separate stage utilizing Makefile
 FROM dependencies AS builder
 
+ARG VERSION
 ENV VERSION=${VERSION}
 ARG DISTRIBUTOR_PUBKEY
 RUN DISTRIBUTOR_PUBKEY=${DISTRIBUTOR_PUBKEY} make build
@@ -48,4 +49,4 @@ ENV DATA_DIR=/home/masa
 EXPOSE 8080
 
 # Set default command to start the Go application
-CMD ego run /usr/bin/masa-tee-worker
+CMD ["ego", "run", "/usr/bin/masa-tee-worker"]

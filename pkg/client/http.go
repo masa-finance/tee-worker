@@ -25,31 +25,17 @@ func (c *Client) setAPIKeyHeader(req *http.Request) {
 	}
 }
 
-// NewClient creates a new Client instance. It will use the given http.Client, or create a new one with the given options if you pass in nil.
-func NewClient(baseURL string, httpClient *http.Client, opts ...Option) (*Client, error) {
+// NewClient creates a new Client instance.
+func NewClient(baseURL string, opts ...Option) (*Client, error) {
 	options, err := NewOptions(opts...)
 	if err != nil {
 		return nil, err
 	}
 
-	if httpClient == nil {
-		httpClient = &http.Client{
-			Timeout: options.Timeout,
-		}
-
-		t := http.DefaultTransport.(*http.Transport).Clone()
-		t.IdleConnTimeout = options.IdleConnTimeout
-		t.MaxIdleConns = options.MaxIdleConns
-		t.MaxIdleConnsPerHost = options.MaxIdleConnsPerHost
-		t.MaxConnsPerHost = options.MaxConnsPerHost
-		t.TLSClientConfig.InsecureSkipVerify = options.ignoreTLSCert
-		httpClient.Transport = t
-	}
-
 	c := &Client{
 		BaseURL:    baseURL,
 		options:    options,
-		HTTPClient: httpClient,
+		HTTPClient: options.HttpClient,
 	}
 
 	return c, nil

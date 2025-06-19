@@ -1,6 +1,9 @@
 package client
 
-import "time"
+import (
+	"net/http"
+	"time"
+)
 
 type Options struct {
 	ignoreTLSCert       bool
@@ -10,6 +13,7 @@ type Options struct {
 	MaxIdleConnsPerHost int
 	MaxIdleConns        int
 	IdleConnTimeout     time.Duration
+	HttpClient          *http.Client
 }
 
 type Option func(*Options) error
@@ -68,6 +72,14 @@ func IdleConnTimeout(timeout time.Duration) Option {
 	}
 }
 
+// HttpClient specifies the http.Client to use. If provided the rest of the connection options are ignored.
+func HttpClient(c *http.Client) Option {
+	return func(o *Options) error {
+		o.HttpClient = c
+		return nil
+	}
+}
+
 func NewOptions(opts ...Option) (*Options, error) {
 	o := &Options{
 		Timeout:             1 * time.Minute,
@@ -80,6 +92,22 @@ func NewOptions(opts ...Option) (*Options, error) {
 		if err := opt(o); err != nil {
 			return nil, err
 		}
+	}
+
+	if o.HttpClient == nil {
+		c := &http.Client{
+			Timeout: o.Timeout,
+		}
+
+		t := http.DefaultTransport.(*http.Transport).Clone()
+		t.IdleConnTimeout = o.IdleConnTimeout
+		t.MaxIdleConns = o.MaxIdleConns
+		t.MaxIdleConnsPerHost = o.MaxIdleConnsPerHost
+		t.MaxConnsPerHost = o.MaxConnsPerHost
+		t.TLSClientConfig.InsecureSkipVerify = o.ignoreTLSCert
+		c.Transport = t
+
+		o.HttpClient = c
 	}
 	return o, nil
 }
