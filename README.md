@@ -491,7 +491,12 @@ Searches LinkedIn profiles based on various criteria.
   * `"F"` - First-degree connections
   * `"S"` - Second-degree connections
   * `"O"` - Other/outside network
-  * Default: `["F", "S", "O"]` (all networks)
+  * Default: `["F", "S", "O"]` (all networks - broadest search)
+  * Examples:
+    * `["F"]` - Only your direct connections
+    * `["F", "S"]` - Your network (1st and 2nd degree)
+    * `["O"]` - Only people outside your network
+    * `[]` or not specified - All networks (default)
 * `max_results` (int): Maximum number of profiles to return (default: 10)
 * `start` (int): Pagination offset for results (default: 0)
 
