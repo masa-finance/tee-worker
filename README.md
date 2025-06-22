@@ -58,6 +58,9 @@ The tee-worker requires various environment variables for operation. These shoul
 - `TWITTER_SKIP_LOGIN_VERIFICATION`: Set to `true` to skip Twitter's login verification step. This can help avoid rate limiting issues with Twitter's verify_credentials API endpoint when running multiple workers or processing large volumes of requests.
 - `TIKTOK_DEFAULT_LANGUAGE`: Default language for TikTok transcriptions (default: `eng-US`).
 - `TIKTOK_API_USER_AGENT`: User-Agent header for TikTok API requests (default: standard mobile browser user agent).
+- `LINKEDIN_LI_AT_COOKIE`: LinkedIn li_at session cookie for authentication.
+- `LINKEDIN_CSRF_TOKEN`: LinkedIn CSRF token for API requests.
+- `LINKEDIN_JSESSIONID`: LinkedIn JSESSIONID cookie (optional but recommended).
 - `LISTEN_ADDRESS`: The address the service listens on (default: `:8080`).
 - `RESULT_CACHE_MAX_SIZE`: Maximum number of job results to keep in the result cache (default: `1000`).
 - `RESULT_CACHE_MAX_AGE_SECONDS`: Maximum age (in seconds) to keep a result in the cache (default: `600`).
@@ -161,6 +164,8 @@ The tee-worker exposes a simple HTTP API to submit jobs, retrieve results, and d
 - `twitter-scraper`: General Twitter content scraping
 - `twitter-credential-scraper`: Authenticated Twitter scraping
 - `twitter-api-scraper`: Uses Twitter API for data collection
+- `tiktok-transcription`: Transcribes TikTok videos
+- `linkedin-scraper`: Searches and collects LinkedIn profiles
 
 ### Example 1: Web Scraper
 
@@ -304,6 +309,42 @@ curl localhost:8080/job/result \
   }'
 ```
 
+### Example 5: LinkedIn Profile Search
+
+```bash
+# 1. Generate job signature for LinkedIn profile search
+SIG=$(curl -s "localhost:8080/job/generate" \
+  -H "Authorization: Bearer ${AUTH_TOKEN}" \
+  -X POST \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "linkedin-scraper",
+    "arguments": {
+      "type": "searchbyquery",
+      "query": "software engineer",
+      "network_filters": ["F", "S"],
+      "max_results": 10
+    }
+  }')
+
+# 2. Submit the job
+uuid=$(curl localhost:8080/job/add \
+  -H "Content-Type: application/json" \
+  -d '{ "encrypted_job": "'$SIG'" }' \
+  | jq -r .uid)
+
+# 3. Check job status
+result=$(curl localhost:8080/job/status/$uuid)
+
+# 4. Decrypt job results
+curl localhost:8080/job/result \
+  -H "Content-Type: application/json" \
+  -d '{
+    "encrypted_result": "'$result'", 
+    "encrypted_request": "'$SIG'" 
+  }'
+```
+
 ### Golang client
 
 It is available a simple golang client to interact with the API:
@@ -349,7 +390,7 @@ func main() {
 
 ### Job types
 
-The tee-worker currently supports 4 job types:
+The tee-worker currently supports 6 job types:
 
 **TODO:** Add descriptions of the return values.
 
@@ -436,6 +477,35 @@ Transcribes TikTok videos and extracts text from them.
 * `original_url` (string): The original video URL
 * `thumbnail_url` (string): URL to the video thumbnail (if available)
 
+#### `linkedin-scraper`
+
+Searches LinkedIn profiles based on various criteria.
+
+**Arguments**
+
+* `type` (string): Type of search operation. Currently supports:
+  * `searchbyquery` - Search profiles by keywords
+  * `getprofile` - Get detailed profile information (future feature)
+* `query` (string): The search keywords (e.g., "software engineer", "product manager")
+* `network_filters` (array of strings, optional): Filter by network connection degree:
+  * `"F"` - First-degree connections
+  * `"S"` - Second-degree connections
+  * `"O"` - Other/outside network
+  * Default: `["F", "S", "O"]` (all networks)
+* `max_results` (int): Maximum number of profiles to return (default: 10)
+* `start` (int): Pagination offset for results (default: 0)
+
+**Returns**
+
+An array of profile objects, each containing:
+* `public_identifier` (string): The LinkedIn username/profile slug
+* `urn` (string): LinkedIn's unique resource name for the profile
+* `full_name` (string): The person's full name
+* `headline` (string): Professional headline/title
+* `location` (string): Geographic location
+* `profile_url` (string): Full LinkedIn profile URL
+* `degree` (string, optional): Connection degree (e.g., "1st", "2nd")
+
 #### `telemetry`
 
 This job type has no parameters, and returns the current state of the worker. It returns an object with the following fields. All timestamps are given in local time, in seconds since the Unix epoch (1/1/1970 00:00:00 UTC). The counts represent the interval between the `boot_time` and the `current_time`. All the fields in the `stats` object are optional (if they are missing it means that its value is 0).
@@ -457,6 +527,11 @@ These are the fields in the response:
 * `stats.web_success` - Number of successful web scrapes.
 * `stats.web_errors` - Number of web scrapes that resulted in an error.
 * `stats.web_invalid` - Number of invalid web scrape requests (at the moment, blacklisted domains).
+* `stats.linkedin_scrapes` - Total number of LinkedIn scrapes.
+* `stats.linkedin_returned_profiles` - Number of LinkedIn profiles returned to clients.
+* `stats.linkedin_errors` - Number of errors while scraping LinkedIn (excluding authentication and rate-limiting).
+* `stats.linkedin_ratelimit_errors` - Number of LinkedIn rate-limiting errors.
+* `stats.linkedin_auth_errors` - Number of LinkedIn authentication errors.
 
 ## Profiling
 
