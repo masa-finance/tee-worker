@@ -61,14 +61,27 @@ The tee-worker requires various environment variables for operation. These shoul
 - `LISTEN_ADDRESS`: The address the service listens on (default: `:8080`).
 - `RESULT_CACHE_MAX_SIZE`: Maximum number of job results to keep in the result cache (default: `1000`).
 - `RESULT_CACHE_MAX_AGE_SECONDS`: Maximum age (in seconds) to keep a result in the cache (default: `600`).
-- `CAPABILITIES`: Comma-separated list of capabilities to enable for the worker. This is a security feature to limit the actions the worker can perform. The default is `*` which allows all actions. If not set, the worker will automatically determine the capabilities (auto-detection) based on the provided Twitter credentials and API keys.  Note that this is an optional feature and it will override the capabilities that were set by the auto-detection.
+- `CAPABILITIES`: Comma-separated list of capabilities to enable for the worker. This is a security feature to limit the actions the worker can perform. If not set, the worker will automatically determine the capabilities (auto-detection) based on the provided credentials and available features. When set, manual capabilities are combined with auto-detected capabilities in telemetry reports, ensuring complete visibility of the worker's actual capabilities.
 - `JOB_TIMEOUT_SECONDS`: Maximum duration of a job when multiple calls are needed to get the number of results requested (default: `300`).
 
 ### Capabilities
 
-The `CAPABILITIES` environment variable defines the actions the worker can perform. This is a security feature to limit the actions the worker can perform. The default is `*` which allows all actions.
+The `CAPABILITIES` environment variable defines the actions the worker can perform. This is a security feature to limit the actions the worker can perform.
 
-Note that this is an optional feature. If not set, the worker will automatically determine the capabilities based on the provided Twitter credentials and API keys.
+**Capability Detection and Reporting:**
+
+1. **Auto-detection**: If `CAPABILITIES` is not set, the worker automatically detects available capabilities based on:
+   - Twitter credentials (username:password pairs) - enables credential-based features
+   - Twitter API keys - enables API-based features
+   - Available services (web scraper, TikTok transcription, telemetry)
+
+2. **Manual Configuration**: When `CAPABILITIES` is set, it specifies additional capabilities beyond auto-detected ones.
+
+3. **Combined Reporting**: The telemetry report includes both manually configured and auto-detected capabilities, providing complete visibility of the worker's actual capabilities. For example:
+   - If `CAPABILITIES="all"` and Twitter credentials are configured, telemetry will report: `["all", "searchbyquery", "getbyid", ...]`
+   - This ensures transparency in resource allocation and worker evaluation within the MASA ecosystem.
+
+**Supported Capabilities:**
 
 - `*`: All capabilities (default).
 - `all`: All capabilities. Same as `*`.

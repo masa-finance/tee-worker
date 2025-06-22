@@ -2,11 +2,11 @@ package stats
 
 import (
 	"encoding/json"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/masa-finance/tee-worker/api/types"
+	"github.com/masa-finance/tee-worker/internal/capabilities"
 	"github.com/masa-finance/tee-worker/internal/versioning"
 	"github.com/sirupsen/logrus"
 )
@@ -69,15 +69,16 @@ func StartCollector(bufSize uint, jc types.JobConfiguration) *StatsCollector {
 		ReportedCapabilities: []string{},
 	}
 
-	capabilities, isString := jc["capabilities"].(string)
-	if isString {
-		if strings.Contains(capabilities, ",") {
-			s.ReportedCapabilities = strings.Split(capabilities, ",")
-		} else {
-			s.ReportedCapabilities = []string{capabilities}
-		}
-		logrus.Infof("Capabilities: %v", s.ReportedCapabilities)
-	}
+	// Get manual capabilities from environment
+	manualCapabilities, _ := jc["capabilities"].(string)
+	
+	// Auto-detect capabilities based on configuration
+	detectedCapabilities := capabilities.DetectCapabilities(jc)
+	
+	// Merge manual and auto-detected capabilities
+	s.ReportedCapabilities = capabilities.MergeCapabilities(manualCapabilities, detectedCapabilities)
+	
+	logrus.Infof("Reported capabilities (manual + auto-detected): %v", s.ReportedCapabilities)
 
 	ch := make(chan AddStat, bufSize)
 
