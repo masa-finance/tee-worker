@@ -13,7 +13,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/labstack/echo-contrib v0.17.3
 	github.com/labstack/echo/v4 v4.13.3
-	github.com/masa-finance/linkedin-scraper v0.0.0-00010101000000-000000000000
+	github.com/masa-finance/linkedin-scraper v0.0.0-20250521001738-938863f87ba0
 	github.com/masa-finance/tee-types v0.0.0-20250611133543-a2cc5911f7ca
 	github.com/onsi/ginkgo/v2 v2.23.4
 	github.com/onsi/gomega v1.37.0
@@ -30,6 +30,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
+	go.uber.org/automaxprocs v1.6.0 // indirect
 )
 
 require (
