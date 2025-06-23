@@ -23,8 +23,6 @@ require (
 
 replace github.com/imperatrona/twitter-scraper => github.com/masa-finance/twitter-scraper v1.0.1
 
-replace github.com/masa-finance/linkedin-scraper => ../linkedin-scraper
-
 require (
 	github.com/AlexEidt/Vidio v1.5.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
