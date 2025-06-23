@@ -152,8 +152,8 @@ func (ls *LinkedInScraper) searchProfiles(j types.Job, client *linkedinscraper.C
 			Headline:         profile.Headline,
 			Location:         profile.Location,
 			ProfileURL:       profile.ProfileURL,
-			// Extract degree from BadgeText if available
-			Degree: extractDegree(profile.BadgeText),
+			// Degree field will be empty for now since BadgeText is not available
+			Degree: "",
 		}
 		results = append(results, result)
 	}
@@ -166,14 +166,4 @@ func (ls *LinkedInScraper) searchProfiles(j types.Job, client *linkedinscraper.C
 	}
 
 	return types.JobResult{Data: data}, nil
-}
-
-// extractDegree extracts the connection degree from badge text like "• 2nd"
-func extractDegree(badgeText string) string {
-	if badgeText == "" {
-		return ""
-	}
-	// Remove bullet point and trim
-	degree := strings.TrimSpace(strings.TrimPrefix(badgeText, "•"))
-	return degree
 }
