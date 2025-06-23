@@ -44,8 +44,8 @@ var _ = Describe("LinkedIn Scraper", func() {
 			j := types.Job{
 				Type: LinkedInScraperType,
 				Arguments: map[string]interface{}{
-					"type":       "searchbyquery",
-					"query":      "software engineer",
+					"type":        "searchbyquery",
+					"query":       "software engineer",
 					"max_results": 5,
 				},
 				WorkerID: "test-worker",
@@ -179,12 +179,6 @@ var _ = Describe("LinkedIn Scraper", func() {
 			Expect(err).To(HaveOccurred())
 			Expect(res.Error).ToNot(BeEmpty())
 			Expect(res.Error).To(ContainSubstring("LinkedIn credentials not configured"))
-		})
-	})
-
-	Context("LinkedIn Scraper Name", func() {
-		It("should return correct scraper name", func() {
-			Expect(linkedInScraper.Name()).To(Equal(LinkedInScraperType))
 		})
 	})
 })

@@ -14,7 +14,7 @@ require (
 	github.com/labstack/echo-contrib v0.17.3
 	github.com/labstack/echo/v4 v4.13.3
 	github.com/masa-finance/linkedin-scraper v0.0.0-20250521001738-938863f87ba0
-	github.com/masa-finance/tee-types v0.0.0-20250611133543-a2cc5911f7ca
+	github.com/masa-finance/tee-types v0.0.0-20250622192810-d1bd5096ee39
 	github.com/onsi/ginkgo/v2 v2.23.4
 	github.com/onsi/gomega v1.37.0
 	github.com/sirupsen/logrus v1.9.3
