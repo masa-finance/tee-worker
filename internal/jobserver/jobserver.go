@@ -98,7 +98,7 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 
 	// Return the JobServer instance
 	logrus.Info("JobServer initialization complete.")
-	return &JobServer{
+	js := &JobServer{
 		jobChan: make(chan types.Job),
 		// TODO The defaults here should come from config.go, but during tests the config is not necessarily read
 		results:          NewResultCache(jc.GetInt("result_cache_max_size", 1000), jc.GetDuration("result_cache_max_age_seconds", 600)),
@@ -107,6 +107,31 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 		jobWorkers:       jobworkers,
 		executedJobs:     make(map[string]bool),
 	}
+	
+	// Set the JobServer reference in the stats collector for capability reporting
+	if s != nil {
+		s.SetJobServer(js)
+	}
+	
+	return js
+}
+
+// CapabilityProvider is an interface for workers that can report their capabilities
+type CapabilityProvider interface {
+	GetCapabilities() []string
+}
+
+// GetWorkerCapabilities returns the capabilities for all registered workers
+func (js *JobServer) GetWorkerCapabilities() map[string][]string {
+	capabilities := make(map[string][]string)
+	
+	for workerType, workerEntry := range js.jobWorkers {
+		if provider, ok := workerEntry.w.(CapabilityProvider); ok {
+			capabilities[workerType] = provider.GetCapabilities()
+		}
+	}
+	
+	return capabilities
 }
 
 func (js *JobServer) Run(ctx context.Context) {

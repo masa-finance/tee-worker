@@ -2,11 +2,11 @@ package stats
 
 import (
 	"encoding/json"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/masa-finance/tee-worker/api/types"
+	"github.com/masa-finance/tee-worker/internal/capabilities"
 	"github.com/masa-finance/tee-worker/internal/versioning"
 	"github.com/sirupsen/logrus"
 )
@@ -53,8 +53,10 @@ type stats struct {
 
 // StatsCollector is the object used to collect statistics
 type StatsCollector struct {
-	Stats *stats
-	Chan  chan AddStat
+	Stats            *stats
+	Chan             chan AddStat
+	jobServer        capabilities.JobServerInterface
+	jobConfiguration types.JobConfiguration
 }
 
 // StartCollector starts a goroutine that listens to a channel for AddStat messages and updates the stats accordingly.
@@ -69,15 +71,17 @@ func StartCollector(bufSize uint, jc types.JobConfiguration) *StatsCollector {
 		ReportedCapabilities: []string{},
 	}
 
-	capabilities, isString := jc["capabilities"].(string)
-	if isString {
-		if strings.Contains(capabilities, ",") {
-			s.ReportedCapabilities = strings.Split(capabilities, ",")
-		} else {
-			s.ReportedCapabilities = []string{capabilities}
-		}
-		logrus.Infof("Capabilities: %v", s.ReportedCapabilities)
-	}
+	// Get manual capabilities from environment
+	manualCapabilities, _ := jc["capabilities"].(string)
+	
+	// Initial capability detection without JobServer (basic capabilities only)
+	// Full capability detection will happen when JobServer is set
+	detectedCapabilities := capabilities.DetectCapabilities(jc, nil)
+	
+	// Merge manual and auto-detected capabilities
+	s.ReportedCapabilities = capabilities.MergeCapabilities(manualCapabilities, detectedCapabilities)
+	
+	logrus.Infof("Initial capabilities (manual + basic auto-detected): %v", s.ReportedCapabilities)
 
 	ch := make(chan AddStat, bufSize)
 
@@ -99,7 +103,7 @@ func StartCollector(bufSize uint, jc types.JobConfiguration) *StatsCollector {
 		}
 	}(&s, ch)
 
-	return &StatsCollector{Stats: &s, Chan: ch}
+	return &StatsCollector{Stats: &s, Chan: ch, jobConfiguration: jc}
 }
 
 // Json returns the current statistics as a JSON byte array
@@ -120,4 +124,24 @@ func (s *StatsCollector) SetWorkerID(workerID string) {
 	s.Stats.Lock()
 	defer s.Stats.Unlock()
 	s.Stats.WorkerID = workerID
+}
+
+// SetJobServer sets the JobServer reference and updates capabilities with full detection
+func (s *StatsCollector) SetJobServer(js capabilities.JobServerInterface) {
+	s.jobServer = js
+	
+	// Now that we have the JobServer, update capabilities with full detection
+	s.Stats.Lock()
+	defer s.Stats.Unlock()
+	
+	// Get manual capabilities from job configuration
+	manualCapabilities, _ := s.jobConfiguration["capabilities"].(string)
+	
+	// Auto-detect capabilities using the JobServer
+	detectedCapabilities := capabilities.DetectCapabilities(s.jobConfiguration, js)
+	
+	// Merge manual and auto-detected capabilities
+	s.Stats.ReportedCapabilities = capabilities.MergeCapabilities(manualCapabilities, detectedCapabilities)
+	
+	logrus.Infof("Updated capabilities with full detection (manual + worker-reported): %v", s.Stats.ReportedCapabilities)
 }
