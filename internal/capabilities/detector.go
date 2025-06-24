@@ -4,110 +4,58 @@ import (
 	"strings"
 
 	"github.com/masa-finance/tee-worker/api/types"
-	"github.com/sirupsen/logrus"
 )
 
+// JobServerInterface defines the methods we need from JobServer to avoid circular dependencies
+type JobServerInterface interface {
+	GetWorkerCapabilities() map[string][]string
+}
+
 // DetectCapabilities automatically detects available capabilities based on configuration
-func DetectCapabilities(jc types.JobConfiguration) []string {
+// If jobServer is provided, it will use the actual worker capabilities
+func DetectCapabilities(jc types.JobConfiguration, jobServer JobServerInterface) []string {
 	var detected []string
-
-	// Check for Twitter capabilities
-	if twitterCapabilities := detectTwitterCapabilities(jc); len(twitterCapabilities) > 0 {
-		detected = append(detected, twitterCapabilities...)
+	
+	// If we have a JobServer, get capabilities directly from the workers
+	if jobServer != nil {
+		workerCaps := jobServer.GetWorkerCapabilities()
+		for _, caps := range workerCaps {
+			detected = append(detected, caps...)
+		}
+		return detected
 	}
-
-	// Check for TikTok capabilities
-	if tiktokCapabilities := detectTikTokCapabilities(jc); len(tiktokCapabilities) > 0 {
-		detected = append(detected, tiktokCapabilities...)
+	
+	// Fallback to basic detection if no JobServer is available
+	// This maintains backward compatibility and is used during initialization
+	
+	// Always available capabilities
+	detected = append(detected, "web-scraper", "telemetry", "tiktok-transcription")
+	
+	// Check for Twitter capabilities based on credentials
+	if accounts, ok := jc["twitter_accounts"].([]string); ok && len(accounts) > 0 {
+		// Basic Twitter capabilities when accounts are available
+		detected = append(detected, "searchbyquery", "getbyid", "getprofilebyid")
 	}
-
-	// Check for web scraper capabilities (always available)
-	detected = append(detected, "web-scraper")
-
-	// Check for telemetry capabilities (always available)
-	detected = append(detected, "telemetry")
-
+	
+	if apiKeys, ok := jc["twitter_api_keys"].([]string); ok && len(apiKeys) > 0 {
+		// Basic API capabilities
+		if !contains(detected, "searchbyquery") {
+			detected = append(detected, "searchbyquery", "getbyid", "getprofilebyid")
+		}
+	}
+	
 	return detected
 }
 
-// detectTwitterCapabilities detects Twitter capabilities based on available credentials
-func detectTwitterCapabilities(jc types.JobConfiguration) []string {
-	var capabilities []string
-
-	// Check for Twitter accounts (username:password pairs)
-	if accounts, ok := jc["twitter_accounts"].([]string); ok && len(accounts) > 0 {
-		// For now, we'll check if accounts are in the correct format (username:password)
-		validAccounts := 0
-		for _, acc := range accounts {
-			if strings.Contains(acc, ":") {
-				validAccounts++
-			}
-		}
-		if validAccounts > 0 {
-			// Credential-based capabilities
-			capabilities = append(capabilities,
-				"searchbyquery",
-				"searchbyprofile",
-				"searchfollowers",
-				"getbyid",
-				"getreplies",
-				"getretweeters",
-				"gettweets",
-				"getmedia",
-				"gethometweets",
-				"getforyoutweets",
-				"getbookmarks",
-				"getprofilebyid",
-				"gettrends",
-				"getfollowing",
-				"getfollowers",
-				"getspace",
-			)
-			logrus.Debug("Detected Twitter credential-based capabilities")
-		}
-	}
-
-	// Check for Twitter API keys
-	if apiKeys, ok := jc["twitter_api_keys"].([]string); ok && len(apiKeys) > 0 {
-		// API-based capabilities (subset of credential-based)
-		if !hasCapability(capabilities, "searchbyquery") {
-			capabilities = append(capabilities,
-				"searchbyquery",
-				"getbyid",
-				"getprofilebyid",
-			)
-		}
-
-		// For elevated API detection, we'll need to create API keys and check their type
-		// This requires making API calls, so we'll add a note that full archive search
-		// capability detection happens at runtime
-		logrus.Debug("Detected Twitter API-based capabilities (full archive detection happens at runtime)")
-
-		// Note: In a production implementation, you might want to cache the API key types
-		// to avoid making API calls during capability detection. For now, we'll assume
-		// that if API keys are present, basic search is available, and elevated access
-		// will be determined when the Twitter scraper is initialized.
-	}
-
-	return capabilities
-}
-
-// detectTikTokCapabilities detects TikTok capabilities based on configuration
-func detectTikTokCapabilities(_ types.JobConfiguration) []string {
-	// TikTok transcription is always available as it doesn't require authentication
-	// The capability is based on the worker's ability to process TikTok URLs
-	return []string{"tiktok-transcription"}
-}
-
-// hasCapability checks if a capability already exists in the list
-func hasCapability(capabilities []string, capability string) bool {
-	for _, c := range capabilities {
-		if c == capability {
+func contains(slice []string, item string) bool {
+	for _, s := range slice {
+		if s == item {
 			return true
 		}
 	}
 	return false
 }
+
 
 // MergeCapabilities combines manual and auto-detected capabilities
 func MergeCapabilities(manual string, detected []string) []string {

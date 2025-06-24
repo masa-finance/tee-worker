@@ -16,6 +16,11 @@ func NewTelemetryJob(jc types.JobConfiguration, c *stats.StatsCollector) Telemet
 	return TelemetryJob{collector: c}
 }
 
+// GetCapabilities returns the capabilities supported by the telemetry job
+func (t TelemetryJob) GetCapabilities() []string {
+	return []string{"telemetry"}
+}
+
 func (t TelemetryJob) ExecuteJob(j types.Job) (types.JobResult, error) {
 	logrus.Debug("Executing telemetry job")
 

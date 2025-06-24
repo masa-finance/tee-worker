@@ -8,52 +8,32 @@ import (
 	"github.com/masa-finance/tee-worker/api/types"
 )
 
+// MockJobServer implements JobServerInterface for testing
+type MockJobServer struct {
+	capabilities map[string][]string
+}
+
+func (m *MockJobServer) GetWorkerCapabilities() map[string][]string {
+	return m.capabilities
+}
+
 func TestDetectCapabilities(t *testing.T) {
 	tests := []struct {
 		name     string
 		jc       types.JobConfiguration
+		jobServer JobServerInterface
 		expected []string
 	}{
 		{
-			name: "No credentials",
+			name: "With JobServer - gets capabilities from workers",
 			jc:   types.JobConfiguration{},
-			expected: []string{
-				"web-scraper",
-				"telemetry",
-				"tiktok-transcription",
-			},
-		},
-		{
-			name: "Twitter accounts only",
-			jc: types.JobConfiguration{
-				"twitter_accounts": []string{"user1:pass1", "user2:pass2"},
-			},
-			expected: []string{
-				"web-scraper",
-				"telemetry",
-				"tiktok-transcription",
-				"searchbyquery",
-				"searchbyprofile",
-				"searchfollowers",
-				"getbyid",
-				"getreplies",
-				"getretweeters",
-				"gettweets",
-				"getmedia",
-				"gethometweets",
-				"getforyoutweets",
-				"getbookmarks",
-				"getprofilebyid",
-				"gettrends",
-				"getfollowing",
-				"getfollowers",
-				"getspace",
-			},
-		},
-		{
-			name: "Twitter API keys only",
-			jc: types.JobConfiguration{
-				"twitter_api_keys": []string{"key1", "key2"},
+			jobServer: &MockJobServer{
+				capabilities: map[string][]string{
+					"web-scraper": {"web-scraper"},
+					"telemetry": {"telemetry"},
+					"tiktok-transcription": {"tiktok-transcription"},
+					"twitter-scraper": {"searchbyquery", "getbyid", "getprofilebyid"},
+				},
 			},
 			expected: []string{
 				"web-scraper",
@@ -65,49 +45,50 @@ func TestDetectCapabilities(t *testing.T) {
 			},
 		},
 		{
-			name: "Both Twitter accounts and API keys",
+			name: "Without JobServer - basic capabilities only",
+			jc:   types.JobConfiguration{},
+			jobServer: nil,
+			expected: []string{
+				"web-scraper",
+				"telemetry",
+				"tiktok-transcription",
+			},
+		},
+		{
+			name: "Without JobServer - with Twitter accounts",
 			jc: types.JobConfiguration{
 				"twitter_accounts": []string{"user1:pass1"},
-				"twitter_api_keys": []string{"key1"},
 			},
+			jobServer: nil,
 			expected: []string{
 				"web-scraper",
 				"telemetry",
 				"tiktok-transcription",
 				"searchbyquery",
-				"searchbyprofile",
-				"searchfollowers",
 				"getbyid",
-				"getreplies",
-				"getretweeters",
-				"gettweets",
-				"getmedia",
-				"gethometweets",
-				"getforyoutweets",
-				"getbookmarks",
 				"getprofilebyid",
-				"gettrends",
-				"getfollowing",
-				"getfollowers",
-				"getspace",
 			},
 		},
 		{
-			name: "Invalid Twitter account format",
+			name: "Without JobServer - with Twitter API keys",
 			jc: types.JobConfiguration{
-				"twitter_accounts": []string{"invalid_format"},
+				"twitter_api_keys": []string{"key1"},
 			},
+			jobServer: nil,
 			expected: []string{
 				"web-scraper",
 				"telemetry",
 				"tiktok-transcription",
+				"searchbyquery",
+				"getbyid",
+				"getprofilebyid",
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := DetectCapabilities(tt.jc)
+			got := DetectCapabilities(tt.jc, tt.jobServer)
 			
 			// Sort both slices for comparison
 			sort.Strings(got)
@@ -169,40 +150,6 @@ func TestMergeCapabilities(t *testing.T) {
 			
 			if !reflect.DeepEqual(got, tt.expected) {
 				t.Errorf("MergeCapabilities() = %v, want %v", got, tt.expected)
-			}
-		})
-	}
-}
-
-func TestHasCapability(t *testing.T) {
-	capabilities := []string{"searchbyquery", "getbyid", "web-scraper"}
-	
-	tests := []struct {
-		name       string
-		capability string
-		expected   bool
-	}{
-		{
-			name:       "Existing capability",
-			capability: "searchbyquery",
-			expected:   true,
-		},
-		{
-			name:       "Non-existing capability",
-			capability: "searchbyfullarchive",
-			expected:   false,
-		},
-		{
-			name:       "Empty capability",
-			capability: "",
-			expected:   false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := hasCapability(capabilities, tt.capability); got != tt.expected {
-				t.Errorf("hasCapability() = %v, want %v", got, tt.expected)
 			}
 		})
 	}

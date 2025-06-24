@@ -36,6 +36,11 @@ func NewWebScraper(jc types.JobConfiguration, statsCollector *stats.StatsCollect
 	}
 }
 
+// GetCapabilities returns the capabilities supported by the web scraper
+func (ws *WebScraper) GetCapabilities() []string {
+	return []string{"web-scraper"}
+}
+
 func (ws *WebScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 	logrus.Info("Starting ExecuteJob for web scraper")
 
