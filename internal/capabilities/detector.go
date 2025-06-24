@@ -1,6 +1,7 @@
 package capabilities
 
 import (
+	"golang.org/x/exp/slices"
 	"strings"
 
 	"github.com/masa-finance/tee-worker/api/types"
@@ -15,7 +16,7 @@ type JobServerInterface interface {
 // If jobServer is provided, it will use the actual worker capabilities
 func DetectCapabilities(jc types.JobConfiguration, jobServer JobServerInterface) []string {
 	var detected []string
-	
+
 	// If we have a JobServer, get capabilities directly from the workers
 	if jobServer != nil {
 		workerCaps := jobServer.GetWorkerCapabilities()
@@ -24,49 +25,35 @@ func DetectCapabilities(jc types.JobConfiguration, jobServer JobServerInterface)
 		}
 		return detected
 	}
-	
+
 	// Fallback to basic detection if no JobServer is available
 	// This maintains backward compatibility and is used during initialization
-	
+
 	// Always available capabilities
 	detected = append(detected, "web-scraper", "telemetry", "tiktok-transcription")
-	
+
 	// Check for Twitter capabilities based on credentials
 	if accounts, ok := jc["twitter_accounts"].([]string); ok && len(accounts) > 0 {
 		// Basic Twitter capabilities when accounts are available
 		detected = append(detected, "searchbyquery", "getbyid", "getprofilebyid")
 	}
-	
+
 	if apiKeys, ok := jc["twitter_api_keys"].([]string); ok && len(apiKeys) > 0 {
 		// Basic API capabilities
-		if !contains(detected, "searchbyquery") {
+		if !slices.Contains(detected, "searchbyquery") {
 			detected = append(detected, "searchbyquery", "getbyid", "getprofilebyid")
 		}
 	}
-	
+
 	return detected
 }
-
-func contains(slice []string, item string) bool {
-	for _, s := range slice {
-		if s == item {
-			return true
-		}
-	}
-	return false
-}
-
 
 // MergeCapabilities combines manual and auto-detected capabilities
 func MergeCapabilities(manual string, detected []string) []string {
 	// Parse manual capabilities
 	var manualCaps []string
 	if manual != "" {
-		if strings.Contains(manual, ",") {
-			manualCaps = strings.Split(manual, ",")
-		} else {
-			manualCaps = []string{manual}
-		}
+		manualCaps = strings.Split(manual, ",")
 		// Trim whitespace
 		for i := range manualCaps {
 			manualCaps[i] = strings.TrimSpace(manualCaps[i])
