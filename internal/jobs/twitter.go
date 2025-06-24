@@ -924,6 +924,47 @@ func NewTwitterScraper(jc types.JobConfiguration, c *stats.StatsCollector) *Twit
 	}
 }
 
+// GetCapabilities returns the capabilities supported by this Twitter scraper
+// based on the available credentials
+func (ts *TwitterScraper) GetCapabilities() []string {
+	var capabilities []string
+	
+	// Check if we have Twitter accounts
+	hasAccounts := len(ts.configuration.Accounts) > 0
+	
+	// Check if we have API keys
+	hasApiKeys := len(ts.configuration.ApiKeys) > 0
+	
+	// If we have accounts, add all credential-based capabilities
+	if hasAccounts {
+		for capability, enabled := range ts.capabilities {
+			if enabled {
+				capabilities = append(capabilities, capability)
+			}
+		}
+	} else if hasApiKeys {
+		// If we only have API keys, add a subset of capabilities
+		apiCapabilities := []string{"searchbyquery", "getbyid", "getprofilebyid"}
+		for _, cap := range apiCapabilities {
+			if ts.capabilities[cap] {
+				capabilities = append(capabilities, cap)
+			}
+		}
+		
+		// Check if any API key is elevated for full archive search
+		if ts.accountManager != nil {
+			for _, apiKey := range ts.accountManager.GetApiKeys() {
+				if apiKey.Type == twitter.TwitterApiKeyTypeElevated {
+					capabilities = append(capabilities, "searchbyfullarchive")
+					break
+				}
+			}
+		}
+	}
+	
+	return capabilities
+}
+
 type TwitterScrapeStrategy interface {
 	Execute(j types.Job, ts *TwitterScraper, jobArgs *args.TwitterSearchArguments) (types.JobResult, error)
 }

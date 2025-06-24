@@ -41,6 +41,11 @@ type TikTokTranscriber struct {
 }
 
 
+// GetCapabilities returns the capabilities supported by the TikTok transcriber
+func (t *TikTokTranscriber) GetCapabilities() []string {
+	return []string{"tiktok-transcription"}
+}
+
 // NewTikTokTranscriber creates and initializes a new TikTokTranscriber.
 // It sets default values for the API configuration.
 func NewTikTokTranscriber(jc types.JobConfiguration, statsCollector *stats.StatsCollector) *TikTokTranscriber {
