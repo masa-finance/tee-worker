@@ -22,7 +22,6 @@ const TikTokTranscriptionType = "tiktok-transcription"
 // tiktokTranscriptionEndpoint is the default hardcoded endpoint for TikTok transcriptions.
 const tiktokTranscriptionEndpoint = "https://submagic-free-tools.fly.dev/api/tiktok-transcription"
 
-
 // TikTokTranscriptionConfiguration holds the configuration for the TikTok transcriber.
 // These values are typically populated from environment variables via config.go.
 type TikTokTranscriptionConfiguration struct {
@@ -40,7 +39,6 @@ type TikTokTranscriber struct {
 	httpClient    *http.Client
 }
 
-
 // GetCapabilities returns the capabilities supported by the TikTok transcriber
 func (t *TikTokTranscriber) GetCapabilities() []string {
 	return []string{"tiktok-transcription"}
@@ -55,28 +53,28 @@ func NewTikTokTranscriber(jc types.JobConfiguration, statsCollector *stats.Stats
 	config.TranscriptionEndpoint = tiktokTranscriptionEndpoint
 	config.APIOrigin = "https://submagic-free-tools.fly.dev"
 	config.APIReferer = "https://submagic-free-tools.fly.dev/tiktok-transcription"
-	
+
 	// Get configurable values from job configuration
 	if err := jc.Unmarshal(&config); err != nil {
 		logrus.WithError(err).Debug("TikTokTranscriber: Could not unmarshal job configuration, using all defaults")
 	}
-	
+
 	// Set defaults for configurable values if not provided
 	if config.DefaultLanguage == "" {
 		config.DefaultLanguage = "eng-US"
 	}
-	
+
 	if config.APIUserAgent == "" {
 		config.APIUserAgent = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Mobile Safari/537.36"
 	}
-	
+
 	// Log the actual configuration values being used
 	logrus.WithFields(logrus.Fields{
 		"transcription_endpoint": config.TranscriptionEndpoint,
-		"api_origin":            config.APIOrigin,
-		"api_referer":           config.APIReferer,
-		"api_user_agent":        config.APIUserAgent,
-		"default_language":      config.DefaultLanguage,
+		"api_origin":             config.APIOrigin,
+		"api_referer":            config.APIReferer,
+		"api_user_agent":         config.APIUserAgent,
+		"default_language":       config.DefaultLanguage,
 	}).Info("TikTokTranscriber initialized with configuration")
 
 	httpClient := &http.Client{
@@ -170,7 +168,7 @@ func (ttt *TikTokTranscriber) ExecuteJob(j types.Job) (types.JobResult, error) {
 		errMsg := fmt.Sprintf("API request failed with status code %d. Response: %s", apiResp.StatusCode, string(bodyBytes))
 		logrus.WithField("job_uuid", j.UUID).Error(errMsg)
 		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1)
-		return types.JobResult{Error: errMsg}, fmt.Errorf(errMsg)
+		return types.JobResult{Error: errMsg}, fmt.Errorf("%s", errMsg)
 	}
 
 	var parsedAPIResponse APIResponse
@@ -183,7 +181,7 @@ func (ttt *TikTokTranscriber) ExecuteJob(j types.Job) (types.JobResult, error) {
 		errMsg := fmt.Sprintf("API returned an error: %s", parsedAPIResponse.Error)
 		logrus.WithField("job_uuid", j.UUID).Error(errMsg)
 		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1)
-		return types.JobResult{Error: errMsg}, fmt.Errorf(errMsg)
+		return types.JobResult{Error: errMsg}, fmt.Errorf("%s", errMsg)
 	}
 
 	// Sub-Step 3.2: Extract Transcription and Metadata
@@ -191,7 +189,7 @@ func (ttt *TikTokTranscriber) ExecuteJob(j types.Job) (types.JobResult, error) {
 		errMsg := "No transcripts found in API response"
 		logrus.WithField("job_uuid", j.UUID).Warn(errMsg)
 		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1) // Or a different stat for "no_transcript_found"
-		return types.JobResult{Error: errMsg}, fmt.Errorf(errMsg)
+		return types.JobResult{Error: errMsg}, fmt.Errorf("%s", errMsg)
 	}
 
 	vttText := ""
@@ -229,7 +227,7 @@ func (ttt *TikTokTranscriber) ExecuteJob(j types.Job) (types.JobResult, error) {
 		errMsg := "Suitable transcript could not be extracted from API response"
 		logrus.WithField("job_uuid", j.UUID).Error(errMsg)
 		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1)
-		return types.JobResult{Error: errMsg}, fmt.Errorf(errMsg)
+		return types.JobResult{Error: errMsg}, fmt.Errorf("%s", errMsg)
 	}
 
 	logrus.Debugf("Job %s: Raw VTT content for language %s:\n%s", j.UUID, finalDetectedLanguage, vttText)
@@ -241,7 +239,7 @@ func (ttt *TikTokTranscriber) ExecuteJob(j types.Job) (types.JobResult, error) {
 		errMsg := fmt.Sprintf("Failed to convert VTT to plain text: %v", err)
 		logrus.WithField("job_uuid", j.UUID).Error(errMsg)
 		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1)
-		return types.JobResult{Error: errMsg}, fmt.Errorf(errMsg)
+		return types.JobResult{Error: errMsg}, fmt.Errorf("%s", errMsg)
 	}
 
 	// Process Result & Return
