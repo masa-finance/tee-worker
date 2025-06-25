@@ -61,12 +61,18 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 
 	go jobServer.Run(ctx)
 
+	// Initialize health metrics
+	healthMetrics := NewHealthMetrics()
+
 	// Middleware
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 
 	// API Key Authentication Middleware
 	e.Use(APIKeyAuthMiddleware(config))
+
+	// Health metrics tracking middleware
+	e.Use(HealthMetricsMiddleware(healthMetrics))
 
 	// Initialize empty key ring
 	tee.CurrentKeyRing = tee.NewKeyRing()
@@ -77,6 +83,10 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 	}
 
 	// Routes
+
+	// Health check endpoints (no auth required)
+	e.GET("/healthz", healthz())
+	e.GET("/readyz", readyz(jobServer, healthMetrics))
 
 	// Set up profiling if allowed
 	if ok, p := config["profiling_enabled"].(bool); ok && p {
