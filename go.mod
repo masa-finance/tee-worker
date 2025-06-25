@@ -1,8 +1,8 @@
 module github.com/masa-finance/tee-worker
 
-go 1.24.0
+go 1.23.0
 
-toolchain go1.24.3
+toolchain go1.24.0
 
 require (
 	github.com/cenkalti/backoff v2.2.1+incompatible
@@ -13,7 +13,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/labstack/echo-contrib v0.17.3
 	github.com/labstack/echo/v4 v4.13.3
-	github.com/masa-finance/linkedin-scraper v0.0.0-20250521001738-938863f87ba0
+	github.com/masa-finance/linkedin-scraper v0.0.0-20250624231649-4e6e953df57d
 	github.com/masa-finance/tee-types v0.0.0-20250622192810-d1bd5096ee39
 	github.com/onsi/ginkgo/v2 v2.23.4
 	github.com/onsi/gomega v1.37.0
