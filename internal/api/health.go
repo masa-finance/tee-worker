@@ -90,13 +90,33 @@ func (hm *HealthMetrics) GetStats() map[string]interface{} {
 	}
 }
 
+// HealthzResponse represents the liveness probe response
+type HealthzResponse struct {
+	Status  string `json:"status"`
+	Service string `json:"service"`
+}
+
+// ReadyzResponse represents the readiness probe response
+type ReadyzResponse struct {
+	Service string                 `json:"service"`
+	Ready   bool                   `json:"ready"`
+	Checks  ReadinessChecks        `json:"checks"`
+}
+
+// ReadinessChecks contains individual readiness check results
+type ReadinessChecks struct {
+	JobServer string                 `json:"job_server"`
+	ErrorRate string                 `json:"error_rate"`
+	Stats     map[string]interface{} `json:"stats,omitempty"`
+}
+
 // Healthz is the liveness probe endpoint
 func Healthz() func(c echo.Context) error {
 	return func(c echo.Context) error {
 		// Simple liveness check - service is running
-		return c.JSON(http.StatusOK, map[string]string{
-			"status": "ok",
-			"service": "tee-worker",
+		return c.JSON(http.StatusOK, HealthzResponse{
+			Status:  "ok",
+			Service: "tee-worker",
 		})
 	}
 }
@@ -104,32 +124,33 @@ func Healthz() func(c echo.Context) error {
 // Readyz is the readiness probe endpoint
 func Readyz(jobServer *jobserver.JobServer, healthMetrics *HealthMetrics) func(c echo.Context) error {
 	return func(c echo.Context) error {
-		checks := map[string]interface{}{
-			"service": "tee-worker",
-			"ready": true,
-			"checks": map[string]interface{}{},
+		response := ReadyzResponse{
+			Service: "tee-worker",
+			Ready:   true,
+			Checks:  ReadinessChecks{},
 		}
 		
 		// Check if job server is running
 		if jobServer == nil {
-			checks["ready"] = false
-			checks["checks"].(map[string]interface{})["job_server"] = "not initialized"
-			return c.JSON(http.StatusServiceUnavailable, checks)
+			response.Ready = false
+			response.Checks.JobServer = "not initialized"
+			return c.JSON(http.StatusServiceUnavailable, response)
 		}
 		
 		// Check error rate
 		if !healthMetrics.IsHealthy() {
-			checks["ready"] = false
-			checks["checks"].(map[string]interface{})["error_rate"] = "unhealthy"
-			checks["checks"].(map[string]interface{})["stats"] = healthMetrics.GetStats()
-			return c.JSON(http.StatusServiceUnavailable, checks)
+			response.Ready = false
+			response.Checks.JobServer = "ok"
+			response.Checks.ErrorRate = "unhealthy"
+			response.Checks.Stats = healthMetrics.GetStats()
+			return c.JSON(http.StatusServiceUnavailable, response)
 		}
 		
 		// All checks passed
-		checks["checks"].(map[string]interface{})["job_server"] = "ok"
-		checks["checks"].(map[string]interface{})["error_rate"] = "healthy"
-		checks["checks"].(map[string]interface{})["stats"] = healthMetrics.GetStats()
+		response.Checks.JobServer = "ok"
+		response.Checks.ErrorRate = "healthy"
+		response.Checks.Stats = healthMetrics.GetStats()
 		
-		return c.JSON(http.StatusOK, checks)
+		return c.JSON(http.StatusOK, response)
 	}
 }
