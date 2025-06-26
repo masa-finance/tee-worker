@@ -85,8 +85,8 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 	// Routes
 
 	// Health check endpoints (no auth required)
-	e.GET("/healthz", healthz())
-	e.GET("/readyz", readyz(jobServer, healthMetrics))
+	e.GET("/healthz", Healthz())
+	e.GET("/readyz", Readyz(jobServer, healthMetrics))
 
 	// Set up profiling if allowed
 	if ok, p := config["profiling_enabled"].(bool); ok && p {

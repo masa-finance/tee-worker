@@ -90,8 +90,8 @@ func (hm *HealthMetrics) GetStats() map[string]interface{} {
 	}
 }
 
-// healthz is the liveness probe endpoint
-func healthz() func(c echo.Context) error {
+// Healthz is the liveness probe endpoint
+func Healthz() func(c echo.Context) error {
 	return func(c echo.Context) error {
 		// Simple liveness check - service is running
 		return c.JSON(http.StatusOK, map[string]string{
@@ -101,8 +101,8 @@ func healthz() func(c echo.Context) error {
 	}
 }
 
-// readyz is the readiness probe endpoint
-func readyz(jobServer *jobserver.JobServer, healthMetrics *HealthMetrics) func(c echo.Context) error {
+// Readyz is the readiness probe endpoint
+func Readyz(jobServer *jobserver.JobServer, healthMetrics *HealthMetrics) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		checks := map[string]interface{}{
 			"service": "tee-worker",
