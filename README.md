@@ -171,7 +171,7 @@ The tee-worker exposes a simple HTTP API to submit jobs, retrieve results, and d
 
 ### Health Check Endpoints
 
-The service provides health check endpoints for Kubernetes liveness and readiness probes:
+The service provides health check endpoints:
 
 #### GET /healthz (Liveness Probe)
 Returns HTTP 200 OK if the service is alive and running.

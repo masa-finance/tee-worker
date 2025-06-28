@@ -8,6 +8,9 @@ import (
 	"github.com/masa-finance/tee-worker/api/types"
 )
 
+const HealthCheckPath = "/healthz"
+const ReadinessCheckPath = "/readyz"
+
 // APIKeyAuthMiddleware returns an Echo middleware that checks for the API key in the request headers.
 func APIKeyAuthMiddleware(config types.JobConfiguration) echo.MiddlewareFunc {
 	apiKey, ok := config["api_key"].(string)
@@ -24,7 +27,7 @@ func APIKeyAuthMiddleware(config types.JobConfiguration) echo.MiddlewareFunc {
 		return func(c echo.Context) error {
 			// Skip auth for health check endpoints
 			path := c.Request().URL.Path
-			if path == "/healthz" || path == "/readyz" {
+			if path == HealthCheckPath || path == ReadinessCheckPath {
 				return next(c)
 			}
 
@@ -47,13 +50,13 @@ func HealthMetricsMiddleware(healthMetrics *HealthMetrics) echo.MiddlewareFunc {
 		return func(c echo.Context) error {
 			// Skip metrics for health check endpoints to avoid self-influence
 			path := c.Request().URL.Path
-			if path == "/healthz" || path == "/readyz" {
+			if path == HealthCheckPath || path == ReadinessCheckPath {
 				return next(c)
 			}
 
 			// Process the request
 			err := next(c)
-			
+
 			// Track metrics based on response status
 			// Only track API endpoints (skip static files, etc)
 			if strings.HasPrefix(path, "/job/") || path == "/setkey" {

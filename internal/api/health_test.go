@@ -8,8 +8,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	. "github.com/masa-finance/tee-worker/internal/api"
 	"github.com/masa-finance/tee-worker/api/types"
+	. "github.com/masa-finance/tee-worker/internal/api"
 	"github.com/masa-finance/tee-worker/internal/jobserver"
 )
 
@@ -32,7 +32,7 @@ var _ = Describe("Health Checks", func() {
 		It("should record successes", func() {
 			hm.RecordSuccess()
 			hm.RecordSuccess()
-			
+
 			stats := hm.GetStats()
 			Expect(stats["success_count"]).To(Equal(2))
 			Expect(stats["error_count"]).To(Equal(0))
@@ -42,7 +42,7 @@ var _ = Describe("Health Checks", func() {
 			hm.RecordError()
 			hm.RecordError()
 			hm.RecordError()
-			
+
 			stats := hm.GetStats()
 			Expect(stats["success_count"]).To(Equal(0))
 			Expect(stats["error_count"]).To(Equal(3))
@@ -61,7 +61,7 @@ var _ = Describe("Health Checks", func() {
 				for i := 0; i < 5; i++ {
 					hm.RecordError()
 				}
-				
+
 				Expect(hm.IsHealthy()).To(BeTrue())
 			})
 
@@ -73,7 +73,7 @@ var _ = Describe("Health Checks", func() {
 				for i := 0; i < 96; i++ {
 					hm.RecordError()
 				}
-				
+
 				Expect(hm.IsHealthy()).To(BeFalse())
 			})
 		})
@@ -88,26 +88,6 @@ var _ = Describe("Health Checks", func() {
 			Expect(stats["success_count"]).To(Equal(2))
 			Expect(stats["total_count"]).To(Equal(3))
 			Expect(stats["error_rate"]).To(BeNumerically("~", 0.333, 0.01))
-		})
-
-		It("should reset window when expired", func() {
-			// Use reflection to set a short window for testing
-			hm = NewHealthMetrics()
-			
-			// Record some errors
-			hm.RecordError()
-			hm.RecordError()
-			
-			stats := hm.GetStats()
-			Expect(stats["error_count"]).To(Equal(2))
-			
-			// Manually set window start to past
-			// Since we can't access private fields, we'll test the behavior indirectly
-			// by verifying that after 10 minutes, the window resets
-			// For now, we'll skip this test as it requires either:
-			// 1. Exposing window duration configuration
-			// 2. Using reflection (not recommended)
-			// 3. Waiting 10 minutes (impractical)
 		})
 	})
 
@@ -143,7 +123,7 @@ var _ = Describe("Health Checks", func() {
 		Context("when all checks pass", func() {
 			It("should return 200 OK", func() {
 				jobServer = jobserver.NewJobServer(10, types.JobConfiguration{})
-				
+
 				// Record mostly successes
 				for i := 0; i < 95; i++ {
 					hm.RecordSuccess()
@@ -186,7 +166,7 @@ var _ = Describe("Health Checks", func() {
 		Context("when error rate is high", func() {
 			It("should return 503 Service Unavailable", func() {
 				jobServer = jobserver.NewJobServer(10, types.JobConfiguration{})
-				
+
 				// Record mostly errors
 				for i := 0; i < 4; i++ {
 					hm.RecordSuccess()
