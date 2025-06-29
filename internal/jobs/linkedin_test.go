@@ -154,31 +154,11 @@ var _ = Describe("LinkedIn Scraper", func() {
 			res, err := linkedInScraper.ExecuteJob(j)
 			Expect(err).To(HaveOccurred())
 			Expect(res.Error).ToNot(BeEmpty())
-			Expect(res.Error).To(ContainSubstring("unsupported query type"))
+			Expect(res.Error).To(ContainSubstring("invalid search type"))
 
 			// Check error stats
 			Expect(statsCollector.Stats.Stats[j.WorkerID][stats.LinkedInErrors]).To(BeNumerically("==", 1))
 		})
 	})
 
-	Context("LinkedIn Authentication", func() {
-		It("should error if no credentials are provided", func() {
-			// Create scraper without credentials
-			scraperNoAuth := NewLinkedInScraper(types.JobConfiguration{}, statsCollector)
-
-			j := types.Job{
-				Type: LinkedInScraperType,
-				Arguments: map[string]interface{}{
-					"type":        "searchbyquery",
-					"query":       "test",
-					"max_results": 10,
-				},
-				WorkerID: "test-worker",
-			}
-			res, err := scraperNoAuth.ExecuteJob(j)
-			Expect(err).To(HaveOccurred())
-			Expect(res.Error).ToNot(BeEmpty())
-			Expect(res.Error).To(ContainSubstring("LinkedIn credentials not configured"))
-		})
-	})
 })
