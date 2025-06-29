@@ -19,7 +19,7 @@ const (
 )
 
 type LinkedInScraper struct {
-	configuration LinkedInScraperConfiguration
+	configuration  LinkedInScraperConfiguration
 	statsCollector *stats.StatsCollector
 }
 
@@ -60,6 +60,11 @@ func NewLinkedInScraper(jc types.JobConfiguration, c *stats.StatsCollector) *Lin
 		configuration:  config,
 		statsCollector: c,
 	}
+}
+
+// GetCapabilities returns the capabilities supported by the LinkedIn scraper
+func (ls *LinkedInScraper) GetCapabilities() []string {
+	return []string{"searchbyquery", "getprofile"}
 }
 
 func (ls *LinkedInScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
@@ -111,6 +116,12 @@ func (ls *LinkedInScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 }
 
 func (ls *LinkedInScraper) searchProfiles(j types.Job, client *linkedinscraper.Client, args *args.LinkedInSearchArguments) (types.JobResult, error) {
+	// Validate query is not empty
+	if args.Query == "" {
+		ls.statsCollector.Add(j.WorkerID, stats.LinkedInErrors, 1)
+		return types.JobResult{Error: "query is required"}, fmt.Errorf("query is required")
+	}
+
 	searchArgs := linkedinscraper.ProfileSearchArgs{
 		Keywords:       args.Query,
 		NetworkFilters: args.NetworkFilters,
