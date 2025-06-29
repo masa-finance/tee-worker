@@ -172,6 +172,75 @@ tee.CurrentKeyRing = keyRing
 
 The tee-worker exposes a simple HTTP API to submit jobs, retrieve results, and decrypt the results.
 
+### Health Check Endpoints
+
+The service provides health check endpoints:
+
+#### GET /healthz (Liveness Probe)
+Returns HTTP 200 OK if the service is alive and running.
+
+```bash
+curl localhost:8080/healthz
+```
+
+Response:
+```json
+{
+  "status": "ok",
+  "service": "tee-worker"
+}
+```
+
+#### GET /readyz (Readiness Probe)
+Returns HTTP 200 OK if the service is ready to accept traffic. Returns HTTP 503 Service Unavailable if:
+- The job server is not initialized
+- The error rate exceeds 95% in the last 10 minutes
+
+```bash
+curl localhost:8080/readyz
+```
+
+Response when healthy:
+```json
+{
+  "service": "tee-worker",
+  "ready": true,
+  "checks": {
+    "job_server": "ok",
+    "error_rate": "healthy",
+    "stats": {
+      "error_count": 5,
+      "success_count": 95,
+      "total_count": 100,
+      "error_rate": 0.05,
+      "window_start": "2024-01-15T10:00:00Z",
+      "window_duration": "10m0s"
+    }
+  }
+}
+```
+
+Response when unhealthy:
+```json
+{
+  "service": "tee-worker",
+  "ready": false,
+  "checks": {
+    "error_rate": "unhealthy",
+    "stats": {
+      "error_count": 96,
+      "success_count": 4,
+      "total_count": 100,
+      "error_rate": 0.96,
+      "window_start": "2024-01-15T10:00:00Z",
+      "window_duration": "10m0s"
+    }
+  }
+}
+```
+
+Note: Health check endpoints do not require API key authentication.
+
 ### Available Scraper Types
 - `web-scraper`: Scrapes content from web pages
 - `twitter-scraper`: General Twitter content scraping

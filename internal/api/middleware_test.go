@@ -1,45 +1,105 @@
-package api
+package api_test
 
 import (
 	"net/http"
 	"net/http/httptest"
-	"testing"
 
 	"github.com/labstack/echo/v4"
-	"github.com/stretchr/testify/assert"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+
+	. "github.com/masa-finance/tee-worker/internal/api"
 )
 
-func TestAPIKeyAuthMiddleware(t *testing.T) {
+var _ = Describe("APIKeyAuthMiddleware", func() {
+	var (
+		e       *echo.Echo
+		handler echo.HandlerFunc
+	)
 
-	tests := []struct {
-		name           string
-		config         map[string]interface{}
-		headerKey      string
-		headerValue    string
-		expectedStatus int
-	}{
-		{"no api key set (open)", map[string]interface{}{}, "", "", http.StatusOK},
-		{"correct api key (Authorization)", map[string]interface{}{"api_key": "test123"}, "Authorization", "Bearer test123", http.StatusOK},
-		{"correct api key (X-API-Key)", map[string]interface{}{"api_key": "test123"}, "X-API-Key", "test123", http.StatusOK},
-		{"missing api key", map[string]interface{}{"api_key": "test123"}, "", "", http.StatusUnauthorized},
-		{"wrong api key", map[string]interface{}{"api_key": "test123"}, "Authorization", "Bearer wrong", http.StatusUnauthorized},
-	}
-
-	handler := func(c echo.Context) error {
-		return c.String(http.StatusOK, "passed")
-	}
-
-	for _, tt := range tests {
-		e := echo.New()
-		e.Use(APIKeyAuthMiddleware(tt.config))
-		e.GET("/test", handler)
-
-		req := httptest.NewRequest(http.MethodGet, "/test", nil)
-		if tt.headerKey != "" {
-			req.Header.Set(tt.headerKey, tt.headerValue)
+	BeforeEach(func() {
+		e = echo.New()
+		handler = func(c echo.Context) error {
+			return c.String(http.StatusOK, "passed")
 		}
-		rec := httptest.NewRecorder()
-		e.ServeHTTP(rec, req)
-		assert.Equal(t, tt.expectedStatus, rec.Code, tt.name)
-	}
-}
+	})
+
+	Context("when no API key is configured", func() {
+		It("should allow all requests", func() {
+			config := map[string]interface{}{}
+			e.Use(APIKeyAuthMiddleware(config))
+			e.GET("/test", handler)
+
+			req := httptest.NewRequest(http.MethodGet, "/test", nil)
+			rec := httptest.NewRecorder()
+			e.ServeHTTP(rec, req)
+
+			Expect(rec.Code).To(Equal(http.StatusOK))
+			Expect(rec.Body.String()).To(Equal("passed"))
+		})
+	})
+
+	Context("when API key is configured", func() {
+		var config map[string]interface{}
+
+		BeforeEach(func() {
+			config = map[string]interface{}{"api_key": "test123"}
+			e.Use(APIKeyAuthMiddleware(config))
+			e.GET("/test", handler)
+		})
+
+		It("should accept correct API key in Authorization header", func() {
+			req := httptest.NewRequest(http.MethodGet, "/test", nil)
+			req.Header.Set("Authorization", "Bearer test123")
+			rec := httptest.NewRecorder()
+			e.ServeHTTP(rec, req)
+
+			Expect(rec.Code).To(Equal(http.StatusOK))
+			Expect(rec.Body.String()).To(Equal("passed"))
+		})
+
+		It("should accept correct API key in X-API-Key header", func() {
+			req := httptest.NewRequest(http.MethodGet, "/test", nil)
+			req.Header.Set("X-API-Key", "test123")
+			rec := httptest.NewRecorder()
+			e.ServeHTTP(rec, req)
+
+			Expect(rec.Code).To(Equal(http.StatusOK))
+			Expect(rec.Body.String()).To(Equal("passed"))
+		})
+
+		It("should reject requests with missing API key", func() {
+			req := httptest.NewRequest(http.MethodGet, "/test", nil)
+			rec := httptest.NewRecorder()
+			e.ServeHTTP(rec, req)
+
+			Expect(rec.Code).To(Equal(http.StatusUnauthorized))
+		})
+
+		It("should reject requests with wrong API key", func() {
+			req := httptest.NewRequest(http.MethodGet, "/test", nil)
+			req.Header.Set("Authorization", "Bearer wrong")
+			rec := httptest.NewRecorder()
+			e.ServeHTTP(rec, req)
+
+			Expect(rec.Code).To(Equal(http.StatusUnauthorized))
+		})
+
+		It("should allow health check endpoints without API key", func() {
+			e.GET("/healthz", handler)
+			e.GET("/readyz", handler)
+
+			// Test /healthz
+			req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
+			rec := httptest.NewRecorder()
+			e.ServeHTTP(rec, req)
+			Expect(rec.Code).To(Equal(http.StatusOK))
+
+			// Test /readyz
+			req = httptest.NewRequest(http.MethodGet, "/readyz", nil)
+			rec = httptest.NewRecorder()
+			e.ServeHTTP(rec, req)
+			Expect(rec.Code).To(Equal(http.StatusOK))
+		})
+	})
+})
