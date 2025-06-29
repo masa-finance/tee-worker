@@ -33,7 +33,7 @@ func TestDetectCapabilities(t *testing.T) {
 					"telemetry":            {"telemetry"},
 					"tiktok-transcription": {"tiktok-transcription"},
 					"twitter-scraper":      {"searchbyquery", "getbyid", "getprofilebyid"},
-					"linkedin-scraper":     {"searchbyquery", "getprofile"},
+					"linkedin-scraper":     {"searchbyquery"},
 				},
 			},
 			expected: []ScraperCapabilities{
@@ -41,7 +41,7 @@ func TestDetectCapabilities(t *testing.T) {
 				{Scraper: "telemetry", Capabilities: []string{"telemetry"}},
 				{Scraper: "tiktok-transcription", Capabilities: []string{"tiktok-transcription"}},
 				{Scraper: "twitter-scraper", Capabilities: []string{"searchbyquery", "getbyid", "getprofilebyid"}},
-				{Scraper: "linkedin-scraper", Capabilities: []string{"searchbyquery", "getprofile"}},
+				{Scraper: "linkedin-scraper", Capabilities: []string{"searchbyquery"}},
 			},
 		},
 		{
