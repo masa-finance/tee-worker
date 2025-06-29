@@ -64,7 +64,7 @@ func NewLinkedInScraper(jc types.JobConfiguration, c *stats.StatsCollector) *Lin
 
 // GetCapabilities returns the capabilities supported by the LinkedIn scraper
 func (ls *LinkedInScraper) GetCapabilities() []string {
-	return []string{"searchbyquery", "getprofile"}
+	return []string{"searchbyquery"}
 }
 
 func (ls *LinkedInScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
@@ -107,9 +107,6 @@ func (ls *LinkedInScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 	switch strings.ToLower(jobArgs.QueryType) {
 	case "searchbyquery":
 		return ls.searchProfiles(j, client, jobArgs)
-	case "getprofile":
-		// Future enhancement: get detailed profile by username
-		return types.JobResult{Error: "getprofile not implemented yet"}, fmt.Errorf("getprofile not implemented")
 	default:
 		return types.JobResult{Error: "invalid search type: " + jobArgs.QueryType}, fmt.Errorf("invalid search type: %s", jobArgs.QueryType)
 	}
