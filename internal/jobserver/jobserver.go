@@ -3,12 +3,15 @@ package jobserver
 import (
 	"context"
 	"errors"
+	"slices"
+	"strings"
 	"sync"
 
 	"github.com/sirupsen/logrus"
 
 	"github.com/google/uuid"
 	"github.com/masa-finance/tee-worker/api/types"
+	"github.com/masa-finance/tee-worker/internal/config"
 	"github.com/masa-finance/tee-worker/internal/jobs"
 	"github.com/masa-finance/tee-worker/internal/jobs/stats"
 	"github.com/masa-finance/tee-worker/pkg/tee"
@@ -156,6 +159,23 @@ func (js *JobServer) AddJob(j types.Job) (string, error) {
 
 	if j.TargetWorker != "" && j.TargetWorker != tee.WorkerID {
 		return "", errors.New("this job is not for this worker")
+	}
+
+	if j.Type != jobs.TelemetryJobType && config.MinersWhiteList != "" {
+		logrus.Debugf("Checking if job from miner %s is whitelisted. Miners white list: %s", j.WorkerID, config.MinersWhiteList)
+		var miners []string
+
+		if strings.Contains(config.MinersWhiteList, ",") {
+			miners = strings.Split(config.MinersWhiteList, ",")
+		} else {
+			miners = []string{config.MinersWhiteList}
+		}
+
+		if !slices.Contains(miners, j.WorkerID) {
+			logrus.Debugf("Job from non-whitelisted miner %s", j.WorkerID)
+			return "", errors.New("this job is not from a whitelisted miner")
+		}
+		logrus.Debugf("Job from whitelisted miner %s", j.WorkerID)
 	}
 
 	// TODO The default should come from config.go, but during tests the config is not necessarily read
