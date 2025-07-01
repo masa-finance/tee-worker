@@ -1,6 +1,6 @@
 # tee-worker
 
-Tee-worker is the Masa component to scrape data from a secure TEE enclave. It uses the [ego](https://github.com/edgelesssys/ego) framework to build, run and sign the binary.
+Tee-worker is the Masa component to scrape data from a secure TEE enclave. It uses the [ego](https://github.com/edgelesssys/ego) Golang SDK to build, run and sign the binary for usage with Intel SGX.
 
 Want to help in development? check the [DEVELOPMENT.md](DEVELOPMENT.md) file.
 
