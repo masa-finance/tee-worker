@@ -110,6 +110,7 @@ func (ls *LinkedInScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 	case "getprofile":
 		return ls.getProfile(j, client, jobArgs)
 	default:
+		ls.statsCollector.Add(j.WorkerID, stats.LinkedInErrors, 1)
 		return types.JobResult{Error: "invalid search type: " + jobArgs.QueryType}, fmt.Errorf("invalid search type: %s", jobArgs.QueryType)
 	}
 }
