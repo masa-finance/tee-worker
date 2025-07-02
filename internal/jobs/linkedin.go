@@ -68,7 +68,7 @@ func (ls *LinkedInScraper) GetCapabilities() []string {
 }
 
 func (ls *LinkedInScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
-	jobArgs := &args.LinkedInSearchArguments{}
+	jobArgs := &args.LinkedInArguments{}
 	if err := j.Arguments.Unmarshal(jobArgs); err != nil {
 		logrus.Errorf("Error while unmarshalling job arguments for job ID %s, type %s: %v", j.UUID, j.Type, err)
 		return types.JobResult{Error: "error unmarshalling job arguments"}, err
@@ -114,7 +114,7 @@ func (ls *LinkedInScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 	}
 }
 
-func (ls *LinkedInScraper) searchProfiles(j types.Job, client *linkedinscraper.Client, args *args.LinkedInSearchArguments) (types.JobResult, error) {
+func (ls *LinkedInScraper) searchProfiles(j types.Job, client *linkedinscraper.Client, args *args.LinkedInArguments) (types.JobResult, error) {
 	// Validate query is not empty
 	if args.Query == "" {
 		ls.statsCollector.Add(j.WorkerID, stats.LinkedInErrors, 1)
@@ -178,17 +178,9 @@ func (ls *LinkedInScraper) searchProfiles(j types.Job, client *linkedinscraper.C
 	return types.JobResult{Data: data}, nil
 }
 
-func (ls *LinkedInScraper) getProfile(j types.Job, client *linkedinscraper.Client, args *args.LinkedInSearchArguments) (types.JobResult, error) {
+func (ls *LinkedInScraper) getProfile(j types.Job, client *linkedinscraper.Client, args *args.LinkedInArguments) (types.JobResult, error) {
 	// Validate public identifier is not empty
-	// TODO: Update to use args.PublicIdentifier when LinkedInArguments is available
-	var tempArgs map[string]interface{}
-	if err := j.Arguments.Unmarshal(&tempArgs); err != nil {
-		ls.statsCollector.Add(j.WorkerID, stats.LinkedInErrors, 1)
-		return types.JobResult{Error: "error unmarshalling job arguments"}, err
-	}
-
-	publicIdentifier, ok := tempArgs["public_identifier"].(string)
-	if !ok || publicIdentifier == "" {
+	if args.PublicIdentifier == "" {
 		ls.statsCollector.Add(j.WorkerID, stats.LinkedInErrors, 1)
 		return types.JobResult{Error: "public_identifier is required"}, fmt.Errorf("public_identifier is required")
 	}
@@ -196,7 +188,7 @@ func (ls *LinkedInScraper) getProfile(j types.Job, client *linkedinscraper.Clien
 	ctx, cancel := context.WithTimeout(context.Background(), j.Timeout)
 	defer cancel()
 
-	profile, err := client.GetProfile(ctx, publicIdentifier)
+	profile, err := client.GetProfile(ctx, args.PublicIdentifier)
 	if err != nil {
 		// Check for specific error types
 		if strings.Contains(err.Error(), "unauthorized") || strings.Contains(err.Error(), "401") {
@@ -211,29 +203,20 @@ func (ls *LinkedInScraper) getProfile(j types.Job, client *linkedinscraper.Clien
 		return types.JobResult{Error: fmt.Sprintf("failed to get profile: %v", err)}, err
 	}
 
-	// TODO: Once tee-types is updated with LinkedInFullProfileResult, replace this with:
-	// result := teetypes.LinkedInFullProfileResult{
-	//     PublicIdentifier:  profile.PublicIdentifier,
-	//     URN:               profile.URN,
-	//     FullName:          profile.FullName,
-	//     Headline:          profile.Headline,
-	//     Location:          profile.Location,
-	//     Summary:           profile.Summary,
-	//     ProfilePictureURL: profile.ProfilePictureURL,
-	//     Experiences:       profile.Experiences,
-	//     Education:         profile.Education,
-	//     Skills:            profile.Skills,
-	// }
-
-	// For now, use the existing LinkedInProfileResult structure
-	result := teetypes.LinkedInProfileResult{
-		PublicIdentifier: profile.PublicIdentifier,
-		URN:              profile.URN,
-		FullName:         profile.FullName,
-		Headline:         profile.Headline,
-		Location:         profile.Location,
-		ProfileURL:       profile.ProfileURL,
-		Degree:           "", // Will be populated when full profile structure is available
+	// Use the new LinkedInFullProfileResult structure for rich profile data
+	// TODO: Map rich profile data once linkedin-scraper SDK field structure is confirmed
+	// For now, use basic fields we know exist and leave rich fields empty
+	result := teetypes.LinkedInFullProfileResult{
+		PublicIdentifier:  profile.PublicIdentifier,
+		URN:               profile.URN,
+		FullName:          profile.FullName,
+		Headline:          profile.Headline,
+		Location:          profile.Location,
+		Summary:           "",                      // TODO: Map from profile.Summary once field is confirmed
+		ProfilePictureURL: "",                      // TODO: Map from profile image URL once field is confirmed
+		Experiences:       []teetypes.Experience{}, // TODO: Convert from profile.Experiences once structure is confirmed
+		Education:         []teetypes.Education{},  // TODO: Convert from profile.Education once structure is confirmed
+		Skills:            []teetypes.Skill{},      // TODO: Convert from profile.Skills once structure is confirmed
 	}
 
 	ls.statsCollector.Add(j.WorkerID, stats.LinkedInProfiles, 1)
