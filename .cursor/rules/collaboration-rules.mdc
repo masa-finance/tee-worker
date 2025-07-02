@@ -1,0 +1,30 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Collaboration Rules
+
+## Planning and Confirmation Rule
+
+**Before implementing any code changes, features, or modifications:**
+
+1. **Create a Plan**: Always develop a clear, detailed plan that outlines:
+   - What changes will be made
+   - Which files will be modified or created
+   - The approach and methodology
+   - Expected outcomes and impacts
+
+2. **Confirm with User**: Present the plan to the user and wait for explicit confirmation before:
+   - Making any file modifications
+   - Creating new files
+   - Running commands that modify the codebase
+   - Implementing any suggested changes
+
+3. **Get Approval**: Only proceed with implementation after receiving clear approval from the user.
+
+4. **No Assumptions**: Never assume the user wants changes implemented immediately, even if they seem obvious or beneficial.
+
+**Exception**: Read-only operations (viewing files, searching, analyzing) do not require prior confirmation.
+
+This rule ensures we maintain collaborative control over the codebase and prevents unwanted changes.
