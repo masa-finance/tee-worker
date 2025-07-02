@@ -163,7 +163,7 @@ func (js *JobServer) AddJob(j types.Job) (string, error) {
 		var miners []string
 
 		// In standalone mode, we just whitelist ourselves
-		if !config.StandaloneMode() {
+		if config.StandaloneMode() {
 			miners = []string{tee.WorkerID}
 		} else {
 			miners = strings.Split(config.MinersWhiteList, ",")
