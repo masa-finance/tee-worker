@@ -160,14 +160,16 @@ func (js *JobServer) AddJob(j types.Job) (string, error) {
 	}
 
 	if j.Type != jobs.TelemetryJobType && config.MinersWhiteList != "" {
-		logrus.Debugf("Checking if job from miner %s is whitelisted. Miners white list: %s", j.WorkerID, config.MinersWhiteList)
 		var miners []string
 
-		if strings.Contains(config.MinersWhiteList, ",") {
-			miners = strings.Split(config.MinersWhiteList, ",")
+		// In standalone mode, we just whitelist ourselves
+		if config.StandaloneMode() {
+			miners = []string{tee.WorkerID}
 		} else {
-			miners = []string{config.MinersWhiteList}
+			miners = strings.Split(config.MinersWhiteList, ",")
 		}
+
+		logrus.Debugf("Checking if job from miner %s is whitelisted. Miners white list: %+v", j.WorkerID, miners)
 
 		if !slices.Contains(miners, j.WorkerID) {
 			logrus.Debugf("Job from non-whitelisted miner %s", j.WorkerID)
