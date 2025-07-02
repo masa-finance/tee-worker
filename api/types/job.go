@@ -27,7 +27,7 @@ type Job struct {
 	Nonce        string        `json:"quote"`
 	WorkerID     string        `json:"worker_id"`
 	TargetWorker string        `json:"target_worker"`
-	Timeout      time.Duration `json:"-"`
+	Timeout      time.Duration `json:"timeout"`
 }
 
 var letterRunes = []rune("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()_+")
@@ -35,6 +35,7 @@ var letterRunes = []rune("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQR
 func randStringRunes(n int) string {
 	b := make([]rune, n)
 	for i := range b {
+		// TODO: Move xcrypt from indexer to tee-types, and use RandomString here (although we'll need a different alpahbet)
 		b[i] = letterRunes[rand.Intn(len(letterRunes))]
 	}
 	return string(b)
