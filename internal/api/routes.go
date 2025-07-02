@@ -15,18 +15,16 @@ func generate(c echo.Context) error {
 	job := &types.Job{}
 
 	if err := c.Bind(job); err != nil {
-		return err
+		logrus.Errorf("Error while binding for generate: %s", err)
+		return c.JSON(http.StatusBadRequest, types.JobResult{Error: err.Error()})
 	}
 
 	job.WorkerID = tee.WorkerID // attach worker ID to job
 
 	encryptedSignature, err := job.GenerateJobSignature()
 	if err != nil {
-		err2 := c.JSON(http.StatusInternalServerError, types.JobError{Error: err.Error()})
-		if err2 != nil {
-			logrus.Errorf("Error while sending internal server error: %s", err)
-			return c.String(http.StatusInternalServerError, fmt.Sprintf("Error generating job signature: %s\n. Additionally, an error when trying to send the error: %s", err.Error(), err2.Error()))
-		}
+		logrus.Errorf("Error while generating job signature: %s", err)
+		return c.JSON(http.StatusInternalServerError, types.JobError{Error: err.Error()})
 	}
 
 	return c.String(http.StatusOK, encryptedSignature)
@@ -44,21 +42,25 @@ func add(jobServer *jobserver.JobServer) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		jobRequest := types.JobRequest{}
 		if err := c.Bind(&jobRequest); err != nil {
-			return err
+			logrus.Errorf("Error while binding job: %s", err)
+			return c.JSON(http.StatusBadRequest, types.JobError{Error: err.Error()})
 		}
 
 		job, err := jobRequest.DecryptJob()
 		if err != nil {
-			return err
+			logrus.Errorf("Error while decrypting job %s: %s", jobRequest, err)
+			return c.JSON(http.StatusInternalServerError, types.JobError{Error: fmt.Sprintf("Error while decypting job:")})
 		}
 
 		uuid, err := jobServer.AddJob(*job)
 		if err != nil {
+			logrus.Errorf("Error while adding job %s: %s", *job, err)
 			return c.JSON(http.StatusInternalServerError, types.JobError{Error: err.Error()})
 		}
 
 		// check if uuid is empty
 		if uuid == "" {
+			logrus.Errorf("Failed to add job %s: UUID is empty", *job)
 			return c.JSON(http.StatusInternalServerError, types.JobError{Error: "Failed to add job"})
 		}
 
@@ -84,7 +86,8 @@ func status(jobServer *jobserver.JobServer) func(c echo.Context) error {
 
 		sealedData, err := res.Seal()
 		if err != nil {
-			return err
+			logrus.Errorf("Error while sealing status response for job %s: %s", res.Job.UUID, err)
+			return c.JSON(http.StatusInternalServerError, types.JobError{Error: err.Error()})
 		}
 
 		return c.String(http.StatusOK, sealedData)
@@ -99,12 +102,14 @@ func result(c echo.Context) error {
 	}
 
 	if err := c.Bind(&payload); err != nil {
-		return err
+		logrus.Errorf("Error while binding for getting result: %s", err)
+		return c.JSON(http.StatusBadRequest, types.JobError{Error: err.Error()})
 	}
 
 	result, err := payload.Unseal()
 	if err != nil {
-		return err
+		logrus.Errorf("Error while binding for getting result: %s", err)
+		return c.JSON(http.StatusInternalServerError, types.JobError{Error: err.Error()})
 	}
 
 	return c.String(http.StatusOK, result)
@@ -114,10 +119,12 @@ func setKey(dataDir string) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		key := &types.Key{}
 		if err := c.Bind(key); err != nil {
-			return err
+			logrus.Errorf("Error while binding for setting key: %s", err)
+			return c.JSON(http.StatusBadRequest, types.KeyResponse{Status: err.Error()})
 		}
 
 		if err := tee.SetKey(dataDir, key.Key, key.Signature); err != nil {
+			logrus.Errorf("Error while setting key: %s", err)
 			return c.JSON(http.StatusInternalServerError, types.KeyResponse{Status: err.Error()})
 		}
 

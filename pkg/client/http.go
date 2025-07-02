@@ -94,13 +94,13 @@ func (c *Client) SubmitJob(JobSignature JobSignature) (*JobResult, error) {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("error: received status code %d", resp.StatusCode)
-	}
-
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("error reading response body: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("error: received status code %d, body: %s", resp.StatusCode, string(body))
 	}
 
 	var jobResp types.JobResponse
