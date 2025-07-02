@@ -1,0 +1,117 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# LinkedIn Profile Fetching - TEE Worker Integration
+
+## Overview
+This plan outlines the steps to integrate the new full profile fetching capability from the `linkedin-scraper` SDK (`v1.0.0`) into the `tee-worker`. The goal is to add a new job type for fetching detailed LinkedIn profiles by their public identifier, complementing the existing profile search functionality.
+
+## ⚠️ CRITICAL REQUIREMENTS
+- **UPDATE** `go.mod` to use `github.com/masa-finance/linkedin-scraper@v1.0.0`.
+- **PRESERVE** existing `searchbyquery` functionality without any breaking changes.
+- **EXTEND** the `LinkedInScraper` in `tee-worker` to support a new `getprofile` job type.
+- **FOLLOW** existing coding patterns for jobs, arguments, and results within the `tee-worker` project.
+- **DETAILED COMMITS** - commit each logical step with a descriptive message.
+
+## Implementation Steps
+
+### Phase 1: Dependency Update
+
+#### Step 1.1: Update LinkedIn Scraper Dependency
+**Objective**: Use the latest version of the `linkedin-scraper` library which includes profile fetching.
+**Files**: `go.mod`, `go.sum`
+**Action**: 
+- Run `go get github.com/masa-finance/linkedin-scraper@v1.0.0`.
+- Run `go mod tidy` to ensure all dependencies are consistent.
+**Verification**: The `go.mod` file should list `github.com/masa-finance/linkedin-scraper v1.0.0`.
+**Commit**: `chore(deps): update linkedin-scraper to v1.0.0`
+
+### Phase 2: TEE-Worker Job Extension
+
+#### Step 2.1: Add New Job Capability
+**Objective**: Advertise the new `getprofile` capability.
+**Files**: `internal/jobs/linkedin.go`
+**Action**: 
+- Modify the `GetCapabilities()` method in `LinkedInScraper`.
+- Add `"getprofile"` to the list of returned capabilities.
+**Verification**: `GetCapabilities()` returns `[]string{"searchbyquery", "getprofile"}`.
+**Commit**: `feat(linkedin): add getprofile capability`
+
+#### Step 2.2: Extend Job Execution Logic
+**Objective**: Handle the new `getprofile` job type.
+**Files**: `internal/jobs/linkedin.go`
+**Action**:
+- In `ExecuteJob`, update the argument unmarshalling to handle both search and profile arguments. A single struct that accommodates both or a dynamic approach might be needed.
+- Add a new `case "getprofile"` to the `switch strings.ToLower(jobArgs.QueryType)` block.
+- This case will call a new method: `ls.getProfile(j, client, jobArgs)`.
+**Verification**: `ExecuteJob` correctly routes `getprofile` jobs.
+**Commit**: `feat(linkedin): route getprofile jobs in ExecuteJob`
+
+#### Step 2.3: Implement Profile Fetching
+**Objective**: Implement the core logic for fetching a profile using the scraper SDK.
+**Files**: `internal/jobs/linkedin.go`
+**Action**:
+- Create a new private method: `getProfile(j types.Job, client *linkedinscraper.Client, args *args.LinkedInArguments) (types.JobResult, error)`. 
+- The method will validate the presence of `PublicIdentifier` in the job arguments.
+- It will call `client.GetProfile(ctx, args.PublicIdentifier)`.
+- It will handle errors (auth, rate limits, not found) and update stats accordingly, similar to `searchProfiles`.
+- It will marshal the returned profile data into the `types.JobResult`.
+**Verification**: The method can successfully call the SDK, handle responses, and create a `JobResult`.
+**Commit**: `feat(linkedin): implement getProfile fetching logic`
+
+### Phase 3: Data Structures (External Dependency)
+
+**Note**: The following changes need to be made in the `github.com/masa-finance/tee-types` repository. This plan assumes these changes will be made available.
+
+#### Step 3.1: Define Profile Job Arguments
+**Objective**: Create a structure for the arguments required by a `getprofile` job.
+**Files**: `(in tee-types repo)` `args/linkedin.go`
+**Action**:
+- Extend `args.LinkedInSearchArguments` in `tee-types` to include `PublicIdentifier string `json:"public_identifier,omitempty"`
+- Rename it to `args.LinkedInArguments` for clarity to avoid confusion and the need for type casting in `tee-worker`.
+**Verification**: `ExecuteJob` can unmarshal arguments for both job types into a single struct.
+**Commit**: `feat(types): extend LinkedIn arguments for profile fetching`
+
+#### Step 3.2: Define Full Profile Result
+**Objective**: Create a structure to hold the detailed profile data.
+**Files**: `(in tee-types repo)` `types/linkedin.go`
+**Action**:
+- The existing `teetypes.LinkedInProfileResult` is for search results.
+- A new struct `teetypes.LinkedInFullProfileResult` should be created to match the comprehensive data from the scraper's `GetProfile` response (experience, education, skills, etc.).
+- The `getProfile` method in `tee-worker` will need to map the scraper's response to this new struct.
+**Verification**: The new result struct accurately represents a full LinkedIn profile.
+**Commit**: `feat(types): add LinkedInFullProfileResult for detailed profiles`
+
+### Phase 4: Testing & Documentation
+
+#### Step 4.1: Add Integration Tests
+**Objective**: Ensure the end-to-end flow for profile fetching is working correctly.
+**Files**: `internal/jobs/linkedin_test.go`
+**Action**:
+- Add a new test case to `TestLinkedInScraper_ExecuteJob`.
+- Create a `types.Job` with `Type: "getprofile"` and valid arguments.
+- Mock the `linkedinscraper.Client`'s `GetProfile` method to return a sample profile.
+- Assert that the returned `types.JobResult` contains the correctly marshaled profile data.
+- Test error scenarios, like an invalid public identifier.
+**Verification**: `go test ./...` passes.
+**Commit**: `test(linkedin): add integration tests for getprofile job`
+
+#### Step 4.2: Update Documentation
+**Objective**: Document the new functionality for users of the `tee-worker`.
+**Files**: `README.md`, `DEVELOPMENT.md` (if applicable)
+**Action**:
+- Update documentation to include the `getprofile` job type.
+- Specify the required `public_identifier` argument.
+- Provide an example of the job definition and the structure of the returned data.
+**Verification**: Documentation is clear and provides a complete guide for using the new endpoint.
+**Commit**: `docs(linkedin): document profile fetching functionality`
+
+## Success Criteria
+- ✅ `go.mod` is updated to `linkedin-scraper v1.0.0`.
+- ✅ Existing `searchbyquery` jobs work exactly as before.
+- ✅ New `getprofile` jobs successfully fetch and return full LinkedIn profile data.
+- ✅ New functionality is covered by integration tests.
+- ✅ All code adheres to existing patterns and quality standards.
+- ✅ Documentation is updated to reflect the new capability.

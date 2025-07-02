@@ -64,7 +64,7 @@ func NewLinkedInScraper(jc types.JobConfiguration, c *stats.StatsCollector) *Lin
 
 // GetCapabilities returns the capabilities supported by the LinkedIn scraper
 func (ls *LinkedInScraper) GetCapabilities() []string {
-	return []string{"searchbyquery"}
+	return []string{"searchbyquery", "getprofile"}
 }
 
 func (ls *LinkedInScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
@@ -107,6 +107,8 @@ func (ls *LinkedInScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 	switch strings.ToLower(jobArgs.QueryType) {
 	case "searchbyquery":
 		return ls.searchProfiles(j, client, jobArgs)
+	case "getprofile":
+		return ls.getProfile(j, client, jobArgs)
 	default:
 		return types.JobResult{Error: "invalid search type: " + jobArgs.QueryType}, fmt.Errorf("invalid search type: %s", jobArgs.QueryType)
 	}
@@ -169,6 +171,74 @@ func (ls *LinkedInScraper) searchProfiles(j types.Job, client *linkedinscraper.C
 	ls.statsCollector.Add(j.WorkerID, stats.LinkedInProfiles, uint(len(results)))
 
 	data, err := json.Marshal(results)
+	if err != nil {
+		return types.JobResult{Error: "failed to marshal results"}, err
+	}
+
+	return types.JobResult{Data: data}, nil
+}
+
+func (ls *LinkedInScraper) getProfile(j types.Job, client *linkedinscraper.Client, args *args.LinkedInSearchArguments) (types.JobResult, error) {
+	// Validate public identifier is not empty
+	// TODO: Update to use args.PublicIdentifier when LinkedInArguments is available
+	var tempArgs map[string]interface{}
+	if err := j.Arguments.Unmarshal(&tempArgs); err != nil {
+		ls.statsCollector.Add(j.WorkerID, stats.LinkedInErrors, 1)
+		return types.JobResult{Error: "error unmarshalling job arguments"}, err
+	}
+
+	publicIdentifier, ok := tempArgs["public_identifier"].(string)
+	if !ok || publicIdentifier == "" {
+		ls.statsCollector.Add(j.WorkerID, stats.LinkedInErrors, 1)
+		return types.JobResult{Error: "public_identifier is required"}, fmt.Errorf("public_identifier is required")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), j.Timeout)
+	defer cancel()
+
+	profile, err := client.GetProfile(ctx, publicIdentifier)
+	if err != nil {
+		// Check for specific error types
+		if strings.Contains(err.Error(), "unauthorized") || strings.Contains(err.Error(), "401") {
+			ls.statsCollector.Add(j.WorkerID, stats.LinkedInAuthErrors, 1)
+		} else if strings.Contains(err.Error(), "rate limit") || strings.Contains(err.Error(), "429") {
+			ls.statsCollector.Add(j.WorkerID, stats.LinkedInRateErrors, 1)
+		} else if strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "404") {
+			ls.statsCollector.Add(j.WorkerID, stats.LinkedInErrors, 1)
+		} else {
+			ls.statsCollector.Add(j.WorkerID, stats.LinkedInErrors, 1)
+		}
+		return types.JobResult{Error: fmt.Sprintf("failed to get profile: %v", err)}, err
+	}
+
+	// TODO: Once tee-types is updated with LinkedInFullProfileResult, replace this with:
+	// result := teetypes.LinkedInFullProfileResult{
+	//     PublicIdentifier:  profile.PublicIdentifier,
+	//     URN:               profile.URN,
+	//     FullName:          profile.FullName,
+	//     Headline:          profile.Headline,
+	//     Location:          profile.Location,
+	//     Summary:           profile.Summary,
+	//     ProfilePictureURL: profile.ProfilePictureURL,
+	//     Experiences:       profile.Experiences,
+	//     Education:         profile.Education,
+	//     Skills:            profile.Skills,
+	// }
+
+	// For now, use the existing LinkedInProfileResult structure
+	result := teetypes.LinkedInProfileResult{
+		PublicIdentifier: profile.PublicIdentifier,
+		URN:              profile.URN,
+		FullName:         profile.FullName,
+		Headline:         profile.Headline,
+		Location:         profile.Location,
+		ProfileURL:       profile.ProfileURL,
+		Degree:           "", // Will be populated when full profile structure is available
+	}
+
+	ls.statsCollector.Add(j.WorkerID, stats.LinkedInProfiles, 1)
+
+	data, err := json.Marshal(result)
 	if err != nil {
 		return types.JobResult{Error: "failed to marshal results"}, err
 	}
