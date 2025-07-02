@@ -204,19 +204,77 @@ func (ls *LinkedInScraper) getProfile(j types.Job, client *linkedinscraper.Clien
 	}
 
 	// Use the new LinkedInFullProfileResult structure for rich profile data
-	// TODO: Map rich profile data once linkedin-scraper SDK field structure is confirmed
-	// For now, use basic fields we know exist and leave rich fields empty
+	// Convert LinkedIn scraper types to tee-types
+	var experiences []teetypes.Experience
+	for _, exp := range profile.Experience {
+		// Convert DateRange to string format for tee-types
+		var startDate, endDate string
+		if exp.DateRange != nil {
+			if exp.DateRange.Start != nil {
+				startDate = fmt.Sprintf("%d-%02d", exp.DateRange.Start.Year, exp.DateRange.Start.Month)
+			}
+			if exp.DateRange.End != nil {
+				endDate = fmt.Sprintf("%d-%02d", exp.DateRange.End.Year, exp.DateRange.End.Month)
+			}
+		}
+
+		experiences = append(experiences, teetypes.Experience{
+			Title:       exp.Title,
+			CompanyName: exp.CompanyName,
+			Location:    exp.LocationName,
+			StartDate:   startDate,
+			EndDate:     endDate,
+			Description: exp.Description,
+		})
+	}
+
+	var education []teetypes.Education
+	for _, edu := range profile.Education {
+		// Convert DateRange to string format for tee-types
+		var startDate, endDate string
+		if edu.DateRange != nil {
+			if edu.DateRange.Start != nil {
+				startDate = fmt.Sprintf("%d-%02d", edu.DateRange.Start.Year, edu.DateRange.Start.Month)
+			}
+			if edu.DateRange.End != nil {
+				endDate = fmt.Sprintf("%d-%02d", edu.DateRange.End.Year, edu.DateRange.End.Month)
+			}
+		}
+
+		education = append(education, teetypes.Education{
+			SchoolName:   edu.SchoolName,
+			DegreeName:   edu.DegreeName,
+			FieldOfStudy: edu.FieldOfStudy,
+			StartDate:    startDate,
+			EndDate:      endDate,
+			Description:  edu.Description,
+		})
+	}
+
+	var skills []teetypes.Skill
+	for _, skill := range profile.Skills {
+		skills = append(skills, teetypes.Skill{
+			Name: skill.Name,
+		})
+	}
+
+	// Extract profile picture URL
+	var profilePictureURL string
+	if profile.ProfilePicture != nil && profile.ProfilePicture.RootURL != "" {
+		profilePictureURL = profile.ProfilePicture.RootURL
+	}
+
 	result := teetypes.LinkedInFullProfileResult{
 		PublicIdentifier:  profile.PublicIdentifier,
 		URN:               profile.URN,
 		FullName:          profile.FullName,
 		Headline:          profile.Headline,
 		Location:          profile.Location,
-		Summary:           "",                      // TODO: Map from profile.Summary once field is confirmed
-		ProfilePictureURL: "",                      // TODO: Map from profile image URL once field is confirmed
-		Experiences:       []teetypes.Experience{}, // TODO: Convert from profile.Experiences once structure is confirmed
-		Education:         []teetypes.Education{},  // TODO: Convert from profile.Education once structure is confirmed
-		Skills:            []teetypes.Skill{},      // TODO: Convert from profile.Skills once structure is confirmed
+		Summary:           profile.Summary,
+		ProfilePictureURL: profilePictureURL,
+		Experiences:       experiences,
+		Education:         education,
+		Skills:            skills,
 	}
 
 	ls.statsCollector.Add(j.WorkerID, stats.LinkedInProfiles, 1)
