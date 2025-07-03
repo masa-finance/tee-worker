@@ -28,6 +28,11 @@ const (
 	WebInvalid                 statType = "web_invalid"
 	TikTokTranscriptionSuccess statType = "tiktok_transcription_success"
 	TikTokTranscriptionErrors  statType = "tiktok_transcription_errors"
+	LinkedInScrapes            statType = "linkedin_scrapes"
+	LinkedInProfiles           statType = "linkedin_returned_profiles"
+	LinkedInErrors             statType = "linkedin_errors"
+	LinkedInAuthErrors         statType = "linkedin_auth_errors"
+	LinkedInRateErrors         statType = "linkedin_ratelimit_errors"
 	// TODO: Should we add stats for calls to each of the Twitter job types?
 )
 
@@ -73,14 +78,14 @@ func StartCollector(bufSize uint, jc types.JobConfiguration) *StatsCollector {
 
 	// Get manual capabilities from environment
 	manualCapabilities, _ := jc["capabilities"].(string)
-	
+
 	// Initial capability detection without JobServer (basic capabilities only)
 	// Full capability detection will happen when JobServer is set
 	detectedCapabilities := capabilities.DetectCapabilities(jc, nil)
-	
+
 	// Merge manual and auto-detected capabilities
 	s.ReportedCapabilities = capabilities.MergeCapabilities(manualCapabilities, detectedCapabilities)
-	
+
 	logrus.Infof("Initial capabilities (manual + basic auto-detected): %v", s.ReportedCapabilities)
 
 	ch := make(chan AddStat, bufSize)
@@ -129,19 +134,19 @@ func (s *StatsCollector) SetWorkerID(workerID string) {
 // SetJobServer sets the JobServer reference and updates capabilities with full detection
 func (s *StatsCollector) SetJobServer(js capabilities.JobServerInterface) {
 	s.jobServer = js
-	
+
 	// Now that we have the JobServer, update capabilities with full detection
 	s.Stats.Lock()
 	defer s.Stats.Unlock()
-	
+
 	// Get manual capabilities from job configuration
 	manualCapabilities, _ := s.jobConfiguration["capabilities"].(string)
-	
+
 	// Auto-detect capabilities using the JobServer
 	detectedCapabilities := capabilities.DetectCapabilities(s.jobConfiguration, js)
-	
+
 	// Merge manual and auto-detected capabilities
 	s.Stats.ReportedCapabilities = capabilities.MergeCapabilities(manualCapabilities, detectedCapabilities)
-	
+
 	logrus.Infof("Updated capabilities with full detection (manual + worker-reported): %v", s.Stats.ReportedCapabilities)
 }

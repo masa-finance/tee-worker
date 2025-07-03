@@ -19,20 +19,20 @@ func (m *MockJobServer) GetWorkerCapabilities() map[string][]string {
 
 func TestDetectCapabilities(t *testing.T) {
 	tests := []struct {
-		name     string
-		jc       types.JobConfiguration
+		name      string
+		jc        types.JobConfiguration
 		jobServer JobServerInterface
-		expected []string
+		expected  []string
 	}{
 		{
 			name: "With JobServer - gets capabilities from workers",
 			jc:   types.JobConfiguration{},
 			jobServer: &MockJobServer{
 				capabilities: map[string][]string{
-					"web-scraper": {"web-scraper"},
-					"telemetry": {"telemetry"},
+					"web-scraper":          {"web-scraper"},
+					"telemetry":            {"telemetry"},
 					"tiktok-transcription": {"tiktok-transcription"},
-					"twitter-scraper": {"searchbyquery", "getbyid", "getprofilebyid"},
+					"twitter-scraper":      {"searchbyquery", "getbyid", "getprofilebyid"},
 				},
 			},
 			expected: []string{
@@ -45,8 +45,8 @@ func TestDetectCapabilities(t *testing.T) {
 			},
 		},
 		{
-			name: "Without JobServer - basic capabilities only",
-			jc:   types.JobConfiguration{},
+			name:      "Without JobServer - basic capabilities only",
+			jc:        types.JobConfiguration{},
 			jobServer: nil,
 			expected: []string{
 				"web-scraper",
@@ -84,16 +84,113 @@ func TestDetectCapabilities(t *testing.T) {
 				"getprofilebyid",
 			},
 		},
+		{
+			name: "Without JobServer - with LinkedIn credentials array",
+			jc: types.JobConfiguration{
+				"linkedin_credentials": []interface{}{
+					map[string]interface{}{
+						"li_at_cookie": "cookie1",
+						"csrf_token":   "token1",
+						"jsessionid":   "session1",
+					},
+				},
+			},
+			jobServer: nil,
+			expected: []string{
+				"web-scraper",
+				"telemetry",
+				"tiktok-transcription",
+				"searchbyquery",
+				"getprofile",
+			},
+		},
+		{
+			name: "Without JobServer - with LinkedIn individual credentials",
+			jc: types.JobConfiguration{
+				"linkedin_li_at_cookie": "cookie1",
+				"linkedin_csrf_token":   "token1",
+				"linkedin_jsessionid":   "session1",
+			},
+			jobServer: nil,
+			expected: []string{
+				"web-scraper",
+				"telemetry",
+				"tiktok-transcription",
+				"searchbyquery",
+				"getprofile",
+			},
+		},
+		{
+			name: "Without JobServer - with both Twitter and LinkedIn credentials",
+			jc: types.JobConfiguration{
+				"twitter_accounts":      []string{"user1:pass1"},
+				"linkedin_li_at_cookie": "cookie1",
+				"linkedin_csrf_token":   "token1",
+				"linkedin_jsessionid":   "session1",
+			},
+			jobServer: nil,
+			expected: []string{
+				"web-scraper",
+				"telemetry",
+				"tiktok-transcription",
+				"searchbyquery",
+				"getbyid",
+				"getprofilebyid",
+				"getprofile",
+			},
+		},
+		{
+			name: "Without JobServer - with incomplete LinkedIn credentials",
+			jc: types.JobConfiguration{
+				"linkedin_li_at_cookie": "cookie1",
+				"linkedin_csrf_token":   "token1",
+				// Missing linkedin_jsessionid
+			},
+			jobServer: nil,
+			expected: []string{
+				"web-scraper",
+				"telemetry",
+				"tiktok-transcription",
+			},
+		},
+		{
+			name: "Without JobServer - with incomplete LinkedIn credentials (missing csrf_token)",
+			jc: types.JobConfiguration{
+				"linkedin_li_at_cookie": "cookie1",
+				"linkedin_jsessionid":   "session1",
+				// Missing linkedin_csrf_token
+			},
+			jobServer: nil,
+			expected: []string{
+				"web-scraper",
+				"telemetry",
+				"tiktok-transcription",
+			},
+		},
+		{
+			name: "Without JobServer - with incomplete LinkedIn credentials (missing jsessionid)",
+			jc: types.JobConfiguration{
+				"linkedin_li_at_cookie": "cookie1",
+				"linkedin_csrf_token":   "token1",
+				// Missing linkedin_jsessionid
+			},
+			jobServer: nil,
+			expected: []string{
+				"web-scraper",
+				"telemetry",
+				"tiktok-transcription",
+			},
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := DetectCapabilities(tt.jc, tt.jobServer)
-			
+
 			// Sort both slices for comparison
 			sort.Strings(got)
 			sort.Strings(tt.expected)
-			
+
 			if !reflect.DeepEqual(got, tt.expected) {
 				t.Errorf("DetectCapabilities() = %v, want %v", got, tt.expected)
 			}
@@ -143,11 +240,11 @@ func TestMergeCapabilities(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := MergeCapabilities(tt.manual, tt.detected)
-			
+
 			// Sort for consistent comparison since map iteration is random
 			sort.Strings(got)
 			sort.Strings(tt.expected)
-			
+
 			if !reflect.DeepEqual(got, tt.expected) {
 				t.Errorf("MergeCapabilities() = %v, want %v", got, tt.expected)
 			}

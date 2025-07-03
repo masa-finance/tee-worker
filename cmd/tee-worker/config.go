@@ -110,6 +110,25 @@ func readConfig() types.JobConfiguration {
 		jc["tiktok_api_user_agent"] = userAgent
 	} // Default for userAgent is set in NewTikTokTranscriber
 
+	// LinkedIn credentials
+	linkedInLiAtCookie := os.Getenv("LINKEDIN_LI_AT_COOKIE")
+	if linkedInLiAtCookie != "" {
+		jc["linkedin_li_at_cookie"] = linkedInLiAtCookie
+		logrus.Info("LinkedIn li_at cookie found")
+	}
+	
+	linkedInCSRFToken := os.Getenv("LINKEDIN_CSRF_TOKEN")
+	if linkedInCSRFToken != "" {
+		jc["linkedin_csrf_token"] = linkedInCSRFToken
+		logrus.Info("LinkedIn CSRF token found")
+	}
+	
+	linkedInJSESSIONID := os.Getenv("LINKEDIN_JSESSIONID")
+	if linkedInJSESSIONID != "" {
+		jc["linkedin_jsessionid"] = linkedInJSESSIONID
+		logrus.Info("LinkedIn JSESSIONID found")
+	}
+
 	jc["stats_buf_size"] = statsBufSize()
 
 	logLevel := os.Getenv("LOG_LEVEL")

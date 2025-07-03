@@ -89,6 +89,9 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 		jobs.TikTokTranscriptionType: {
 			w: jobs.NewTikTokTranscriber(jc, s),
 		},
+		jobs.LinkedInScraperType: {
+			w: jobs.NewLinkedInScraper(jc, s),
+		},
 	}
 	logrus.Infof("Initialized job worker for: %s", jobs.WebScraperType)
 	logrus.Infof("Initialized job worker for: %s", jobs.TwitterScraperType)
@@ -96,6 +99,7 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 	logrus.Infof("Initialized job worker for: %s", jobs.TwitterApiScraperType)
 	logrus.Infof("Initialized job worker for: %s", jobs.TelemetryJobType)
 	logrus.Infof("Initialized job worker for: %s", jobs.TikTokTranscriptionType)
+	logrus.Infof("Initialized job worker for: %s", jobs.LinkedInScraperType)
 
 	logrus.Info("Job workers setup completed.")
 
