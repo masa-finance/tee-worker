@@ -76,17 +76,17 @@ func StartCollector(bufSize uint, jc types.JobConfiguration) *StatsCollector {
 		ReportedCapabilities: []string{},
 	}
 
+	// Get manual capabilities from environment
+	manualCapabilities, _ := jc["capabilities"].(string)
+
 	// Initial capability detection without JobServer (basic capabilities only)
 	// Full capability detection will happen when JobServer is set
 	detectedCapabilities := capabilities.DetectCapabilities(jc, nil)
 
-	// Convert ScraperCapabilities to []string for tee-indexer compatibility
-	s.ReportedCapabilities = make([]string, len(detectedCapabilities))
-	for i, cap := range detectedCapabilities {
-		s.ReportedCapabilities[i] = cap.Scraper
-	}
+	// Merge manual and auto-detected capabilities
+	s.ReportedCapabilities = capabilities.MergeCapabilities(manualCapabilities, detectedCapabilities)
 
-	logrus.Infof("Initial capabilities: %v", s.ReportedCapabilities)
+	logrus.Infof("Initial capabilities (manual + basic auto-detected): %v", s.ReportedCapabilities)
 
 	ch := make(chan AddStat, bufSize)
 
@@ -139,14 +139,14 @@ func (s *StatsCollector) SetJobServer(js capabilities.JobServerInterface) {
 	s.Stats.Lock()
 	defer s.Stats.Unlock()
 
-	// Update capabilities with full detection
+	// Get manual capabilities from job configuration
+	manualCapabilities, _ := s.jobConfiguration["capabilities"].(string)
+
+	// Auto-detect capabilities using the JobServer
 	detectedCapabilities := capabilities.DetectCapabilities(s.jobConfiguration, js)
 
-	// Convert ScraperCapabilities to []string for tee-indexer compatibility
-	s.Stats.ReportedCapabilities = make([]string, len(detectedCapabilities))
-	for i, cap := range detectedCapabilities {
-		s.Stats.ReportedCapabilities[i] = cap.Scraper
-	}
+	// Merge manual and auto-detected capabilities
+	s.Stats.ReportedCapabilities = capabilities.MergeCapabilities(manualCapabilities, detectedCapabilities)
 
-	logrus.Infof("Updated capabilities with full detection: %v", s.Stats.ReportedCapabilities)
+	logrus.Infof("Updated capabilities with full detection (manual + worker-reported): %v", s.Stats.ReportedCapabilities)
 }
