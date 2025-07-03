@@ -1,0 +1,7 @@
+objectStorage:
+  s3:
+    endpoint: "https://your-hetzner-s3-bucket.example.com"
+    accessKey: "YOUR_ACCESS_KEY"
+    secretKey: "YOUR_SECRET_KEY"
+    bucket: "tee-worker-storage"
+    useSSL: true
