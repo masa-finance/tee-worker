@@ -46,6 +46,32 @@ func DetectCapabilities(jc types.JobConfiguration, jobServer JobServerInterface)
 		}
 	}
 
+	// Check for LinkedIn capabilities based on credentials
+	hasLinkedInCreds := false
+
+	// Check for linkedin_credentials array
+	if linkedinCreds, ok := jc["linkedin_credentials"].([]interface{}); ok && len(linkedinCreds) > 0 {
+		hasLinkedInCreds = true
+	}
+
+	// Check for individual LinkedIn credential fields
+	if !hasLinkedInCreds {
+		liAtCookie, _ := jc["linkedin_li_at_cookie"].(string)
+		csrfToken, _ := jc["linkedin_csrf_token"].(string)
+		jsessionID, _ := jc["linkedin_jsessionid"].(string)
+		if liAtCookie != "" && csrfToken != "" && jsessionID != "" {
+			hasLinkedInCreds = true
+		}
+	}
+
+	if hasLinkedInCreds {
+		// Add LinkedIn capabilities when credentials are available
+		if !slices.Contains(detected, "searchbyquery") {
+			detected = append(detected, "searchbyquery")
+		}
+		detected = append(detected, "getprofile")
+	}
+
 	return detected
 }
 
