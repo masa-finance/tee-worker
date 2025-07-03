@@ -45,14 +45,14 @@ type AddStat struct {
 
 // stats is the structure we use to store the statistics
 type stats struct {
-	BootTimeUnix         int64                               `json:"boot_time"`
-	LastOperationUnix    int64                               `json:"last_operation_time"`
-	CurrentTimeUnix      int64                               `json:"current_time"`
-	WorkerID             string                              `json:"worker_id"`
-	Stats                map[string]map[statType]uint        `json:"stats"`
-	Capabilities         []capabilities.ScraperCapabilities  `json:"capabilities"`
-	WorkerVersion        string                              `json:"worker_version"`
-	ApplicationVersion   string                              `json:"application_version"`
+	BootTimeUnix         int64                        `json:"boot_time"`
+	LastOperationUnix    int64                        `json:"last_operation_time"`
+	CurrentTimeUnix      int64                        `json:"current_time"`
+	WorkerID             string                       `json:"worker_id"`
+	Stats                map[string]map[statType]uint `json:"stats"`
+	ReportedCapabilities []string                     `json:"reported_capabilities"`
+	WorkerVersion        string                       `json:"worker_version"`
+	ApplicationVersion   string                       `json:"application_version"`
 	sync.Mutex
 }
 
@@ -69,18 +69,24 @@ func StartCollector(bufSize uint, jc types.JobConfiguration) *StatsCollector {
 	logrus.Info("Starting stats collector")
 
 	s := stats{
-		BootTimeUnix:       time.Now().Unix(),
-		Stats:              make(map[string]map[statType]uint),
-		WorkerVersion:      versioning.TEEWorkerVersion,
-		ApplicationVersion: versioning.ApplicationVersion,
-		Capabilities:       []capabilities.ScraperCapabilities{},
+		BootTimeUnix:         time.Now().Unix(),
+		Stats:                make(map[string]map[statType]uint),
+		WorkerVersion:        versioning.TEEWorkerVersion,
+		ApplicationVersion:   versioning.ApplicationVersion,
+		ReportedCapabilities: []string{},
 	}
 
 	// Initial capability detection without JobServer (basic capabilities only)
 	// Full capability detection will happen when JobServer is set
-	s.Capabilities = capabilities.DetectCapabilities(jc, nil)
+	detectedCapabilities := capabilities.DetectCapabilities(jc, nil)
 
-	logrus.Infof("Initial capabilities: %v", s.Capabilities)
+	// Convert ScraperCapabilities to []string for tee-indexer compatibility
+	s.ReportedCapabilities = make([]string, len(detectedCapabilities))
+	for i, cap := range detectedCapabilities {
+		s.ReportedCapabilities[i] = cap.Scraper
+	}
+
+	logrus.Infof("Initial capabilities: %v", s.ReportedCapabilities)
 
 	ch := make(chan AddStat, bufSize)
 
@@ -133,8 +139,14 @@ func (s *StatsCollector) SetJobServer(js capabilities.JobServerInterface) {
 	s.Stats.Lock()
 	defer s.Stats.Unlock()
 
-	// Update structured capabilities
-	s.Stats.Capabilities = capabilities.DetectCapabilities(s.jobConfiguration, js)
+	// Update capabilities with full detection
+	detectedCapabilities := capabilities.DetectCapabilities(s.jobConfiguration, js)
 
-	logrus.Infof("Updated capabilities with full detection: %v", s.Stats.Capabilities)
+	// Convert ScraperCapabilities to []string for tee-indexer compatibility
+	s.Stats.ReportedCapabilities = make([]string, len(detectedCapabilities))
+	for i, cap := range detectedCapabilities {
+		s.Stats.ReportedCapabilities[i] = cap.Scraper
+	}
+
+	logrus.Infof("Updated capabilities with full detection: %v", s.Stats.ReportedCapabilities)
 }
