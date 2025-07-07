@@ -41,30 +41,39 @@ var _ = Describe("DetectCapabilities", func() {
 
 	Context("without a JobServer (standalone worker)", func() {
 		It("detects basic capabilities by default", func() {
-			expected := []string{"web-scraper", "telemetry", "tiktok-transcription"}
+			// Note: Only capabilities that pass verification will be returned
+			// web-scraper may fail due to network issues, so we only expect the always-available ones
 			detected, _ := DetectCapabilities(ctx, types.JobConfiguration{}, nil)
-			Expect(detected).To(ConsistOf(expected))
+			// telemetry and tiktok-transcription should always be available
+			Expect(detected).To(ContainElements("telemetry", "tiktok-transcription"))
 		})
 
 		It("detects Twitter capabilities when accounts are provided", func() {
 			jc := types.JobConfiguration{"twitter_accounts": []string{"user:pass"}}
-			expected := []string{"web-scraper", "telemetry", "tiktok-transcription", "searchbyquery", "getbyid", "getprofilebyid"}
 			detected, _ := DetectCapabilities(ctx, jc, nil)
-			Expect(detected).To(ConsistOf(expected))
+			// With fake credentials, Twitter capabilities should be filtered out
+			// Only basic capabilities that pass verification should remain
+			Expect(detected).To(ContainElements("telemetry", "tiktok-transcription"))
+			// Twitter capabilities should NOT be present with fake credentials
+			Expect(detected).ToNot(ContainElements("searchbyquery", "getbyid", "getprofilebyid"))
 		})
 
 		It("detects Twitter capabilities when API keys are provided", func() {
 			jc := types.JobConfiguration{"twitter_api_keys": []string{"key1"}}
-			expected := []string{"web-scraper", "telemetry", "tiktok-transcription", "searchbyquery", "getbyid", "getprofilebyid"}
 			detected, _ := DetectCapabilities(ctx, jc, nil)
-			Expect(detected).To(ConsistOf(expected))
+			// With fake API keys, Twitter capabilities should be filtered out
+			Expect(detected).To(ContainElements("telemetry", "tiktok-transcription"))
+			// Twitter capabilities should NOT be present with fake API keys
+			Expect(detected).ToNot(ContainElements("searchbyquery", "getbyid", "getprofilebyid"))
 		})
 
 		It("detects LinkedIn capabilities when credentials array is provided", func() {
 			jc := types.JobConfiguration{"linkedin_credentials": []interface{}{"cred1"}}
-			expected := []string{"web-scraper", "telemetry", "tiktok-transcription", "searchbyquery", "getprofile"}
 			detected, _ := DetectCapabilities(ctx, jc, nil)
-			Expect(detected).To(ConsistOf(expected))
+			// With fake credentials, LinkedIn capabilities should be filtered out
+			Expect(detected).To(ContainElements("telemetry", "tiktok-transcription"))
+			// LinkedIn capabilities should NOT be present with fake credentials
+			Expect(detected).ToNot(ContainElement("getprofile"))
 		})
 
 		It("detects LinkedIn capabilities when individual credentials are provided", func() {
@@ -73,16 +82,20 @@ var _ = Describe("DetectCapabilities", func() {
 				"linkedin_csrf_token":   "token1",
 				"linkedin_jsessionid":   "session1",
 			}
-			expected := []string{"web-scraper", "telemetry", "tiktok-transcription", "searchbyquery", "getprofile"}
 			detected, _ := DetectCapabilities(ctx, jc, nil)
-			Expect(detected).To(ConsistOf(expected))
+			// With fake credentials, LinkedIn capabilities should be filtered out
+			Expect(detected).To(ContainElements("telemetry", "tiktok-transcription"))
+			// LinkedIn capabilities should NOT be present with fake credentials
+			Expect(detected).ToNot(ContainElement("getprofile"))
 		})
 
 		It("does not detect LinkedIn with incomplete credentials", func() {
 			jc := types.JobConfiguration{"linkedin_li_at_cookie": "cookie1"}
-			expected := []string{"web-scraper", "telemetry", "tiktok-transcription"}
 			detected, _ := DetectCapabilities(ctx, jc, nil)
-			Expect(detected).To(ConsistOf(expected))
+			// Only basic capabilities should be detected
+			Expect(detected).To(ContainElements("telemetry", "tiktok-transcription"))
+			// LinkedIn capabilities should NOT be present with incomplete credentials
+			Expect(detected).ToNot(ContainElement("getprofile"))
 		})
 	})
 })

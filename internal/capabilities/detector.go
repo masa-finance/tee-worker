@@ -57,6 +57,22 @@ func DetectCapabilities(ctx context.Context, jc types.JobConfiguration, jobServe
 		}
 	}
 
+	// Register Twitter API Key Verifier if API keys are present
+	if twitterApiKeys, ok := jc["twitter_api_keys"].([]string); ok && len(twitterApiKeys) > 0 {
+		// Only register if we don't already have Twitter verifiers from accounts
+		if _, hasTwitterVerifier := verifiersMap["searchbyquery"]; !hasTwitterVerifier {
+			twitterApiVerifier, err := verifiers.NewTwitterApiKeyVerifier(twitterApiKeys)
+			if err != nil {
+				logrus.WithError(err).Error("Failed to initialize Twitter API key verifier")
+			} else {
+				// These capabilities are tied to twitter API keys
+				verifiersMap["searchbyquery"] = twitterApiVerifier
+				verifiersMap["getbyid"] = twitterApiVerifier
+				verifiersMap["getprofilebyid"] = twitterApiVerifier
+			}
+		}
+	}
+
 	// Register LinkedIn Verifier if credentials are present
 	var liCreds []types.LinkedInCredential
 	if creds, ok := jc["linkedin_credentials"].([]interface{}); ok {
@@ -148,11 +164,6 @@ func detectCapabilitiesFromConfig(jc types.JobConfiguration) []string {
 
 	if hasLinkedInCreds {
 		// Add LinkedIn capabilities when credentials are available
-		if !slices.Contains(detected, "searchbyquery") {
-			// searchbyquery is a twitter capability, but we are adding it here for linkedin as well
-			// This is because the capabilities are not yet granular enough
-			detected = append(detected, "searchbyquery")
-		}
 		detected = append(detected, "getprofile")
 	}
 
