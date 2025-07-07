@@ -58,7 +58,7 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 	}
 
 	// Jobserver instance
-	jobServer := jobserver.NewJobServer(maxJobsInt, config)
+	jobServer := jobserver.NewJobServer(maxJobsInt, config, healthTracker)
 
 	go jobServer.Run(ctx)
 	go healthTracker.StartReconciliationLoop(ctx)

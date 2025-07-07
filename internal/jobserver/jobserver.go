@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/masa-finance/tee-worker/api/types"
+	"github.com/masa-finance/tee-worker/internal/capabilities/health"
 	"github.com/masa-finance/tee-worker/internal/jobs"
 	"github.com/masa-finance/tee-worker/internal/jobs/stats"
 	"github.com/masa-finance/tee-worker/pkg/tee"
@@ -32,7 +33,7 @@ type jobWorkerEntry struct {
 	sync.Mutex
 }
 
-func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
+func NewJobServer(workers int, jc types.JobConfiguration, healthTracker health.CapabilityHealthTracker) *JobServer {
 	logrus.Info("Initializing JobServer...")
 
 	// Validate and set worker count
@@ -54,7 +55,7 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 
 	// Start stats collector
 	logrus.Info("Starting stats collector...")
-	s := stats.StartCollector(bufSize, jc)
+	s := stats.StartCollector(bufSize, jc, healthTracker)
 	logrus.Info("Stats collector started successfully.")
 
 	// Set worker ID in stats collector if available

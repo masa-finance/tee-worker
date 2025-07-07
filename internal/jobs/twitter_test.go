@@ -40,7 +40,7 @@ var _ = Describe("Twitter Scraper", func() {
 			}
 			credentialAccount = os.Getenv("TWITTER_TEST_ACCOUNT")
 			apiKey = os.Getenv("TWITTER_TEST_API_KEY")
-			statsCollector = stats.StartCollector(128, types.JobConfiguration{})
+			statsCollector = stats.StartCollector(128, types.JobConfiguration{}, healthTracker)
 			healthTracker = health.NewTracker()
 		})
 
@@ -180,7 +180,7 @@ var _ = Describe("Twitter Scraper", func() {
 			Skip("TWITTER_TEST_ACCOUNT is not set")
 		}
 
-		statsCollector = stats.StartCollector(128, types.JobConfiguration{})
+		statsCollector = stats.StartCollector(128, types.JobConfiguration{}, healthTracker)
 		healthTracker = health.NewTracker()
 
 		twitterScraper = NewTwitterScraper(types.JobConfiguration{

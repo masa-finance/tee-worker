@@ -33,7 +33,7 @@ var _ = Describe("LinkedIn Scraper", func() {
 			Skip("LINKEDIN_TEST_LI_AT_COOKIE or LINKEDIN_TEST_CSRF_TOKEN is not set")
 		}
 
-		statsCollector = stats.StartCollector(128, types.JobConfiguration{})
+		statsCollector = stats.StartCollector(128, types.JobConfiguration{}, healthTracker)
 		healthTracker = health.NewTracker()
 
 		linkedInScraper = NewLinkedInScraper(types.JobConfiguration{

@@ -27,7 +27,7 @@ var _ = Describe("TikTokTranscriber", func() {
 		// Assuming stats.StartCollector is the correct way to get an instance
 		// The buffer size and jobConfig for stats can be minimal for tests.
 		jobConfigForStats := types.JobConfiguration{"stats_buf_size": uint(32)}
-		statsCollector = stats.StartCollector(32, jobConfigForStats) // Use the actual StartCollector
+		statsCollector = stats.StartCollector(32, jobConfigForStats, healthTracker) // Use the actual StartCollector
 
 		// Ensure debug logging is enabled for the test run
 		logrus.SetLevel(logrus.DebugLevel)

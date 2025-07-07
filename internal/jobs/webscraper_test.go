@@ -17,7 +17,7 @@ var healthTracker health.CapabilityHealthTracker
 
 var _ = Describe("Webscraper", func() {
 	BeforeEach(func() {
-		statsCollector = stats.StartCollector(128, types.JobConfiguration{})
+		statsCollector = stats.StartCollector(128, types.JobConfiguration{}, healthTracker)
 		healthTracker = health.NewTracker()
 	})
 

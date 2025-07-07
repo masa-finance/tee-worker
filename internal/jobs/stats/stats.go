@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/masa-finance/tee-worker/api/types"
-	"github.com/masa-finance/tee-worker/internal/capabilities"
+	"github.com/masa-finance/tee-worker/internal/capabilities/health"
 	"github.com/masa-finance/tee-worker/internal/versioning"
 	"github.com/sirupsen/logrus"
 )
@@ -60,12 +60,13 @@ type stats struct {
 type StatsCollector struct {
 	Stats            *stats
 	Chan             chan AddStat
-	jobServer        capabilities.JobServerInterface
+	jobServer        interface{} // Generic interface since we don't need specific methods
 	jobConfiguration types.JobConfiguration
+	healthTracker    health.CapabilityHealthTracker
 }
 
 // StartCollector starts a goroutine that listens to a channel for AddStat messages and updates the stats accordingly.
-func StartCollector(bufSize uint, jc types.JobConfiguration) *StatsCollector {
+func StartCollector(bufSize uint, jc types.JobConfiguration, healthTracker health.CapabilityHealthTracker) *StatsCollector {
 	logrus.Info("Starting stats collector")
 
 	s := stats{
@@ -73,17 +74,8 @@ func StartCollector(bufSize uint, jc types.JobConfiguration) *StatsCollector {
 		Stats:                make(map[string]map[statType]uint),
 		WorkerVersion:        versioning.TEEWorkerVersion,
 		ApplicationVersion:   versioning.ApplicationVersion,
-		ReportedCapabilities: []string{},
+		ReportedCapabilities: []string{}, // This will be populated dynamically
 	}
-
-	// Get capabilities from the job configuration, where they were placed by the detector.
-	if caps, ok := jc["healthy_capabilities"].([]string); ok {
-		// Merge manual and auto-detected capabilities
-		manualCapabilities, _ := jc["capabilities"].(string)
-		s.ReportedCapabilities = capabilities.MergeCapabilities(manualCapabilities, caps)
-	}
-
-	logrus.Infof("Initial capabilities: %v", s.ReportedCapabilities)
 
 	ch := make(chan AddStat, bufSize)
 
@@ -105,7 +97,12 @@ func StartCollector(bufSize uint, jc types.JobConfiguration) *StatsCollector {
 		}
 	}(&s, ch)
 
-	return &StatsCollector{Stats: &s, Chan: ch, jobConfiguration: jc}
+	return &StatsCollector{
+		Stats:            &s,
+		Chan:             ch,
+		jobConfiguration: jc,
+		healthTracker:    healthTracker,
+	}
 }
 
 // Json returns the current statistics as a JSON byte array
@@ -113,6 +110,19 @@ func (s *StatsCollector) Json() ([]byte, error) {
 	s.Stats.Lock()
 	defer s.Stats.Unlock()
 	s.Stats.CurrentTimeUnix = time.Now().Unix()
+
+	// Dynamically populate reported capabilities based on current health
+	if s.healthTracker != nil {
+		var healthyCapabilities []string
+		allStatuses := s.healthTracker.GetAllStatuses()
+		for capName, status := range allStatuses {
+			if status.IsHealthy {
+				healthyCapabilities = append(healthyCapabilities, capName)
+			}
+		}
+		s.Stats.ReportedCapabilities = healthyCapabilities
+	}
+
 	return json.Marshal(s.Stats)
 }
 
@@ -129,7 +139,7 @@ func (s *StatsCollector) SetWorkerID(workerID string) {
 }
 
 // SetJobServer sets the JobServer reference and updates capabilities with full detection
-func (s *StatsCollector) SetJobServer(js capabilities.JobServerInterface) {
+func (s *StatsCollector) SetJobServer(js interface{}) {
 	s.jobServer = js
 	// No longer need to detect capabilities here, as it's handled at startup.
 }

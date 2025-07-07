@@ -122,7 +122,7 @@ var _ = Describe("Health Checks", func() {
 
 		Context("when all checks pass", func() {
 			It("should return 200 OK", func() {
-				jobServer = jobserver.NewJobServer(10, types.JobConfiguration{})
+				jobServer = jobserver.NewJobServer(10, types.JobConfiguration{}, nil)
 
 				// Record mostly successes
 				for i := 0; i < 95; i++ {
@@ -165,7 +165,7 @@ var _ = Describe("Health Checks", func() {
 
 		Context("when error rate is high", func() {
 			It("should return 503 Service Unavailable", func() {
-				jobServer = jobserver.NewJobServer(10, types.JobConfiguration{})
+				jobServer = jobserver.NewJobServer(10, types.JobConfiguration{}, nil)
 
 				// Record mostly errors
 				for i := 0; i < 4; i++ {

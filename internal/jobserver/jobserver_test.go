@@ -14,7 +14,7 @@ import (
 
 var _ = Describe("Jobserver", func() {
 	It("runs jobs", func() {
-		jobserver := NewJobServer(2, types.JobConfiguration{})
+		jobserver := NewJobServer(2, types.JobConfiguration{}, nil)
 
 		uuid, err := jobserver.AddJob(types.Job{
 			Type: "web-scraper",

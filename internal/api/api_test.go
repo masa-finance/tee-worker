@@ -32,7 +32,8 @@ var _ = Describe("API", func() {
 		logrus.SetLevel(logrus.DebugLevel)
 		go func() {
 			logrus.SetLevel(logrus.DebugLevel)
-			Start(ctx, "127.0.0.1:40912", "", true, types.JobConfiguration{})
+			// Use a no-op or mock CapabilityHealthTracker for testing
+			Start(ctx, "127.0.0.1:40912", "", true, types.JobConfiguration{}, nil)
 		}()
 
 		// Wait for the server to start
