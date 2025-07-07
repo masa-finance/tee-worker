@@ -3,65 +3,12 @@ package capabilities
 import (
 	"context"
 	"strings"
-	"sync"
-	"time"
 
 	"golang.org/x/exp/slices"
 
 	"github.com/masa-finance/tee-worker/api/types"
 	"github.com/masa-finance/tee-worker/internal/capabilities/health"
 )
-
-// inMemoryHealthTracker is a temporary, in-memory implementation of CapabilityHealthTracker.
-// This will be replaced by the full implementation in Step 4.
-type inMemoryHealthTracker struct {
-	statuses map[string]health.CapabilityStatus
-	mu       sync.RWMutex
-}
-
-func newInMemoryHealthTracker() *inMemoryHealthTracker {
-	return &inMemoryHealthTracker{
-		statuses: make(map[string]health.CapabilityStatus),
-	}
-}
-
-func (t *inMemoryHealthTracker) UpdateStatus(name string, isHealthy bool, err error) {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-
-	status := t.statuses[name]
-	status.Name = name
-	status.IsHealthy = isHealthy
-	status.LastChecked = time.Now()
-
-	if err != nil {
-		status.LastError = err.Error()
-		if !isHealthy {
-			status.ErrorCount++
-		}
-	} else {
-		status.LastError = ""
-	}
-	t.statuses[name] = status
-}
-
-func (t *inMemoryHealthTracker) GetStatus(name string) (health.CapabilityStatus, bool) {
-	t.mu.RLock()
-	defer t.mu.RUnlock()
-	status, exists := t.statuses[name]
-	return status, exists
-}
-
-func (t *inMemoryHealthTracker) GetAllStatuses() map[string]health.CapabilityStatus {
-	t.mu.RLock()
-	defer t.mu.RUnlock()
-	// Return a copy to prevent race conditions
-	statusesCopy := make(map[string]health.CapabilityStatus)
-	for k, v := range t.statuses {
-		statusesCopy[k] = v
-	}
-	return statusesCopy
-}
 
 // JobServerInterface defines the methods we need from JobServer to avoid circular dependencies
 type JobServerInterface interface {
@@ -89,7 +36,7 @@ func DetectCapabilities(ctx context.Context, jc types.JobConfiguration, jobServe
 	detectedCaps := detectCapabilitiesFromConfig(jc)
 
 	// Step 1: Initialize the health tracker and verifier
-	tracker := newInMemoryHealthTracker()
+	tracker := health.NewTracker()
 	verifier := NewCapabilityVerifier(tracker)
 
 	// Step 2: Register specific verifiers (we'll add real ones later)
