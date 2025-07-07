@@ -17,6 +17,154 @@ type JobServerInterface interface {
 	GetWorkerCapabilities() map[string][]string
 }
 
+// VerifierConfig defines how to create and register a verifier
+type VerifierConfig struct {
+	Name         string
+	Capabilities []string
+	ConfigCheck  func(types.JobConfiguration) bool
+	Factory      func(types.JobConfiguration) (health.Verifier, error)
+}
+
+// verifierConfigs defines all available verifiers and their configuration
+var verifierConfigs = []VerifierConfig{
+	{
+		Name:         "web-scraper",
+		Capabilities: []string{"web-scraper"},
+		ConfigCheck:  func(jc types.JobConfiguration) bool { return true }, // Always available
+		Factory: func(jc types.JobConfiguration) (health.Verifier, error) {
+			return verifiers.NewWebScraperVerifier(), nil
+		},
+	},
+	{
+		Name:         "tiktok-transcription",
+		Capabilities: []string{"tiktok-transcription"},
+		ConfigCheck:  func(jc types.JobConfiguration) bool { return true }, // Always available
+		Factory: func(jc types.JobConfiguration) (health.Verifier, error) {
+			return verifiers.NewTikTokVerifier(), nil
+		},
+	},
+	{
+		Name:         "twitter-credentials",
+		Capabilities: []string{"searchbyquery", "getbyid", "getprofilebyid"},
+		ConfigCheck: func(jc types.JobConfiguration) bool {
+			accounts, ok := jc["twitter_accounts"].([]string)
+			return ok && len(accounts) > 0
+		},
+		Factory: func(jc types.JobConfiguration) (health.Verifier, error) {
+			accounts := jc["twitter_accounts"].([]string)
+			dataDir, _ := jc["data_dir"].(string)
+			return verifiers.NewTwitterVerifier(accounts, dataDir)
+		},
+	},
+	{
+		Name:         "twitter-api-keys",
+		Capabilities: []string{"searchbyquery", "getbyid", "getprofilebyid"},
+		ConfigCheck: func(jc types.JobConfiguration) bool {
+			apiKeys, ok := jc["twitter_api_keys"].([]string)
+			return ok && len(apiKeys) > 0
+		},
+		Factory: func(jc types.JobConfiguration) (health.Verifier, error) {
+			apiKeys := jc["twitter_api_keys"].([]string)
+			return verifiers.NewTwitterApiKeyVerifier(apiKeys)
+		},
+	},
+	{
+		Name:         "linkedin",
+		Capabilities: []string{"getprofile"},
+		ConfigCheck: func(jc types.JobConfiguration) bool {
+			return hasLinkedInCredentials(jc)
+		},
+		Factory: func(jc types.JobConfiguration) (health.Verifier, error) {
+			liCreds := parseLinkedInCredentials(jc)
+			return verifiers.NewLinkedInVerifier(liCreds)
+		},
+	},
+}
+
+// registerVerifiers creates verifiers based on configuration using table-driven approach
+func registerVerifiers(jc types.JobConfiguration) map[string]health.Verifier {
+	verifiersMap := make(map[string]health.Verifier)
+	registeredCapabilities := make(map[string]bool)
+
+	for _, config := range verifierConfigs {
+		if !config.ConfigCheck(jc) {
+			continue
+		}
+
+		// Skip if capabilities are already registered (Twitter credentials take precedence over API keys)
+		hasConflict := false
+		for _, cap := range config.Capabilities {
+			if registeredCapabilities[cap] {
+				hasConflict = true
+				break
+			}
+		}
+		if hasConflict {
+			logrus.WithField("verifier", config.Name).Debug("Skipping verifier due to capability conflict")
+			continue
+		}
+
+		verifier, err := config.Factory(jc)
+		if err != nil {
+			logrus.WithError(err).WithField("verifier", config.Name).Error("Failed to initialize verifier")
+			continue
+		}
+
+		// Register verifier for all its capabilities
+		for _, cap := range config.Capabilities {
+			verifiersMap[cap] = verifier
+			registeredCapabilities[cap] = true
+		}
+
+		logrus.WithField("verifier", config.Name).WithField("capabilities", config.Capabilities).Debug("Registered verifier")
+	}
+
+	return verifiersMap
+}
+
+// hasLinkedInCredentials checks if LinkedIn credentials are available in any format
+func hasLinkedInCredentials(jc types.JobConfiguration) bool {
+	// Check for linkedin_credentials array
+	if linkedinCreds, ok := jc["linkedin_credentials"].([]interface{}); ok && len(linkedinCreds) > 0 {
+		return true
+	}
+
+	// Check for individual LinkedIn credential fields
+	liAtCookie, _ := jc["linkedin_li_at_cookie"].(string)
+	csrfToken, _ := jc["linkedin_csrf_token"].(string)
+	jsessionID, _ := jc["linkedin_jsessionid"].(string)
+	return liAtCookie != "" && csrfToken != "" && jsessionID != ""
+}
+
+// parseLinkedInCredentials extracts LinkedIn credentials from job configuration
+func parseLinkedInCredentials(jc types.JobConfiguration) []types.LinkedInCredential {
+	var liCreds []types.LinkedInCredential
+
+	// Try linkedin_credentials array first
+	if creds, ok := jc["linkedin_credentials"].([]interface{}); ok {
+		for _, credInterface := range creds {
+			if credMap, ok := credInterface.(map[string]interface{}); ok {
+				cred := types.LinkedInCredential{
+					LiAtCookie: credMap["li_at_cookie"].(string),
+					CSRFToken:  credMap["csrf_token"].(string),
+					JSESSIONID: credMap["jsessionid"].(string),
+				}
+				liCreds = append(liCreds, cred)
+			}
+		}
+	} else {
+		// Fall back to individual credential fields
+		liAt, _ := jc["linkedin_li_at_cookie"].(string)
+		csrf, _ := jc["linkedin_csrf_token"].(string)
+		jsess, _ := jc["linkedin_jsessionid"].(string)
+		if liAt != "" && csrf != "" {
+			liCreds = append(liCreds, types.LinkedInCredential{LiAtCookie: liAt, CSRFToken: csrf, JSESSIONID: jsess})
+		}
+	}
+
+	return liCreds
+}
+
 // DetectCapabilities automatically detects and verifies available capabilities.
 // It returns a list of only the healthy, verified capabilities and the configured health tracker.
 func DetectCapabilities(ctx context.Context, jc types.JobConfiguration, jobServer JobServerInterface) ([]string, health.CapabilityHealthTracker) {
@@ -35,75 +183,8 @@ func DetectCapabilities(ctx context.Context, jc types.JobConfiguration, jobServe
 	tracker := health.NewTracker()
 	verifier := NewCapabilityVerifier(tracker)
 
-	verifiersMap := make(map[string]health.Verifier)
-
-	// Register Web Scraper Verifier
-	verifiersMap["web-scraper"] = verifiers.NewWebScraperVerifier()
-
-	// Register TikTok Verifier
-	verifiersMap["tiktok-transcription"] = verifiers.NewTikTokVerifier()
-
-	// Register Twitter Verifier if accounts are present
-	if twitterAccounts, ok := jc["twitter_accounts"].([]string); ok && len(twitterAccounts) > 0 {
-		dataDir, _ := jc["data_dir"].(string)
-		twitterVerifier, err := verifiers.NewTwitterVerifier(twitterAccounts, dataDir)
-		if err != nil {
-			logrus.WithError(err).Error("Failed to initialize Twitter verifier")
-		} else {
-			// These capabilities are tied to twitter credentials
-			verifiersMap["searchbyquery"] = twitterVerifier
-			verifiersMap["getbyid"] = twitterVerifier
-			verifiersMap["getprofilebyid"] = twitterVerifier
-		}
-	}
-
-	// Register Twitter API Key Verifier if API keys are present
-	if twitterApiKeys, ok := jc["twitter_api_keys"].([]string); ok && len(twitterApiKeys) > 0 {
-		// Only register if we don't already have Twitter verifiers from accounts
-		if _, hasTwitterVerifier := verifiersMap["searchbyquery"]; !hasTwitterVerifier {
-			twitterApiVerifier, err := verifiers.NewTwitterApiKeyVerifier(twitterApiKeys)
-			if err != nil {
-				logrus.WithError(err).Error("Failed to initialize Twitter API key verifier")
-			} else {
-				// These capabilities are tied to twitter API keys
-				verifiersMap["searchbyquery"] = twitterApiVerifier
-				verifiersMap["getbyid"] = twitterApiVerifier
-				verifiersMap["getprofilebyid"] = twitterApiVerifier
-			}
-		}
-	}
-
-	// Register LinkedIn Verifier if credentials are present
-	var liCreds []types.LinkedInCredential
-	if creds, ok := jc["linkedin_credentials"].([]interface{}); ok {
-		for _, credInterface := range creds {
-			if credMap, ok := credInterface.(map[string]interface{}); ok {
-				cred := types.LinkedInCredential{
-					LiAtCookie: credMap["li_at_cookie"].(string),
-					CSRFToken:  credMap["csrf_token"].(string),
-					JSESSIONID: credMap["jsessionid"].(string),
-				}
-				liCreds = append(liCreds, cred)
-			}
-		}
-	} else {
-		liAt, _ := jc["linkedin_li_at_cookie"].(string)
-		csrf, _ := jc["linkedin_csrf_token"].(string)
-		jsess, _ := jc["linkedin_jsessionid"].(string)
-		if liAt != "" && csrf != "" {
-			liCreds = append(liCreds, types.LinkedInCredential{LiAtCookie: liAt, CSRFToken: csrf, JSESSIONID: jsess})
-		}
-	}
-
-	if len(liCreds) > 0 {
-		linkedInVerifier, err := verifiers.NewLinkedInVerifier(liCreds)
-		if err != nil {
-			logrus.WithError(err).Error("Failed to initialize LinkedIn verifier")
-		} else {
-			// These capabilities are tied to linkedin credentials
-			verifiersMap["getprofile"] = linkedInVerifier
-		}
-	}
+	// Use table-driven verifier registration
+	verifiersMap := registerVerifiers(jc)
 
 	// Register all verifiers with the main verifier and the tracker
 	for name, v := range verifiersMap {
