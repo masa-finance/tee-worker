@@ -1,7 +1,6 @@
 package stats
 
 import (
-	"context"
 	"encoding/json"
 	"sync"
 	"time"
@@ -77,17 +76,14 @@ func StartCollector(bufSize uint, jc types.JobConfiguration) *StatsCollector {
 		ReportedCapabilities: []string{},
 	}
 
-	// Get manual capabilities from environment
-	manualCapabilities, _ := jc["capabilities"].(string)
+	// Get capabilities from the job configuration, where they were placed by the detector.
+	if caps, ok := jc["healthy_capabilities"].([]string); ok {
+		// Merge manual and auto-detected capabilities
+		manualCapabilities, _ := jc["capabilities"].(string)
+		s.ReportedCapabilities = capabilities.MergeCapabilities(manualCapabilities, caps)
+	}
 
-	// Initial capability detection without JobServer (basic capabilities only)
-	// Full capability detection will happen when JobServer is set
-	detectedCapabilities := capabilities.DetectCapabilities(context.Background(), jc, nil)
-
-	// Merge manual and auto-detected capabilities
-	s.ReportedCapabilities = capabilities.MergeCapabilities(manualCapabilities, detectedCapabilities)
-
-	logrus.Infof("Initial capabilities (manual + basic auto-detected): %v", s.ReportedCapabilities)
+	logrus.Infof("Initial capabilities: %v", s.ReportedCapabilities)
 
 	ch := make(chan AddStat, bufSize)
 
@@ -135,19 +131,5 @@ func (s *StatsCollector) SetWorkerID(workerID string) {
 // SetJobServer sets the JobServer reference and updates capabilities with full detection
 func (s *StatsCollector) SetJobServer(js capabilities.JobServerInterface) {
 	s.jobServer = js
-
-	// Now that we have the JobServer, update capabilities with full detection
-	s.Stats.Lock()
-	defer s.Stats.Unlock()
-
-	// Get manual capabilities from job configuration
-	manualCapabilities, _ := s.jobConfiguration["capabilities"].(string)
-
-	// Auto-detect capabilities using the JobServer
-	detectedCapabilities := capabilities.DetectCapabilities(context.Background(), s.jobConfiguration, js)
-
-	// Merge manual and auto-detected capabilities
-	s.Stats.ReportedCapabilities = capabilities.MergeCapabilities(manualCapabilities, detectedCapabilities)
-
-	logrus.Infof("Updated capabilities with full detection (manual + worker-reported): %v", s.Stats.ReportedCapabilities)
+	// No longer need to detect capabilities here, as it's handled at startup.
 }

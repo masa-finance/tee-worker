@@ -1,6 +1,9 @@
 package health
 
-import "time"
+import (
+	"context"
+	"time"
+)
 
 // CapabilityStatus holds the health information for a single capability.
 type CapabilityStatus struct {
@@ -20,4 +23,6 @@ type CapabilityHealthTracker interface {
 	GetStatus(name string) (CapabilityStatus, bool)
 	// GetAllStatuses returns a map of all tracked capability statuses.
 	GetAllStatuses() map[string]CapabilityStatus
+	// StartReconciliationLoop starts a background process to periodically re-check unhealthy capabilities.
+	StartReconciliationLoop(ctx context.Context)
 }

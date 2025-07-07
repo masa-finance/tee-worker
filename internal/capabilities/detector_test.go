@@ -34,32 +34,37 @@ var _ = Describe("DetectCapabilities", func() {
 				},
 			}
 			expected := []string{"web-scraper", "telemetry", "twitter-scraper", "searchbyquery"}
-			Expect(DetectCapabilities(ctx, types.JobConfiguration{}, jobServer)).To(ConsistOf(expected))
+			detected, _ := DetectCapabilities(ctx, types.JobConfiguration{}, jobServer)
+			Expect(detected).To(ConsistOf(expected))
 		})
 	})
 
 	Context("without a JobServer (standalone worker)", func() {
 		It("detects basic capabilities by default", func() {
 			expected := []string{"web-scraper", "telemetry", "tiktok-transcription"}
-			Expect(DetectCapabilities(ctx, types.JobConfiguration{}, nil)).To(ConsistOf(expected))
+			detected, _ := DetectCapabilities(ctx, types.JobConfiguration{}, nil)
+			Expect(detected).To(ConsistOf(expected))
 		})
 
 		It("detects Twitter capabilities when accounts are provided", func() {
 			jc := types.JobConfiguration{"twitter_accounts": []string{"user:pass"}}
 			expected := []string{"web-scraper", "telemetry", "tiktok-transcription", "searchbyquery", "getbyid", "getprofilebyid"}
-			Expect(DetectCapabilities(ctx, jc, nil)).To(ConsistOf(expected))
+			detected, _ := DetectCapabilities(ctx, jc, nil)
+			Expect(detected).To(ConsistOf(expected))
 		})
 
 		It("detects Twitter capabilities when API keys are provided", func() {
 			jc := types.JobConfiguration{"twitter_api_keys": []string{"key1"}}
 			expected := []string{"web-scraper", "telemetry", "tiktok-transcription", "searchbyquery", "getbyid", "getprofilebyid"}
-			Expect(DetectCapabilities(ctx, jc, nil)).To(ConsistOf(expected))
+			detected, _ := DetectCapabilities(ctx, jc, nil)
+			Expect(detected).To(ConsistOf(expected))
 		})
 
 		It("detects LinkedIn capabilities when credentials array is provided", func() {
 			jc := types.JobConfiguration{"linkedin_credentials": []interface{}{"cred1"}}
 			expected := []string{"web-scraper", "telemetry", "tiktok-transcription", "searchbyquery", "getprofile"}
-			Expect(DetectCapabilities(ctx, jc, nil)).To(ConsistOf(expected))
+			detected, _ := DetectCapabilities(ctx, jc, nil)
+			Expect(detected).To(ConsistOf(expected))
 		})
 
 		It("detects LinkedIn capabilities when individual credentials are provided", func() {
@@ -69,13 +74,15 @@ var _ = Describe("DetectCapabilities", func() {
 				"linkedin_jsessionid":   "session1",
 			}
 			expected := []string{"web-scraper", "telemetry", "tiktok-transcription", "searchbyquery", "getprofile"}
-			Expect(DetectCapabilities(ctx, jc, nil)).To(ConsistOf(expected))
+			detected, _ := DetectCapabilities(ctx, jc, nil)
+			Expect(detected).To(ConsistOf(expected))
 		})
 
 		It("does not detect LinkedIn with incomplete credentials", func() {
 			jc := types.JobConfiguration{"linkedin_li_at_cookie": "cookie1"}
 			expected := []string{"web-scraper", "telemetry", "tiktok-transcription"}
-			Expect(DetectCapabilities(ctx, jc, nil)).To(ConsistOf(expected))
+			detected, _ := DetectCapabilities(ctx, jc, nil)
+			Expect(detected).To(ConsistOf(expected))
 		})
 	})
 })

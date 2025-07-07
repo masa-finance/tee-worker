@@ -15,11 +15,12 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"
 	"github.com/masa-finance/tee-worker/api/types"
+	"github.com/masa-finance/tee-worker/internal/capabilities/health"
 	"github.com/masa-finance/tee-worker/internal/jobserver"
 	"github.com/masa-finance/tee-worker/pkg/tee"
 )
 
-func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, config types.JobConfiguration) error {
+func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, config types.JobConfiguration, healthTracker health.CapabilityHealthTracker) error {
 
 	// Echo instance
 	e := echo.New()
@@ -60,6 +61,7 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 	jobServer := jobserver.NewJobServer(maxJobsInt, config)
 
 	go jobServer.Run(ctx)
+	go healthTracker.StartReconciliationLoop(ctx)
 
 	// Initialize health metrics
 	healthMetrics := NewHealthMetrics()
@@ -76,7 +78,7 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 
 	// Initialize empty key ring
 	tee.CurrentKeyRing = tee.NewKeyRing()
-	
+
 	// Validate keyring to ensure it doesn't exceed the maximum allowed keys
 	if tee.CurrentKeyRing != nil {
 		tee.CurrentKeyRing.ValidateAndPrune()

@@ -18,26 +18,30 @@ type JobServerInterface interface {
 }
 
 // DetectCapabilities automatically detects and verifies available capabilities.
-// It returns a list of only the healthy, verified capabilities.
-func DetectCapabilities(ctx context.Context, jc types.JobConfiguration, jobServer JobServerInterface) []string {
+// It returns a list of only the healthy, verified capabilities and the configured health tracker.
+func DetectCapabilities(ctx context.Context, jc types.JobConfiguration, jobServer JobServerInterface) ([]string, health.CapabilityHealthTracker) {
 	if jobServer != nil {
+		// When running with a job server, we rely on the capabilities reported by workers.
+		// The health tracking is managed by the individual workers, so we don't need a central tracker here.
 		var detected []string
 		workerCaps := jobServer.GetWorkerCapabilities()
 		for _, caps := range workerCaps {
 			detected = append(detected, caps...)
 		}
-		return detected
+		return detected, nil
 	}
 
 	detectedCaps := detectCapabilitiesFromConfig(jc)
 	tracker := health.NewTracker()
 	verifier := NewCapabilityVerifier(tracker)
 
+	verifiersMap := make(map[string]health.Verifier)
+
 	// Register Web Scraper Verifier
-	verifier.RegisterVerifier("web-scraper", verifiers.NewWebScraperVerifier())
+	verifiersMap["web-scraper"] = verifiers.NewWebScraperVerifier()
 
 	// Register TikTok Verifier
-	verifier.RegisterVerifier("tiktok-transcription", verifiers.NewTikTokVerifier())
+	verifiersMap["tiktok-transcription"] = verifiers.NewTikTokVerifier()
 
 	// Register Twitter Verifier if accounts are present
 	if twitterAccounts, ok := jc["twitter_accounts"].([]string); ok && len(twitterAccounts) > 0 {
@@ -47,9 +51,9 @@ func DetectCapabilities(ctx context.Context, jc types.JobConfiguration, jobServe
 			logrus.WithError(err).Error("Failed to initialize Twitter verifier")
 		} else {
 			// These capabilities are tied to twitter credentials
-			verifier.RegisterVerifier("searchbyquery", twitterVerifier)
-			verifier.RegisterVerifier("getbyid", twitterVerifier)
-			verifier.RegisterVerifier("getprofilebyid", twitterVerifier)
+			verifiersMap["searchbyquery"] = twitterVerifier
+			verifiersMap["getbyid"] = twitterVerifier
+			verifiersMap["getprofilebyid"] = twitterVerifier
 		}
 	}
 
@@ -81,9 +85,15 @@ func DetectCapabilities(ctx context.Context, jc types.JobConfiguration, jobServe
 			logrus.WithError(err).Error("Failed to initialize LinkedIn verifier")
 		} else {
 			// These capabilities are tied to linkedin credentials
-			verifier.RegisterVerifier("getprofile", linkedInVerifier)
+			verifiersMap["getprofile"] = linkedInVerifier
 		}
 	}
+
+	// Register all verifiers with the main verifier and the tracker
+	for name, v := range verifiersMap {
+		verifier.RegisterVerifier(name, v)
+	}
+	tracker.SetVerifiers(verifiersMap)
 
 	verifier.VerifyCapabilities(ctx, detectedCaps)
 
@@ -95,7 +105,7 @@ func DetectCapabilities(ctx context.Context, jc types.JobConfiguration, jobServe
 		}
 	}
 	logrus.Infof("Verified and healthy capabilities: %v", healthyCapabilities)
-	return healthyCapabilities
+	return healthyCapabilities, tracker
 }
 
 // detectCapabilitiesFromConfig detects potential capabilities based on configuration.

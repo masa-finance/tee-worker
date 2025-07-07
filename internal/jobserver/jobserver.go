@@ -9,7 +9,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/masa-finance/tee-worker/api/types"
-	"github.com/masa-finance/tee-worker/internal/capabilities/health"
 	"github.com/masa-finance/tee-worker/internal/jobs"
 	"github.com/masa-finance/tee-worker/internal/jobs/stats"
 	"github.com/masa-finance/tee-worker/pkg/tee"
@@ -58,10 +57,6 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 	s := stats.StartCollector(bufSize, jc)
 	logrus.Info("Stats collector started successfully.")
 
-	// Start health tracker
-	tracker := health.NewTracker()
-	logrus.Info("Capability health tracker started successfully.")
-
 	// Set worker ID in stats collector if available
 	if workerID, ok := jc["worker_id"].(string); ok && workerID != "" {
 		logrus.Infof("Setting worker ID to '%s' in stats collector.", workerID)
@@ -74,25 +69,25 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 	logrus.Info("Setting up job workers...")
 	jobworkers := map[string]*jobWorkerEntry{
 		jobs.WebScraperType: {
-			w: jobs.NewWebScraper(jc, s, tracker),
+			w: jobs.NewWebScraper(jc, s, nil),
 		},
 		jobs.TwitterScraperType: {
-			w: jobs.NewTwitterScraper(jc, s, tracker),
+			w: jobs.NewTwitterScraper(jc, s, nil),
 		},
 		jobs.TwitterCredentialScraperType: {
-			w: jobs.NewTwitterScraper(jc, s, tracker), // Uses the same implementation as standard Twitter scraper
+			w: jobs.NewTwitterScraper(jc, s, nil), // Uses the same implementation as standard Twitter scraper
 		},
 		jobs.TwitterApiScraperType: {
-			w: jobs.NewTwitterScraper(jc, s, tracker), // Uses the same implementation as standard Twitter scraper
+			w: jobs.NewTwitterScraper(jc, s, nil), // Uses the same implementation as standard Twitter scraper
 		},
 		jobs.TelemetryJobType: {
-			w: jobs.NewTelemetryJob(jc, s, tracker),
+			w: jobs.NewTelemetryJob(jc, s, nil),
 		},
 		jobs.TikTokTranscriptionType: {
-			w: jobs.NewTikTokTranscriber(jc, s, tracker),
+			w: jobs.NewTikTokTranscriber(jc, s, nil),
 		},
 		jobs.LinkedInScraperType: {
-			w: jobs.NewLinkedInScraper(jc, s, tracker),
+			w: jobs.NewLinkedInScraper(jc, s, nil),
 		},
 	}
 	logrus.Infof("Initialized job worker for: %s", jobs.WebScraperType)
