@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/masa-finance/tee-worker/api/types"
+	"github.com/masa-finance/tee-worker/internal/capabilities/health"
 	"github.com/masa-finance/tee-worker/internal/jobs"
 	"github.com/masa-finance/tee-worker/internal/jobs/stats"
 	"github.com/masa-finance/tee-worker/pkg/tee"
@@ -57,6 +58,10 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 	s := stats.StartCollector(bufSize, jc)
 	logrus.Info("Stats collector started successfully.")
 
+	// Start health tracker
+	tracker := health.NewTracker()
+	logrus.Info("Capability health tracker started successfully.")
+
 	// Set worker ID in stats collector if available
 	if workerID, ok := jc["worker_id"].(string); ok && workerID != "" {
 		logrus.Infof("Setting worker ID to '%s' in stats collector.", workerID)
@@ -69,25 +74,25 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 	logrus.Info("Setting up job workers...")
 	jobworkers := map[string]*jobWorkerEntry{
 		jobs.WebScraperType: {
-			w: jobs.NewWebScraper(jc, s),
+			w: jobs.NewWebScraper(jc, s, tracker),
 		},
 		jobs.TwitterScraperType: {
-			w: jobs.NewTwitterScraper(jc, s),
+			w: jobs.NewTwitterScraper(jc, s, tracker),
 		},
 		jobs.TwitterCredentialScraperType: {
-			w: jobs.NewTwitterScraper(jc, s), // Uses the same implementation as standard Twitter scraper
+			w: jobs.NewTwitterScraper(jc, s, tracker), // Uses the same implementation as standard Twitter scraper
 		},
 		jobs.TwitterApiScraperType: {
-			w: jobs.NewTwitterScraper(jc, s), // Uses the same implementation as standard Twitter scraper
+			w: jobs.NewTwitterScraper(jc, s, tracker), // Uses the same implementation as standard Twitter scraper
 		},
 		jobs.TelemetryJobType: {
-			w: jobs.NewTelemetryJob(jc, s),
+			w: jobs.NewTelemetryJob(jc, s, tracker),
 		},
 		jobs.TikTokTranscriptionType: {
-			w: jobs.NewTikTokTranscriber(jc, s),
+			w: jobs.NewTikTokTranscriber(jc, s, tracker),
 		},
 		jobs.LinkedInScraperType: {
-			w: jobs.NewLinkedInScraper(jc, s),
+			w: jobs.NewLinkedInScraper(jc, s, tracker),
 		},
 	}
 	logrus.Infof("Initialized job worker for: %s", jobs.WebScraperType)
@@ -111,12 +116,12 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 		jobWorkers:       jobworkers,
 		executedJobs:     make(map[string]bool),
 	}
-	
+
 	// Set the JobServer reference in the stats collector for capability reporting
 	if s != nil {
 		s.SetJobServer(js)
 	}
-	
+
 	return js
 }
 
@@ -128,13 +133,13 @@ type CapabilityProvider interface {
 // GetWorkerCapabilities returns the capabilities for all registered workers
 func (js *JobServer) GetWorkerCapabilities() map[string][]string {
 	capabilities := make(map[string][]string)
-	
+
 	for workerType, workerEntry := range js.jobWorkers {
 		if provider, ok := workerEntry.w.(CapabilityProvider); ok {
 			capabilities[workerType] = provider.GetCapabilities()
 		}
 	}
-	
+
 	return capabilities
 }
 

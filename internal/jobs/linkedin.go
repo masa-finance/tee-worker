@@ -10,6 +10,7 @@ import (
 	"github.com/masa-finance/tee-types/args"
 	teetypes "github.com/masa-finance/tee-types/types"
 	"github.com/masa-finance/tee-worker/api/types"
+	"github.com/masa-finance/tee-worker/internal/capabilities/health"
 	"github.com/masa-finance/tee-worker/internal/jobs/stats"
 	"github.com/sirupsen/logrus"
 )
@@ -21,6 +22,7 @@ const (
 type LinkedInScraper struct {
 	configuration  LinkedInScraperConfiguration
 	statsCollector *stats.StatsCollector
+	healthTracker  health.CapabilityHealthTracker
 }
 
 type LinkedInScraperConfiguration struct {
@@ -34,7 +36,7 @@ type LinkedInCredential struct {
 	JSESSIONID string `json:"jsessionid"`
 }
 
-func NewLinkedInScraper(jc types.JobConfiguration, c *stats.StatsCollector) *LinkedInScraper {
+func NewLinkedInScraper(jc types.JobConfiguration, c *stats.StatsCollector, h health.CapabilityHealthTracker) *LinkedInScraper {
 	config := LinkedInScraperConfiguration{}
 	if err := jc.Unmarshal(&config); err != nil {
 		logrus.Errorf("Error unmarshalling LinkedIn scraper configuration: %v", err)
@@ -59,6 +61,7 @@ func NewLinkedInScraper(jc types.JobConfiguration, c *stats.StatsCollector) *Lin
 	return &LinkedInScraper{
 		configuration:  config,
 		statsCollector: c,
+		healthTracker:  h,
 	}
 }
 
@@ -68,16 +71,29 @@ func (ls *LinkedInScraper) GetCapabilities() []string {
 }
 
 func (ls *LinkedInScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
+	// Defer a function to report the final health status of the capabilities
+	// This ensures that we report health even if the job panics.
+	var finalErr error
+	defer func() {
+		// The `getprofile` and `searchbyquery` capabilities are tied together for LinkedIn
+		// because they use the same authentication credentials.
+		isHealthy := finalErr == nil
+		ls.healthTracker.UpdateStatus("getprofile", isHealthy, finalErr)
+		ls.healthTracker.UpdateStatus("searchbyquery", isHealthy, finalErr)
+	}()
+
 	jobArgs := &args.LinkedInArguments{}
 	if err := j.Arguments.Unmarshal(jobArgs); err != nil {
 		logrus.Errorf("Error while unmarshalling job arguments for job ID %s, type %s: %v", j.UUID, j.Type, err)
-		return types.JobResult{Error: "error unmarshalling job arguments"}, err
+		finalErr = err
+		return types.JobResult{Error: "error unmarshalling job arguments"}, finalErr
 	}
 
 	// Validate we have credentials
 	if len(ls.configuration.Credentials) == 0 {
 		ls.statsCollector.Add(j.WorkerID, stats.LinkedInAuthErrors, 1)
-		return types.JobResult{Error: "no LinkedIn credentials available"}, fmt.Errorf("no LinkedIn credentials configured")
+		finalErr = fmt.Errorf("no LinkedIn credentials configured")
+		return types.JobResult{Error: "no LinkedIn credentials available"}, finalErr
 	}
 
 	// Get the first available credential (in future, implement rotation)
@@ -93,25 +109,31 @@ func (ls *LinkedInScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 	cfg, err := linkedinscraper.NewConfig(authCreds)
 	if err != nil {
 		ls.statsCollector.Add(j.WorkerID, stats.LinkedInAuthErrors, 1)
-		return types.JobResult{Error: "failed to create LinkedIn config"}, err
+		finalErr = err
+		return types.JobResult{Error: "failed to create LinkedIn config"}, finalErr
 	}
 
 	client, err := linkedinscraper.NewClient(cfg)
 	if err != nil {
 		ls.statsCollector.Add(j.WorkerID, stats.LinkedInAuthErrors, 1)
-		return types.JobResult{Error: "failed to create LinkedIn client"}, err
+		finalErr = err
+		return types.JobResult{Error: "failed to create LinkedIn client"}, finalErr
 	}
 
 	ls.statsCollector.Add(j.WorkerID, stats.LinkedInScrapes, 1)
 
+	var result types.JobResult
 	switch strings.ToLower(jobArgs.QueryType) {
 	case "searchbyquery":
-		return ls.searchProfiles(j, client, jobArgs)
+		result, finalErr = ls.searchProfiles(j, client, jobArgs)
+		return result, finalErr
 	case "getprofile":
-		return ls.getProfile(j, client, jobArgs)
+		result, finalErr = ls.getProfile(j, client, jobArgs)
+		return result, finalErr
 	default:
 		ls.statsCollector.Add(j.WorkerID, stats.LinkedInErrors, 1)
-		return types.JobResult{Error: "invalid search type: " + jobArgs.QueryType}, fmt.Errorf("invalid search type: %s", jobArgs.QueryType)
+		finalErr = fmt.Errorf("invalid search type: %s", jobArgs.QueryType)
+		return types.JobResult{Error: "invalid search type: " + jobArgs.QueryType}, finalErr
 	}
 }
 

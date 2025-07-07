@@ -3,15 +3,17 @@ package jobs
 import (
 	"encoding/json"
 	"fmt"
-	teeargs "github.com/masa-finance/tee-types/args"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
+	teeargs "github.com/masa-finance/tee-types/args"
+
 	"github.com/cenkalti/backoff"
 	"github.com/gocolly/colly"
 	"github.com/masa-finance/tee-worker/api/types"
+	"github.com/masa-finance/tee-worker/internal/capabilities/health"
 	"github.com/masa-finance/tee-worker/internal/jobs/stats"
 	"github.com/sirupsen/logrus"
 )
@@ -21,18 +23,20 @@ const WebScraperType = "web-scraper"
 type WebScraper struct {
 	configuration WebScraperConfiguration
 	stats         *stats.StatsCollector
+	healthTracker health.CapabilityHealthTracker
 }
 
 type WebScraperConfiguration struct {
 	Blacklist []string `json:"webscraper_blacklist"`
 }
 
-func NewWebScraper(jc types.JobConfiguration, statsCollector *stats.StatsCollector) *WebScraper {
+func NewWebScraper(jc types.JobConfiguration, statsCollector *stats.StatsCollector, h health.CapabilityHealthTracker) *WebScraper {
 	config := WebScraperConfiguration{}
 	jc.Unmarshal(&config)
 	return &WebScraper{
 		configuration: config,
 		stats:         statsCollector,
+		healthTracker: h,
 	}
 }
 
@@ -42,6 +46,11 @@ func (ws *WebScraper) GetCapabilities() []string {
 }
 
 func (ws *WebScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
+	var finalErr error
+	defer func() {
+		ws.healthTracker.UpdateStatus("web-scraper", finalErr == nil, finalErr)
+	}()
+
 	logrus.Info("Starting ExecuteJob for web scraper")
 
 	// Step 1: Unmarshal arguments
@@ -49,7 +58,8 @@ func (ws *WebScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 	logrus.Info("Unmarshaling job arguments")
 	if err := j.Arguments.Unmarshal(args); err != nil {
 		logrus.Errorf("Failed to unmarshal job arguments: %v", err)
-		return types.JobResult{Error: fmt.Sprintf("Invalid arguments: %v", err)}, err
+		finalErr = fmt.Errorf("Invalid arguments: %v", err)
+		return types.JobResult{Error: finalErr.Error()}, finalErr
 	}
 	logrus.Infof("Job arguments unmarshaled successfully: %+v", args)
 
@@ -61,9 +71,8 @@ func (ws *WebScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 			logrus.Warnf("URL %s is blacklisted due to term: %s", args.URL, u)
 			ws.stats.Add(j.WorkerID, stats.WebInvalid, 1)
 			logrus.Errorf("Blacklisted URL: %s", args.URL)
-			return types.JobResult{
-				Error: fmt.Sprintf("URL blacklisted: %s", args.URL),
-			}, nil
+			finalErr = fmt.Errorf("URL blacklisted: %s", args.URL)
+			return types.JobResult{Error: finalErr.Error()}, finalErr
 		}
 	}
 	logrus.Infof("URL %s passed blacklist validation", args.URL)
@@ -74,6 +83,7 @@ func (ws *WebScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 	if err != nil {
 		logrus.Errorf("Web scraping failed for URL %s: %v", args.URL, err)
 		ws.stats.Add(j.WorkerID, stats.WebErrors, 1)
+		finalErr = err
 		return types.JobResult{Error: err.Error()}, err
 	}
 	logrus.Infof("Web scraping succeeded for URL %s: %v", args.URL, result)

@@ -12,6 +12,7 @@ import (
 	"github.com/masa-finance/tee-types/args"
 	teetypes "github.com/masa-finance/tee-types/types"
 	"github.com/masa-finance/tee-worker/api/types"
+	"github.com/masa-finance/tee-worker/internal/capabilities/health"
 	"github.com/masa-finance/tee-worker/internal/jobs/stats"
 	"github.com/sirupsen/logrus"
 )
@@ -37,6 +38,7 @@ type TikTokTranscriber struct {
 	configuration TikTokTranscriptionConfiguration
 	stats         *stats.StatsCollector
 	httpClient    *http.Client
+	healthTracker health.CapabilityHealthTracker
 }
 
 // GetCapabilities returns the capabilities supported by the TikTok transcriber
@@ -46,7 +48,7 @@ func (t *TikTokTranscriber) GetCapabilities() []string {
 
 // NewTikTokTranscriber creates and initializes a new TikTokTranscriber.
 // It sets default values for the API configuration.
-func NewTikTokTranscriber(jc types.JobConfiguration, statsCollector *stats.StatsCollector) *TikTokTranscriber {
+func NewTikTokTranscriber(jc types.JobConfiguration, statsCollector *stats.StatsCollector, h health.CapabilityHealthTracker) *TikTokTranscriber {
 	config := TikTokTranscriptionConfiguration{}
 
 	// Set default values directly
@@ -85,6 +87,7 @@ func NewTikTokTranscriber(jc types.JobConfiguration, statsCollector *stats.Stats
 		configuration: config,
 		stats:         statsCollector,
 		httpClient:    httpClient,
+		healthTracker: h,
 	}
 }
 
@@ -98,22 +101,30 @@ type APIResponse struct {
 
 // ExecuteJob processes a single TikTok transcription job.
 func (ttt *TikTokTranscriber) ExecuteJob(j types.Job) (types.JobResult, error) {
+	var finalErr error
+	defer func() {
+		ttt.healthTracker.UpdateStatus(TikTokTranscriptionType, finalErr == nil, finalErr)
+	}()
+
 	logrus.WithField("job_uuid", j.UUID).Info("Starting ExecuteJob for TikTok transcription")
 
 	if ttt.configuration.TranscriptionEndpoint == "" {
 		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1)
-		return types.JobResult{Error: "TikTok transcription endpoint is not configured for the worker"}, fmt.Errorf("tiktok transcription endpoint not configured")
+		finalErr = fmt.Errorf("tiktok transcription endpoint not configured")
+		return types.JobResult{Error: "TikTok transcription endpoint is not configured for the worker"}, finalErr
 	}
 
 	args := &args.TikTokTranscriptionArguments{}
 	if err := j.Arguments.Unmarshal(args); err != nil {
 		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1)
-		return types.JobResult{Error: "Failed to unmarshal job arguments"}, fmt.Errorf("unmarshal job arguments: %w", err)
+		finalErr = fmt.Errorf("unmarshal job arguments: %w", err)
+		return types.JobResult{Error: "Failed to unmarshal job arguments"}, finalErr
 	}
 
 	if args.VideoURL == "" {
 		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1)
-		return types.JobResult{Error: "VideoURL is required"}, fmt.Errorf("videoURL is required")
+		finalErr = fmt.Errorf("videoURL is required")
+		return types.JobResult{Error: "VideoURL is required"}, finalErr
 	}
 	// Sanitize/Validate VideoURL further if necessary (e.g., ensure it's a TikTok URL)
 
@@ -129,13 +140,15 @@ func (ttt *TikTokTranscriber) ExecuteJob(j types.Job) (types.JobResult, error) {
 	jsonBody, err := json.Marshal(apiRequestBody)
 	if err != nil {
 		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1)
-		return types.JobResult{Error: "Failed to marshal API request body"}, fmt.Errorf("marshal API request body: %w", err)
+		finalErr = fmt.Errorf("marshal API request body: %w", err)
+		return types.JobResult{Error: "Failed to marshal API request body"}, finalErr
 	}
 
 	req, err := http.NewRequest("POST", ttt.configuration.TranscriptionEndpoint, bytes.NewBuffer(jsonBody))
 	if err != nil {
 		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1)
-		return types.JobResult{Error: "Failed to create API request"}, fmt.Errorf("create API request: %w", err)
+		finalErr = fmt.Errorf("create API request: %w", err)
+		return types.JobResult{Error: "Failed to create API request"}, finalErr
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -158,7 +171,8 @@ func (ttt *TikTokTranscriber) ExecuteJob(j types.Job) (types.JobResult, error) {
 	apiResp, err := ttt.httpClient.Do(req)
 	if err != nil {
 		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1)
-		return types.JobResult{Error: "API request failed"}, fmt.Errorf("API request execution: %w", err)
+		finalErr = fmt.Errorf("API request execution: %w", err)
+		return types.JobResult{Error: "API request failed"}, finalErr
 	}
 	defer apiResp.Body.Close()
 
@@ -168,20 +182,23 @@ func (ttt *TikTokTranscriber) ExecuteJob(j types.Job) (types.JobResult, error) {
 		errMsg := fmt.Sprintf("API request failed with status code %d. Response: %s", apiResp.StatusCode, string(bodyBytes))
 		logrus.WithField("job_uuid", j.UUID).Error(errMsg)
 		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1)
-		return types.JobResult{Error: errMsg}, fmt.Errorf("%s", errMsg)
+		finalErr = fmt.Errorf(errMsg)
+		return types.JobResult{Error: errMsg}, finalErr
 	}
 
 	var parsedAPIResponse APIResponse
 	if err := json.NewDecoder(apiResp.Body).Decode(&parsedAPIResponse); err != nil {
 		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1)
-		return types.JobResult{Error: "Failed to parse API response"}, fmt.Errorf("parse API response: %w", err)
+		finalErr = fmt.Errorf("parse API response: %w", err)
+		return types.JobResult{Error: "Failed to parse API response"}, finalErr
 	}
 
 	if parsedAPIResponse.Error != "" {
 		errMsg := fmt.Sprintf("API returned an error: %s", parsedAPIResponse.Error)
 		logrus.WithField("job_uuid", j.UUID).Error(errMsg)
 		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1)
-		return types.JobResult{Error: errMsg}, fmt.Errorf("%s", errMsg)
+		finalErr = fmt.Errorf(errMsg)
+		return types.JobResult{Error: errMsg}, finalErr
 	}
 
 	// Sub-Step 3.2: Extract Transcription and Metadata
@@ -189,7 +206,8 @@ func (ttt *TikTokTranscriber) ExecuteJob(j types.Job) (types.JobResult, error) {
 		errMsg := "No transcripts found in API response"
 		logrus.WithField("job_uuid", j.UUID).Warn(errMsg)
 		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1) // Or a different stat for "no_transcript_found"
-		return types.JobResult{Error: errMsg}, fmt.Errorf("%s", errMsg)
+		finalErr = fmt.Errorf(errMsg)
+		return types.JobResult{Error: errMsg}, finalErr
 	}
 
 	vttText := ""
@@ -227,7 +245,8 @@ func (ttt *TikTokTranscriber) ExecuteJob(j types.Job) (types.JobResult, error) {
 		errMsg := "Suitable transcript could not be extracted from API response"
 		logrus.WithField("job_uuid", j.UUID).Error(errMsg)
 		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1)
-		return types.JobResult{Error: errMsg}, fmt.Errorf("%s", errMsg)
+		finalErr = fmt.Errorf(errMsg)
+		return types.JobResult{Error: errMsg}, finalErr
 	}
 
 	logrus.Debugf("Job %s: Raw VTT content for language %s:\n%s", j.UUID, finalDetectedLanguage, vttText)
@@ -239,7 +258,8 @@ func (ttt *TikTokTranscriber) ExecuteJob(j types.Job) (types.JobResult, error) {
 		errMsg := fmt.Sprintf("Failed to convert VTT to plain text: %v", err)
 		logrus.WithField("job_uuid", j.UUID).Error(errMsg)
 		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1)
-		return types.JobResult{Error: errMsg}, fmt.Errorf("%s", errMsg)
+		finalErr = fmt.Errorf(errMsg)
+		return types.JobResult{Error: errMsg}, finalErr
 	}
 
 	// Process Result & Return
@@ -254,7 +274,8 @@ func (ttt *TikTokTranscriber) ExecuteJob(j types.Job) (types.JobResult, error) {
 	jsonData, err := json.Marshal(resultData)
 	if err != nil {
 		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1)
-		return types.JobResult{Error: "Failed to marshal result data"}, fmt.Errorf("marshal result data: %w", err)
+		finalErr = fmt.Errorf("marshal result data: %w", err)
+		return types.JobResult{Error: "Failed to marshal result data"}, finalErr
 	}
 
 	logrus.WithFields(logrus.Fields{

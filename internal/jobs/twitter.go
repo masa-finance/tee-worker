@@ -4,18 +4,20 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/masa-finance/tee-types/args"
-	teetypes "github.com/masa-finance/tee-types/types"
 	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/masa-finance/tee-types/args"
+	teetypes "github.com/masa-finance/tee-types/types"
 
 	"github.com/masa-finance/tee-worker/internal/jobs/twitterx"
 	"github.com/masa-finance/tee-worker/pkg/client"
 
 	twitterscraper "github.com/imperatrona/twitter-scraper"
 	"github.com/masa-finance/tee-worker/api/types"
+	"github.com/masa-finance/tee-worker/internal/capabilities/health"
 	"github.com/masa-finance/tee-worker/internal/jobs/stats"
 	"github.com/masa-finance/tee-worker/internal/jobs/twitter"
 
@@ -874,34 +876,35 @@ type TwitterScraper struct {
 	}
 	accountManager *twitter.TwitterAccountManager
 	statsCollector *stats.StatsCollector
+	healthTracker  health.CapabilityHealthTracker
 	capabilities   map[string]bool
 }
 
-func NewTwitterScraper(jc types.JobConfiguration, c *stats.StatsCollector) *TwitterScraper {
-	config := struct {
-		Accounts              []string `json:"twitter_accounts"`
-		ApiKeys               []string `json:"twitter_api_keys"`
-		DataDir               string   `json:"data_dir"`
-		SkipLoginVerification bool     `json:"skip_login_verification,omitempty"`
-	}{}
-	if err := jc.Unmarshal(&config); err != nil {
+func NewTwitterScraper(jc types.JobConfiguration, c *stats.StatsCollector, h health.CapabilityHealthTracker) *TwitterScraper {
+	ts := &TwitterScraper{
+		statsCollector: c,
+		healthTracker:  h,
+		capabilities:   make(map[string]bool),
+	}
+	if err := jc.Unmarshal(&ts.configuration); err != nil {
 		logrus.Errorf("Error unmarshalling Twitter scraper configuration: %v", err)
 		return nil
 	}
 
-	accounts := parseAccounts(config.Accounts)
-	apiKeys := parseApiKeys(config.ApiKeys)
+	accounts := parseAccounts(ts.configuration.Accounts)
+	apiKeys := parseApiKeys(ts.configuration.ApiKeys)
 	accountManager := twitter.NewTwitterAccountManager(accounts, apiKeys)
 	accountManager.DetectAllApiKeyTypes()
 
 	if os.Getenv("TWITTER_SKIP_LOGIN_VERIFICATION") == "true" {
-		config.SkipLoginVerification = true
+		ts.configuration.SkipLoginVerification = true
 	}
 
 	return &TwitterScraper{
-		configuration:  config,
+		configuration:  ts.configuration,
 		accountManager: accountManager,
 		statsCollector: c,
+		healthTracker:  h,
 		capabilities: map[string]bool{
 			"searchbyquery":       true,
 			"searchbyfullarchive": true,
@@ -928,13 +931,13 @@ func NewTwitterScraper(jc types.JobConfiguration, c *stats.StatsCollector) *Twit
 // based on the available credentials
 func (ts *TwitterScraper) GetCapabilities() []string {
 	var capabilities []string
-	
+
 	// Check if we have Twitter accounts
 	hasAccounts := len(ts.configuration.Accounts) > 0
-	
+
 	// Check if we have API keys
 	hasApiKeys := len(ts.configuration.ApiKeys) > 0
-	
+
 	// If we have accounts, add all credential-based capabilities
 	if hasAccounts {
 		for capability, enabled := range ts.capabilities {
@@ -950,7 +953,7 @@ func (ts *TwitterScraper) GetCapabilities() []string {
 				capabilities = append(capabilities, cap)
 			}
 		}
-		
+
 		// Check if any API key is elevated for full archive search
 		if ts.accountManager != nil {
 			for _, apiKey := range ts.accountManager.GetApiKeys() {
@@ -961,7 +964,7 @@ func (ts *TwitterScraper) GetCapabilities() []string {
 			}
 		}
 	}
-	
+
 	return capabilities
 }
 
@@ -1162,39 +1165,40 @@ func defaultStrategyFallback(j types.Job, ts *TwitterScraper, jobArgs *args.Twit
 // If the unmarshaling fails, it returns an error.
 // If the unmarshaled result is empty, it returns an error.
 func (ts *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
+	var finalErr error
+	defer func() {
+		// All twitter capabilities share the same auth pool, so if one fails,
+		// they all might be unhealthy.
+		isHealthy := finalErr == nil
+		if _, exists := ts.capabilities["searchbyquery"]; exists {
+			ts.healthTracker.UpdateStatus("searchbyquery", isHealthy, finalErr)
+		}
+		if _, exists := ts.capabilities["getbyid"]; exists {
+			ts.healthTracker.UpdateStatus("getbyid", isHealthy, finalErr)
+		}
+		if _, exists := ts.capabilities["getprofilebyid"]; exists {
+			ts.healthTracker.UpdateStatus("getprofilebyid", isHealthy, finalErr)
+		}
+	}()
+
+	logrus.Infof("Executing job: %s, type: %s", j.UUID, j.Type)
+
 	jobArgs := &args.TwitterSearchArguments{}
 	if err := j.Arguments.Unmarshal(jobArgs); err != nil {
 		logrus.Errorf("Error while unmarshalling job arguments for job ID %s, type %s: %v", j.UUID, j.Type, err)
-		return types.JobResult{Error: "error unmarshalling job arguments"}, err
+		finalErr = fmt.Errorf("error unmarshalling job arguments")
+		return types.JobResult{Error: finalErr.Error()}, finalErr
 	}
 
 	strategy := getScrapeStrategy(j.Type)
-	jobResult, err := strategy.Execute(j, ts, jobArgs)
-	if err != nil {
-		logrus.Errorf("Error executing job ID %s, type %s: %v", j.UUID, j.Type, err)
-		return types.JobResult{Error: "error executing job"}, err
+	if strategy == nil {
+		finalErr = fmt.Errorf("unsupported job type: %s", j.Type)
+		return types.JobResult{Error: finalErr.Error()}, finalErr
 	}
 
-	// Check if raw data is empty
-	if jobResult.Data == nil || len(jobResult.Data) == 0 {
-		logrus.Errorf("Job result data is empty for job ID %s, type %s", j.UUID, j.Type)
-		return types.JobResult{Error: "job result data is empty"}, fmt.Errorf("job result data is empty")
-	}
-
-	// Unmarshal result to typed structure
-	var results []*teetypes.TweetResult
-	if err := jobResult.Unmarshal(&results); err != nil {
-		logrus.Errorf("Error while unmarshalling job result for job ID %s, type %s: %v", j.UUID, j.Type, err)
-		return types.JobResult{Error: "error unmarshalling job result for final validation and result length check"}, err
-	}
-
-	// Final validation after unmarshaling
-	if len(results) == 0 {
-		logrus.Errorf("Job result is empty for job ID %s, type %s", j.UUID, j.Type)
-		return types.JobResult{Error: "job result is empty"}, fmt.Errorf("job result is empty")
-	}
-
-	return jobResult, nil
+	var result types.JobResult
+	result, finalErr = strategy.Execute(j, ts, jobArgs)
+	return result, finalErr
 }
 
 func (ts *TwitterScraper) FetchHomeTweets(j types.Job, baseDir string, count int, cursor string) ([]*twitterscraper.Tweet, string, error) {
