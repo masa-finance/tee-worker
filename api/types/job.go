@@ -154,3 +154,33 @@ func (jc JobConfiguration) GetString(key string, def string) string {
 	}
 	return def
 }
+
+// LinkedInScraperConfiguration holds the configuration for the LinkedIn scraper.
+type LinkedInScraperConfiguration struct {
+	Credentials []LinkedInCredential `json:"linkedin_credentials"`
+	DataDir     string               `json:"data_dir"`
+}
+
+// LinkedInCredential holds the necessary authentication tokens for LinkedIn.
+type LinkedInCredential struct {
+	LiAtCookie string `json:"li_at_cookie"`
+	CSRFToken  string `json:"csrf_token"`
+	JSESSIONID string `json:"jsessionid"`
+}
+
+// TikTokTranscriptionConfiguration holds the configuration for the TikTok transcriber.
+type TikTokTranscriptionConfiguration struct {
+	TranscriptionEndpoint string `json:"tiktok_transcription_endpoint"`
+	APIOrigin             string `json:"tiktok_api_origin,omitempty"`
+	APIReferer            string `json:"tiktok_api_referer,omitempty"`
+	APIUserAgent          string `json:"tiktok_api_user_agent,omitempty"`
+	DefaultLanguage       string `json:"tiktok_default_language,omitempty"` // e.g., "eng-US"
+}
+
+// TikTokAPIResponse is used to unmarshal the JSON response from the transcription API.
+type TikTokAPIResponse struct {
+	VideoTitle   string            `json:"videoTitle"`
+	Transcripts  map[string]string `json:"transcripts"` // map of language_code -> VTT string
+	ThumbnailURL string            `json:"thumbnailUrl"`
+	Error        string            `json:"error,omitempty"` // Optional error from API
+}

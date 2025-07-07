@@ -4,6 +4,8 @@ import (
 	"context"
 	"strings"
 
+	"github.com/masa-finance/tee-worker/internal/capabilities/verifiers"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/exp/slices"
 
 	"github.com/masa-finance/tee-worker/api/types"
@@ -18,43 +20,81 @@ type JobServerInterface interface {
 // DetectCapabilities automatically detects and verifies available capabilities.
 // It returns a list of only the healthy, verified capabilities.
 func DetectCapabilities(ctx context.Context, jc types.JobConfiguration, jobServer JobServerInterface) []string {
-	// If we have a JobServer, get capabilities directly from the workers
-	// The verification logic currently runs at the individual worker level on startup.
-	// This top-level path may need revisiting if centralized verification is required.
 	if jobServer != nil {
 		var detected []string
 		workerCaps := jobServer.GetWorkerCapabilities()
 		for _, caps := range workerCaps {
 			detected = append(detected, caps...)
 		}
-		// Note: We are currently trusting the capabilities reported by the job server workers,
-		// as they should have run their own verification.
 		return detected
 	}
 
-	// For a standalone worker, detect from config and then verify.
 	detectedCaps := detectCapabilitiesFromConfig(jc)
-
-	// Step 1: Initialize the health tracker and verifier
 	tracker := health.NewTracker()
 	verifier := NewCapabilityVerifier(tracker)
 
-	// Step 2: Register specific verifiers (we'll add real ones later)
-	// For now, no verifiers are registered, so all capabilities will be marked as healthy by default.
+	// Register Web Scraper Verifier
+	verifier.RegisterVerifier("web-scraper", verifiers.NewWebScraperVerifier())
 
-	// Step 3: Run verification
+	// Register TikTok Verifier
+	verifier.RegisterVerifier("tiktok-transcription", verifiers.NewTikTokVerifier())
+
+	// Register Twitter Verifier if accounts are present
+	if twitterAccounts, ok := jc["twitter_accounts"].([]string); ok && len(twitterAccounts) > 0 {
+		dataDir, _ := jc["data_dir"].(string)
+		twitterVerifier, err := verifiers.NewTwitterVerifier(twitterAccounts, dataDir)
+		if err != nil {
+			logrus.WithError(err).Error("Failed to initialize Twitter verifier")
+		} else {
+			// These capabilities are tied to twitter credentials
+			verifier.RegisterVerifier("searchbyquery", twitterVerifier)
+			verifier.RegisterVerifier("getbyid", twitterVerifier)
+			verifier.RegisterVerifier("getprofilebyid", twitterVerifier)
+		}
+	}
+
+	// Register LinkedIn Verifier if credentials are present
+	var liCreds []types.LinkedInCredential
+	if creds, ok := jc["linkedin_credentials"].([]interface{}); ok {
+		for _, credInterface := range creds {
+			if credMap, ok := credInterface.(map[string]interface{}); ok {
+				cred := types.LinkedInCredential{
+					LiAtCookie: credMap["li_at_cookie"].(string),
+					CSRFToken:  credMap["csrf_token"].(string),
+					JSESSIONID: credMap["jsessionid"].(string),
+				}
+				liCreds = append(liCreds, cred)
+			}
+		}
+	} else {
+		liAt, _ := jc["linkedin_li_at_cookie"].(string)
+		csrf, _ := jc["linkedin_csrf_token"].(string)
+		jsess, _ := jc["linkedin_jsessionid"].(string)
+		if liAt != "" && csrf != "" {
+			liCreds = append(liCreds, types.LinkedInCredential{LiAtCookie: liAt, CSRFToken: csrf, JSESSIONID: jsess})
+		}
+	}
+
+	if len(liCreds) > 0 {
+		linkedInVerifier, err := verifiers.NewLinkedInVerifier(liCreds)
+		if err != nil {
+			logrus.WithError(err).Error("Failed to initialize LinkedIn verifier")
+		} else {
+			// These capabilities are tied to linkedin credentials
+			verifier.RegisterVerifier("getprofile", linkedInVerifier)
+		}
+	}
+
 	verifier.VerifyCapabilities(ctx, detectedCaps)
 
-	// Step 4: Filter out unhealthy capabilities
 	var healthyCapabilities []string
 	allStatuses := tracker.GetAllStatuses()
 	for _, capName := range detectedCaps {
-		// A capability is considered healthy if it passes verification, or if there was no
-		// specific verifier for it (in which case it's assumed to be healthy).
 		if status, exists := allStatuses[capName]; exists && status.IsHealthy {
 			healthyCapabilities = append(healthyCapabilities, capName)
 		}
 	}
+	logrus.Infof("Verified and healthy capabilities: %v", healthyCapabilities)
 	return healthyCapabilities
 }
 
@@ -99,6 +139,8 @@ func detectCapabilitiesFromConfig(jc types.JobConfiguration) []string {
 	if hasLinkedInCreds {
 		// Add LinkedIn capabilities when credentials are available
 		if !slices.Contains(detected, "searchbyquery") {
+			// searchbyquery is a twitter capability, but we are adding it here for linkedin as well
+			// This is because the capabilities are not yet granular enough
 			detected = append(detected, "searchbyquery")
 		}
 		detected = append(detected, "getprofile")

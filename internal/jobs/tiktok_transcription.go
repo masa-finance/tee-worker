@@ -23,19 +23,9 @@ const TikTokTranscriptionType = "tiktok-transcription"
 // tiktokTranscriptionEndpoint is the default hardcoded endpoint for TikTok transcriptions.
 const tiktokTranscriptionEndpoint = "https://submagic-free-tools.fly.dev/api/tiktok-transcription"
 
-// TikTokTranscriptionConfiguration holds the configuration for the TikTok transcriber.
-// These values are typically populated from environment variables via config.go.
-type TikTokTranscriptionConfiguration struct {
-	TranscriptionEndpoint string `json:"tiktok_transcription_endpoint"`
-	APIOrigin             string `json:"tiktok_api_origin,omitempty"`
-	APIReferer            string `json:"tiktok_api_referer,omitempty"`
-	APIUserAgent          string `json:"tiktok_api_user_agent,omitempty"`
-	DefaultLanguage       string `json:"tiktok_default_language,omitempty"` // e.g., "eng-US"
-}
-
 // TikTokTranscriber is the main job struct for handling TikTok transcriptions.
 type TikTokTranscriber struct {
-	configuration TikTokTranscriptionConfiguration
+	configuration types.TikTokTranscriptionConfiguration
 	stats         *stats.StatsCollector
 	httpClient    *http.Client
 	healthTracker health.CapabilityHealthTracker
@@ -49,7 +39,7 @@ func (t *TikTokTranscriber) GetCapabilities() []string {
 // NewTikTokTranscriber creates and initializes a new TikTokTranscriber.
 // It sets default values for the API configuration.
 func NewTikTokTranscriber(jc types.JobConfiguration, statsCollector *stats.StatsCollector, h health.CapabilityHealthTracker) *TikTokTranscriber {
-	config := TikTokTranscriptionConfiguration{}
+	config := types.TikTokTranscriptionConfiguration{}
 
 	// Set default values directly
 	config.TranscriptionEndpoint = tiktokTranscriptionEndpoint
@@ -89,14 +79,6 @@ func NewTikTokTranscriber(jc types.JobConfiguration, statsCollector *stats.Stats
 		httpClient:    httpClient,
 		healthTracker: h,
 	}
-}
-
-// APIResponse is used to unmarshal the JSON response from the transcription API.
-type APIResponse struct {
-	VideoTitle   string            `json:"videoTitle"`
-	Transcripts  map[string]string `json:"transcripts"` // map of language_code -> VTT string
-	ThumbnailURL string            `json:"thumbnailUrl"`
-	Error        string            `json:"error,omitempty"` // Optional error from API
 }
 
 // ExecuteJob processes a single TikTok transcription job.
@@ -186,7 +168,7 @@ func (ttt *TikTokTranscriber) ExecuteJob(j types.Job) (types.JobResult, error) {
 		return types.JobResult{Error: errMsg}, finalErr
 	}
 
-	var parsedAPIResponse APIResponse
+	var parsedAPIResponse types.TikTokAPIResponse
 	if err := json.NewDecoder(apiResp.Body).Decode(&parsedAPIResponse); err != nil {
 		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1)
 		finalErr = fmt.Errorf("parse API response: %w", err)

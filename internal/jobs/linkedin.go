@@ -20,24 +20,13 @@ const (
 )
 
 type LinkedInScraper struct {
-	configuration  LinkedInScraperConfiguration
+	configuration  types.LinkedInScraperConfiguration
 	statsCollector *stats.StatsCollector
 	healthTracker  health.CapabilityHealthTracker
 }
 
-type LinkedInScraperConfiguration struct {
-	Credentials []LinkedInCredential `json:"linkedin_credentials"`
-	DataDir     string               `json:"data_dir"`
-}
-
-type LinkedInCredential struct {
-	LiAtCookie string `json:"li_at_cookie"`
-	CSRFToken  string `json:"csrf_token"`
-	JSESSIONID string `json:"jsessionid"`
-}
-
 func NewLinkedInScraper(jc types.JobConfiguration, c *stats.StatsCollector, h health.CapabilityHealthTracker) *LinkedInScraper {
-	config := LinkedInScraperConfiguration{}
+	config := types.LinkedInScraperConfiguration{}
 	if err := jc.Unmarshal(&config); err != nil {
 		logrus.Errorf("Error unmarshalling LinkedIn scraper configuration: %v", err)
 		return nil
@@ -50,7 +39,7 @@ func NewLinkedInScraper(jc types.JobConfiguration, c *stats.StatsCollector, h he
 		jsessionID, _ := jc["linkedin_jsessionid"].(string)
 
 		if liAtCookie != "" && csrfToken != "" {
-			config.Credentials = append(config.Credentials, LinkedInCredential{
+			config.Credentials = append(config.Credentials, types.LinkedInCredential{
 				LiAtCookie: liAtCookie,
 				CSRFToken:  csrfToken,
 				JSESSIONID: jsessionID,
