@@ -1,6 +1,7 @@
 package capabilities
 
 import (
+	"context"
 	"reflect"
 	"sort"
 	"testing"
@@ -185,7 +186,7 @@ func TestDetectCapabilities(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := DetectCapabilities(tt.jc, tt.jobServer)
+			got := DetectCapabilities(context.Background(), tt.jc, tt.jobServer)
 
 			// Sort both slices for comparison
 			sort.Strings(got)

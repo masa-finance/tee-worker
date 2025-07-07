@@ -1,0 +1,83 @@
+---
+alwaysApply: true
+---
+# Phase 1: Implement Internal Capability Health Tracking
+
+## Overview
+
+This plan outlines the implementation of Phase 1 of the capability verification system. The primary goal is to solve the critical problem where workers advertise capabilities they don't actually possess, leading to job failures and network instability. This phase focuses on building the internal mechanisms for a worker to verify its own capabilities at startup and monitor their health during runtime.
+
+## ⚠️ CRITICAL REQUIREMENTS
+- **NO BREAKING CHANGES**: All changes must be backward-compatible with the existing `tee-indexer` and API clients.
+- **INTERNAL MECHANISM**: Phase 1 focuses *only* on the worker's internal state. No changes to the external-facing telemetry API will be made in this phase.
+- **ROBUST VERIFICATION**: The verification process must be reliable enough to catch common failure modes like invalid credentials or network issues.
+- **MODULAR DESIGN**: The verifier and health tracker should be designed in a modular way to easily add new capability checks in the future.
+- **DETAILED COMMITS**: Commit each logical step with a descriptive message.
+
+## Implementation Steps
+
+### Step 1: Create Core Health Tracking Structures
+
+**Objective**: Define the data structures and interfaces for tracking the health of each capability.
+**Files**: `internal/capabilities/health/types.go` (new file)
+**Action**:
+- Create a `CapabilityStatus` struct to hold information like `Name`, `IsHealthy`, `LastChecked`, `LastError`, and `ErrorCount`.
+- Define a `CapabilityHealthTracker` interface that will be responsible for managing the status of all capabilities.
+**Commit**: 
+
+### Step 2: Implement the Startup Capability Verifier
+
+**Objective**: Build the system that tests each configured capability when the worker starts.
+**Files**: `internal/capabilities/verifier.go` (new file)
+**Action**:
+- Create a `CapabilityVerifier` that implements the verification logic.
+- For each supported capability (LinkedIn, Twitter, web-scraper, tiktok-transcription, etc.), implement a check that performs a minimal, non-intrusive action to validate its functionality.
+- For example, for LinkedIn, it might try to fetch the scraper's own profile.
+- The verifier will use the `CapabilityHealthTracker` to update the status of each capability based on the verification result.
+**Verification**: The verifier can correctly identify healthy and unhealthy capabilities at startup.
+**Commit**: 
+
+### Step 3: Integrate Verification into the Worker Lifecycle
+
+**Objective**: Ensure the capability verification process runs automatically on worker startup.
+**Files**: `internal/capabilities/detector.go`
+**Action**:
+- Modify the existing `DetectCapabilities()` function.
+- After initially detecting capabilities (e.g., from environment variables), instantiate and run the `CapabilityVerifier`.
+- The `DetectCapabilities()` function should now *only* return the list of capabilities that have passed verification. Unhealthy capabilities are filtered out.
+**Verification**: `DetectCapabilities()` returns a list of *verified*, healthy capabilities.
+**Commit**:
+
+### Step 4: Implement Runtime Health Monitoring
+
+**Objective**: Create a mechanism to update capability health based on job execution results.
+**Files**: `internal/jobs/linkedin.go`, `internal/jobs/twitter.go`, etc., and `internal/capabilities/health/tracker.go` (new file)
+**Action**:
+- Implement the `CapabilityHealthTracker`. It will be a central registry for capability statuses.
+- In the `ExecuteJob` method for each job type, add logic to report the outcome to the `CapabilityHealthTracker`.
+- For example, if a LinkedIn job fails with an authentication error, the `LinkedInScraper` will notify the tracker, which will mark the 'searchbyquery' and 'getprofile' capabilities as unhealthy.
+- This will involve passing the `CapabilityHealthTracker` instance to the job handlers.
+**Verification**: A job failure due to a credential error correctly marks the corresponding capability as unhealthy.
+**Commit**: 
+
+### Step 5: Testing
+
+**Objective**: Ensure the new system is reliable and fully tested.
+**Files**: `internal/capabilities/verifier_test.go`, `internal/capabilities/health/tracker_test.go`
+**Action**:
+- Add unit tests for the `CapabilityVerifier`, mocking credential providers and API clients.
+- Add unit tests for the `CapabilityHealthTracker` to ensure state is managed correctly.
+- Add integration tests to `internal/capabilities/detector_test.go` to verify the end-to-end flow of detection and verification.
+**Verification**: `go test ./...` passes with high coverage for the new components.
+**Commit**: 
+
+## Success Criteria
+- ✅ A worker no longer advertises a capability if its startup verification fails.
+- ✅ A capability is marked as unhealthy internally if a job fails due to a verifiable issue (e.g., auth error).
+- ✅ The `DetectCapabilities` function returns only the list of *currently healthy* capabilities.
+- ✅ The implementation is fully backward-compatible.
+- ✅ The new functionality is covered by robust tests.
+
+
+- ✅ The new functionality is covered by robust tests.
+
