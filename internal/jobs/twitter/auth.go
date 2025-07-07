@@ -2,13 +2,15 @@ package twitter
 
 import (
 	"fmt"
+
+	"github.com/masa-finance/tee-worker/api/types"
 	"github.com/sirupsen/logrus"
 )
 
 // AuthConfig holds authentication configuration
 type AuthConfig struct {
 	// Account-based auth
-	Account *TwitterAccount
+	Account *types.TwitterAccount
 	BaseDir string
 	// SkipLoginVerification when true, skips the IsLoggedIn check after loading cookies
 	// This can help avoid rate limiting on Twitter's verify_credentials endpoint

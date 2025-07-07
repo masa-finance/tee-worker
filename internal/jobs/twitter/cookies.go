@@ -8,11 +8,11 @@ import (
 	"path/filepath"
 
 	twitterscraper "github.com/imperatrona/twitter-scraper"
-
+	"github.com/masa-finance/tee-worker/api/types"
 	"github.com/sirupsen/logrus"
 )
 
-func SaveCookies(scraper *twitterscraper.Scraper, account *TwitterAccount, baseDir string) error {
+func SaveCookies(scraper *twitterscraper.Scraper, account *types.TwitterAccount, baseDir string) error {
 	logrus.Debugf("Saving cookies for user %s", account.Username)
 	cookieFile := filepath.Join(baseDir, fmt.Sprintf("%s_twitter_cookies.json", account.Username))
 	cookies := scraper.GetCookies()
@@ -31,48 +31,19 @@ func SaveCookies(scraper *twitterscraper.Scraper, account *TwitterAccount, baseD
 	return nil
 }
 
-func LoadCookies(scraper *twitterscraper.Scraper, account *TwitterAccount, baseDir string) error {
-
-	// let's logout first before loading cookies
-	if err := scraper.Logout(); err != nil { // logout first
-		logrus.Errorf("Error logging out: %v", err) // log error but continue
-	}
-
-	logrus.Debugf("Loading cookies for user %s", account.Username)
+func LoadCookies(scraper *twitterscraper.Scraper, account *types.TwitterAccount, baseDir string) error {
 	cookieFile := filepath.Join(baseDir, fmt.Sprintf("%s_twitter_cookies.json", account.Username))
-
-	logrus.Debugf("Reading cookie file: %s", cookieFile)
+	logrus.Debugf("Loading cookies from file: %s", cookieFile)
 	data, err := os.ReadFile(cookieFile)
 	if err != nil {
-		return fmt.Errorf("error reading cookies: %v", err)
+		return fmt.Errorf("error reading cookies file: %v", err)
 	}
 
 	var cookies []*http.Cookie
 	if err = json.Unmarshal(data, &cookies); err != nil {
 		return fmt.Errorf("error unmarshaling cookies: %v", err)
 	}
-	logrus.Debugf("Loaded %d cookies from file", len(cookies))
-
-	// Verify critical cookies are present
-	var hasAuthToken, hasCSRFToken bool
-	for _, cookie := range cookies {
-		if cookie.Name == "auth_token" {
-			hasAuthToken = true
-			logrus.Debug("Found auth_token cookie")
-		}
-		if cookie.Name == "ct0" {
-			hasCSRFToken = true
-			logrus.Debug("Found CSRF token cookie")
-		}
-	}
-
-	if !hasAuthToken || !hasCSRFToken {
-		logrus.Debug("Missing critical authentication cookies")
-		return fmt.Errorf("missing critical authentication cookies")
-	}
-
-	logrus.Debug("Setting cookies in scraper")
+	logrus.Debugf("Loaded %d cookies", len(cookies))
 	scraper.SetCookies(cookies)
-	logrus.Debug("Successfully loaded and set cookies")
 	return nil
 }

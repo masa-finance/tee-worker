@@ -82,35 +82,35 @@ func (ts *TwitterScraper) convertTwitterScraperTweetToTweetResult(tweet twitters
 	}
 }
 
-func parseAccounts(accountPairs []string) []*twitter.TwitterAccount {
-	return filterMap(accountPairs, func(pair string) (*twitter.TwitterAccount, bool) {
+func parseAccounts(accountPairs []string) []*types.TwitterAccount {
+	return filterMap(accountPairs, func(pair string) (*types.TwitterAccount, bool) {
 		credentials := strings.Split(pair, ":")
 		if len(credentials) != 2 {
 			logrus.Warnf("invalid account credentials: %s", pair)
 			return nil, false
 		}
-		return &twitter.TwitterAccount{
+		return &types.TwitterAccount{
 			Username: strings.TrimSpace(credentials[0]),
 			Password: strings.TrimSpace(credentials[1]),
 		}, true
 	})
 }
 
-func parseApiKeys(apiKeys []string) []*twitter.TwitterApiKey {
-	return filterMap(apiKeys, func(key string) (*twitter.TwitterApiKey, bool) {
-		return &twitter.TwitterApiKey{
+func parseApiKeys(apiKeys []string) []*types.TwitterApiKey {
+	return filterMap(apiKeys, func(key string) (*types.TwitterApiKey, bool) {
+		return &types.TwitterApiKey{
 			Key: strings.TrimSpace(key),
 		}, true
 	})
 }
 
-func (ts *TwitterScraper) getAuthenticatedScraper(j types.Job, baseDir string, jobType string) (*twitter.Scraper, *twitter.TwitterAccount, *twitter.TwitterApiKey, error) {
+func (ts *TwitterScraper) getAuthenticatedScraper(j types.Job, baseDir string, jobType string) (*twitter.Scraper, *types.TwitterAccount, *types.TwitterApiKey, error) {
 	if baseDir == "" {
 		baseDir = ts.configuration.DataDir
 	}
 
-	var account *twitter.TwitterAccount
-	var apiKey *twitter.TwitterApiKey
+	var account *types.TwitterAccount
+	var apiKey *types.TwitterApiKey
 	var scraper *twitter.Scraper
 
 	switch jobType {
@@ -158,7 +158,7 @@ func (ts *TwitterScraper) getAuthenticatedScraper(j types.Job, baseDir string, j
 	return scraper, account, apiKey, nil
 }
 
-func (ts *TwitterScraper) handleError(j types.Job, err error, account *twitter.TwitterAccount) bool {
+func (ts *TwitterScraper) handleError(j types.Job, err error, account *types.TwitterAccount) bool {
 	if strings.Contains(err.Error(), "Rate limit exceeded") || strings.Contains(err.Error(), "status code 429") {
 		ts.statsCollector.Add(j.WorkerID, stats.TwitterRateErrors, 1)
 		if account != nil {
@@ -271,7 +271,7 @@ func (ts *TwitterScraper) queryTweetsWithApiKey(j types.Job, baseQueryEndpoint s
 	return ts.scrapeTweetsWithApiKey(j, baseQueryEndpoint, query, count, apiKey)
 }
 
-func (ts *TwitterScraper) scrapeTweetsWithCredentials(j types.Job, query string, count int, scraper *twitter.Scraper, account *twitter.TwitterAccount) ([]*teetypes.TweetResult, error) {
+func (ts *TwitterScraper) scrapeTweetsWithCredentials(j types.Job, query string, count int, scraper *twitter.Scraper, account *types.TwitterAccount) ([]*teetypes.TweetResult, error) {
 	ts.statsCollector.Add(j.WorkerID, stats.TwitterScrapes, 1)
 	tweets := make([]*teetypes.TweetResult, 0, count)
 
@@ -293,10 +293,10 @@ func (ts *TwitterScraper) scrapeTweetsWithCredentials(j types.Job, query string,
 	return tweets, nil
 }
 
-func (ts *TwitterScraper) scrapeTweetsWithApiKey(j types.Job, baseQueryEndpoint string, query string, count int, apiKey *twitter.TwitterApiKey) ([]*teetypes.TweetResult, error) {
+func (ts *TwitterScraper) scrapeTweetsWithApiKey(j types.Job, baseQueryEndpoint string, query string, count int, apiKey *types.TwitterApiKey) ([]*teetypes.TweetResult, error) {
 	ts.statsCollector.Add(j.WorkerID, stats.TwitterScrapes, 1)
 
-	if baseQueryEndpoint == twitterx.TweetsAll && apiKey.Type == twitter.TwitterApiKeyTypeBase {
+	if baseQueryEndpoint == twitterx.TweetsAll && apiKey.Type == types.TwitterApiKeyTypeBase {
 		return nil, fmt.Errorf("this API key is a base/Basic key and does not have access to full archive search. Please use an elevated/Pro API key")
 	}
 
@@ -957,7 +957,7 @@ func (ts *TwitterScraper) GetCapabilities() []string {
 		// Check if any API key is elevated for full archive search
 		if ts.accountManager != nil {
 			for _, apiKey := range ts.accountManager.GetApiKeys() {
-				if apiKey.Type == twitter.TwitterApiKeyTypeElevated {
+				if apiKey.Type == types.TwitterApiKeyTypeElevated {
 					capabilities = append(capabilities, "searchbyfullarchive")
 					break
 				}

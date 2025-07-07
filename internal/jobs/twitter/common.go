@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/joho/godotenv"
+	"github.com/masa-finance/tee-worker/api/types"
 	"github.com/sirupsen/logrus"
 )
 
@@ -21,7 +22,7 @@ func initializeAccountManager() {
 	accountManager = NewTwitterAccountManager(accounts, apiKeys)
 }
 
-func loadAccountsFromConfig() []*TwitterAccount {
+func loadAccountsFromConfig() []*types.TwitterAccount {
 	err := godotenv.Load()
 	if err != nil {
 		logrus.Fatalf("error loading .env file: %v", err)
@@ -35,7 +36,7 @@ func loadAccountsFromConfig() []*TwitterAccount {
 	return parseAccounts(strings.Split(accountsEnv, ","))
 }
 
-func loadApiKeysFromConfig() []*TwitterApiKey {
+func loadApiKeysFromConfig() []*types.TwitterApiKey {
 	err := godotenv.Load()
 	if err != nil {
 		logrus.Fatalf("error loading .env file: %v", err)
@@ -51,29 +52,29 @@ func loadApiKeysFromConfig() []*TwitterApiKey {
 	return parseApiKeys(strings.Split(apiKeysEnv, ","))
 }
 
-func parseApiKeys(apiKeys []string) []*TwitterApiKey {
-	return filterMap(apiKeys, func(key string) (*TwitterApiKey, bool) {
-		return &TwitterApiKey{
+func parseApiKeys(apiKeys []string) []*types.TwitterApiKey {
+	return filterMap(apiKeys, func(key string) (*types.TwitterApiKey, bool) {
+		return &types.TwitterApiKey{
 			Key: strings.TrimSpace(key),
 		}, true
 	})
 }
 
-func parseAccounts(accountPairs []string) []*TwitterAccount {
-	return filterMap(accountPairs, func(pair string) (*TwitterAccount, bool) {
+func parseAccounts(accountPairs []string) []*types.TwitterAccount {
+	return filterMap(accountPairs, func(pair string) (*types.TwitterAccount, bool) {
 		credentials := strings.Split(pair, ":")
 		if len(credentials) != 2 {
 			logrus.Warnf("invalid account credentials: %s", pair)
 			return nil, false
 		}
-		return &TwitterAccount{
+		return &types.TwitterAccount{
 			Username: strings.TrimSpace(credentials[0]),
 			Password: strings.TrimSpace(credentials[1]),
 		}, true
 	})
 }
 
-func getAuthenticatedScraper(baseDir string) (*Scraper, *TwitterAccount, error) {
+func getAuthenticatedScraper(baseDir string) (*Scraper, *types.TwitterAccount, error) {
 	once.Do(initializeAccountManager)
 
 	account := accountManager.GetNextAccount()
@@ -98,7 +99,7 @@ func getAuthenticatedScraper(baseDir string) (*Scraper, *TwitterAccount, error) 
 	return scraper, account, nil
 }
 
-func handleError(err error, account *TwitterAccount) bool {
+func handleError(err error, account *types.TwitterAccount) bool {
 	if strings.Contains(err.Error(), "Rate limit exceeded") {
 		accountManager.MarkAccountRateLimited(account)
 		logrus.Warnf("rate limited: %s", account.Username)

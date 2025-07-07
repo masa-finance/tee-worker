@@ -2,41 +2,22 @@ package twitter
 
 import (
 	"fmt"
-	"github.com/masa-finance/tee-worker/pkg/client"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/masa-finance/tee-worker/api/types"
+	"github.com/masa-finance/tee-worker/pkg/client"
 )
-
-type TwitterAccount struct {
-	Username         string
-	Password         string
-	TwoFACode        string
-	RateLimitedUntil time.Time
-}
-
-type TwitterApiKeyType string
-
-const (
-	TwitterApiKeyTypeBase       TwitterApiKeyType = "base"
-	TwitterApiKeyTypeElevated   TwitterApiKeyType = "elevated"
-	TwitterApiKeyTypeCredential TwitterApiKeyType = "credential"
-	TwitterApiKeyTypeUnknown    TwitterApiKeyType = "unknown"
-)
-
-type TwitterApiKey struct {
-	Key  string
-	Type TwitterApiKeyType // "base" or "elevated"
-}
 
 type TwitterAccountManager struct {
-	accounts []*TwitterAccount
-	apiKeys  []*TwitterApiKey
+	accounts []*types.TwitterAccount
+	apiKeys  []*types.TwitterApiKey
 	index    int
 	mutex    sync.Mutex
 }
 
-func NewTwitterAccountManager(accounts []*TwitterAccount, apiKeys []*TwitterApiKey) *TwitterAccountManager {
+func NewTwitterAccountManager(accounts []*types.TwitterAccount, apiKeys []*types.TwitterApiKey) *TwitterAccountManager {
 	return &TwitterAccountManager{
 		accounts: accounts,
 		apiKeys:  apiKeys,
@@ -44,7 +25,7 @@ func NewTwitterAccountManager(accounts []*TwitterAccount, apiKeys []*TwitterApiK
 	}
 }
 
-func (manager *TwitterAccountManager) GetNextAccount() *TwitterAccount {
+func (manager *TwitterAccountManager) GetNextAccount() *types.TwitterAccount {
 	manager.mutex.Lock()
 	defer manager.mutex.Unlock()
 	for i := 0; i < len(manager.accounts); i++ {
@@ -60,18 +41,18 @@ func (manager *TwitterAccountManager) GetNextAccount() *TwitterAccount {
 // DetectAllApiKeyTypes checks and sets the Type for all apiKeys in the manager.
 func (manager *TwitterAccountManager) DetectAllApiKeyTypes() {
 	for _, key := range manager.apiKeys {
-		err := key.SetKeyType()
+		err := DetectKeyType(key)
 		if err != nil {
-			key.Type = TwitterApiKeyTypeUnknown
+			key.Type = types.TwitterApiKeyTypeUnknown
 		}
 	}
 }
 
 // GetApiKeys returns all api keys managed by this manager
-func (manager *TwitterAccountManager) GetApiKeys() []*TwitterApiKey {
+func (manager *TwitterAccountManager) GetApiKeys() []*types.TwitterApiKey {
 	return manager.apiKeys
 }
-func (manager *TwitterAccountManager) GetNextApiKey() *TwitterApiKey {
+func (manager *TwitterAccountManager) GetNextApiKey() *types.TwitterApiKey {
 	manager.mutex.Lock()
 	defer manager.mutex.Unlock()
 	if len(manager.apiKeys) == 0 {
@@ -82,15 +63,15 @@ func (manager *TwitterAccountManager) GetNextApiKey() *TwitterApiKey {
 	return key
 }
 
-func (manager *TwitterAccountManager) MarkAccountRateLimited(account *TwitterAccount) {
+func (manager *TwitterAccountManager) MarkAccountRateLimited(account *types.TwitterAccount) {
 	manager.mutex.Lock()
 	defer manager.mutex.Unlock()
 	account.RateLimitedUntil = time.Now().Add(GetRateLimitDuration())
 }
 
-func detectTwitterKeyType(apiKey string) (TwitterApiKeyType, error) {
+func detectTwitterKeyType(apiKey string) (types.TwitterApiKeyType, error) {
 	if strings.Contains(apiKey, ":") {
-		return TwitterApiKeyTypeCredential, nil
+		return types.TwitterApiKeyTypeCredential, nil
 	}
 	// Try a harmless full archive search (tweets/search/all)
 	tx := client.NewTwitterXClient(apiKey)
@@ -103,15 +84,16 @@ func detectTwitterKeyType(apiKey string) (TwitterApiKeyType, error) {
 
 	switch resp.StatusCode {
 	case 200:
-		return TwitterApiKeyTypeElevated, nil
+		return types.TwitterApiKeyTypeElevated, nil
 	case 401, 403:
-		return TwitterApiKeyTypeBase, nil
+		return types.TwitterApiKeyTypeBase, nil
 	default:
 		return "", fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 }
 
-func (k *TwitterApiKey) SetKeyType() error {
+// DetectKeyType determines the type of a twitter API key and sets it.
+func DetectKeyType(k *types.TwitterApiKey) error {
 	typeStr, err := detectTwitterKeyType(k.Key)
 	if err != nil {
 		return err

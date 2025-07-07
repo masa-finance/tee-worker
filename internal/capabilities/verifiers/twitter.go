@@ -7,25 +7,25 @@ import (
 	"strings"
 
 	twitterscraper "github.com/imperatrona/twitter-scraper"
-	"github.com/masa-finance/tee-worker/internal/jobs/twitter"
+	"github.com/masa-finance/tee-worker/api/types"
 	"github.com/sirupsen/logrus"
 )
 
 // TwitterVerifier verifies the Twitter capability.
 type TwitterVerifier struct {
-	Accounts []*twitter.TwitterAccount
+	Accounts []*types.TwitterAccount
 	scrapers []*twitterscraper.Scraper
 }
 
-func parseAccounts(accountPairs []string) []*twitter.TwitterAccount {
-	var accounts []*twitter.TwitterAccount
+func parseAccounts(accountPairs []string) []*types.TwitterAccount {
+	var accounts []*types.TwitterAccount
 	for _, pair := range accountPairs {
 		credentials := strings.Split(pair, ":")
 		if len(credentials) != 2 {
 			logrus.Warnf("invalid account credentials format: %s", pair)
 			continue
 		}
-		accounts = append(accounts, &twitter.TwitterAccount{
+		accounts = append(accounts, &types.TwitterAccount{
 			Username: strings.TrimSpace(credentials[0]),
 			Password: strings.TrimSpace(credentials[1]),
 		})

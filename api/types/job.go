@@ -184,3 +184,27 @@ type TikTokAPIResponse struct {
 	ThumbnailURL string            `json:"thumbnailUrl"`
 	Error        string            `json:"error,omitempty"` // Optional error from API
 }
+
+// TwitterAccount holds the credentials for a single Twitter account.
+type TwitterAccount struct {
+	Username         string
+	Password         string
+	TwoFACode        string
+	RateLimitedUntil time.Time
+}
+
+// TwitterApiKeyType defines the different types of Twitter API keys.
+type TwitterApiKeyType string
+
+const (
+	TwitterApiKeyTypeBase       TwitterApiKeyType = "base"
+	TwitterApiKeyTypeElevated   TwitterApiKeyType = "elevated"
+	TwitterApiKeyTypeCredential TwitterApiKeyType = "credential"
+	TwitterApiKeyTypeUnknown    TwitterApiKeyType = "unknown"
+)
+
+// TwitterApiKey holds a single Twitter API key and its determined type.
+type TwitterApiKey struct {
+	Key  string
+	Type TwitterApiKeyType // "base" or "elevated"
+}
