@@ -7,19 +7,22 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/masa-finance/tee-worker/api/types"
+	"github.com/masa-finance/tee-worker/internal/capabilities/health"
 	. "github.com/masa-finance/tee-worker/internal/jobs"
 	"github.com/masa-finance/tee-worker/internal/jobs/stats"
 )
 
 var statsCollector *stats.StatsCollector
+var healthTracker health.CapabilityHealthTracker
 
 var _ = Describe("Webscraper", func() {
 	BeforeEach(func() {
 		statsCollector = stats.StartCollector(128, types.JobConfiguration{})
+		healthTracker = health.NewTracker()
 	})
 
 	It("should scrape now", func() {
-		webScraper := NewWebScraper(types.JobConfiguration{}, statsCollector)
+		webScraper := NewWebScraper(types.JobConfiguration{}, statsCollector, healthTracker)
 
 		j := types.Job{
 			Type: WebScraperType,
@@ -47,7 +50,7 @@ var _ = Describe("Webscraper", func() {
 	})
 
 	It("does not return data with invalid hosts", func() {
-		webScraper := NewWebScraper(types.JobConfiguration{}, statsCollector)
+		webScraper := NewWebScraper(types.JobConfiguration{}, statsCollector, healthTracker)
 
 		j := types.Job{
 			Type: WebScraperType,
@@ -79,7 +82,7 @@ var _ = Describe("Webscraper", func() {
 	It("should allow to blacklist urls", func() {
 		webScraper := NewWebScraper(types.JobConfiguration{
 			"webscraper_blacklist": []string{"google"},
-		}, statsCollector)
+		}, statsCollector, healthTracker)
 
 		j := types.Job{
 			Type: WebScraperType,

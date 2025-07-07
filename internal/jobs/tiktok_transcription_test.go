@@ -10,6 +10,7 @@ import (
 
 	teetypes "github.com/masa-finance/tee-types/types"
 	"github.com/masa-finance/tee-worker/api/types"
+	"github.com/masa-finance/tee-worker/internal/capabilities/health"
 	. "github.com/masa-finance/tee-worker/internal/jobs"
 	"github.com/masa-finance/tee-worker/internal/jobs/stats"
 	"github.com/sirupsen/logrus"
@@ -19,6 +20,7 @@ var _ = Describe("TikTokTranscriber", func() {
 	var statsCollector *stats.StatsCollector
 	var tikTokTranscriber *TikTokTranscriber
 	var jobConfig types.JobConfiguration
+	var healthTracker health.CapabilityHealthTracker
 
 	BeforeEach(func() {
 		// Initialize a real stats collector, similar to webscraper_test.go
@@ -35,7 +37,8 @@ var _ = Describe("TikTokTranscriber", func() {
 		jobConfig = types.JobConfiguration{
 			"tiktok_default_language": "eng-US", // Example default
 		}
-		tikTokTranscriber = NewTikTokTranscriber(jobConfig, statsCollector)
+		healthTracker = health.NewTracker()
+		tikTokTranscriber = NewTikTokTranscriber(jobConfig, statsCollector, healthTracker)
 		Expect(tikTokTranscriber).NotTo(BeNil())
 	})
 

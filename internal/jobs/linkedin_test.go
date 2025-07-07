@@ -10,6 +10,7 @@ import (
 
 	teetypes "github.com/masa-finance/tee-types/types"
 	"github.com/masa-finance/tee-worker/api/types"
+	"github.com/masa-finance/tee-worker/internal/capabilities/health"
 	. "github.com/masa-finance/tee-worker/internal/jobs"
 	"github.com/masa-finance/tee-worker/internal/jobs/stats"
 )
@@ -17,6 +18,7 @@ import (
 var _ = Describe("LinkedIn Scraper", func() {
 	var linkedInScraper *LinkedInScraper
 	var statsCollector *stats.StatsCollector
+	var healthTracker health.CapabilityHealthTracker
 
 	BeforeEach(func() {
 		logrus.SetLevel(logrus.DebugLevel)
@@ -32,12 +34,13 @@ var _ = Describe("LinkedIn Scraper", func() {
 		}
 
 		statsCollector = stats.StartCollector(128, types.JobConfiguration{})
+		healthTracker = health.NewTracker()
 
 		linkedInScraper = NewLinkedInScraper(types.JobConfiguration{
 			"linkedin_li_at_cookie": liAtCookie,
 			"linkedin_csrf_token":   csrfToken,
 			"linkedin_jsessionid":   jsessionID,
-		}, statsCollector)
+		}, statsCollector, healthTracker)
 	})
 
 	Context("LinkedIn Profile Search", func() {

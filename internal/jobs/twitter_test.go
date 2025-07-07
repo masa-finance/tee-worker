@@ -1,8 +1,9 @@
 package jobs_test
 
 import (
-	teetypes "github.com/masa-finance/tee-types/types"
 	"os"
+
+	teetypes "github.com/masa-finance/tee-types/types"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -10,6 +11,7 @@ import (
 
 	twitterscraper "github.com/imperatrona/twitter-scraper"
 	"github.com/masa-finance/tee-worker/api/types"
+	"github.com/masa-finance/tee-worker/internal/capabilities/health"
 	. "github.com/masa-finance/tee-worker/internal/jobs"
 	"github.com/masa-finance/tee-worker/internal/jobs/stats"
 )
@@ -19,6 +21,7 @@ var _ = Describe("Twitter Scraper", func() {
 	// --- New tests for specialized job types ---
 	Context("Specialized Twitter Scraper Job Types", func() {
 		var statsCollector *stats.StatsCollector
+		var healthTracker health.CapabilityHealthTracker
 		var tempDir string
 		var err error
 		var credentialAccount string
@@ -38,6 +41,7 @@ var _ = Describe("Twitter Scraper", func() {
 			credentialAccount = os.Getenv("TWITTER_TEST_ACCOUNT")
 			apiKey = os.Getenv("TWITTER_TEST_API_KEY")
 			statsCollector = stats.StartCollector(128, types.JobConfiguration{})
+			healthTracker = health.NewTracker()
 		})
 
 		AfterEach(func() {
@@ -51,7 +55,7 @@ var _ = Describe("Twitter Scraper", func() {
 			scraper := NewTwitterScraper(types.JobConfiguration{
 				"twitter_accounts": []string{credentialAccount},
 				"data_dir":         tempDir,
-			}, statsCollector)
+			}, statsCollector, healthTracker)
 			res, err := scraper.ExecuteJob(types.Job{
 				Type: TwitterCredentialScraperType,
 				Arguments: map[string]interface{}{
@@ -75,7 +79,7 @@ var _ = Describe("Twitter Scraper", func() {
 			scraper := NewTwitterScraper(types.JobConfiguration{
 				"twitter_api_keys": []string{apiKey},
 				"data_dir":         tempDir,
-			}, statsCollector)
+			}, statsCollector, healthTracker)
 			res, err := scraper.ExecuteJob(types.Job{
 				Type: TwitterApiScraperType,
 				Arguments: map[string]interface{}{
@@ -99,7 +103,7 @@ var _ = Describe("Twitter Scraper", func() {
 			scraper := NewTwitterScraper(types.JobConfiguration{
 				"twitter_api_keys": []string{apiKey},
 				"data_dir":         tempDir,
-			}, statsCollector)
+			}, statsCollector, healthTracker)
 			// Try to run credential-only job with only API key
 			res, err := scraper.ExecuteJob(types.Job{
 				Type: TwitterCredentialScraperType,
@@ -121,7 +125,7 @@ var _ = Describe("Twitter Scraper", func() {
 				"twitter_accounts": []string{credentialAccount},
 				"twitter_api_keys": []string{apiKey},
 				"data_dir":         tempDir,
-			}, statsCollector)
+			}, statsCollector, healthTracker)
 			res, err := scraper.ExecuteJob(types.Job{
 				Type: TwitterScraperType,
 				Arguments: map[string]interface{}{
@@ -141,7 +145,7 @@ var _ = Describe("Twitter Scraper", func() {
 		It("should error if neither credentials nor API key are present", func() {
 			scraper := NewTwitterScraper(types.JobConfiguration{
 				"data_dir": tempDir,
-			}, statsCollector)
+			}, statsCollector, healthTracker)
 			res, err := scraper.ExecuteJob(types.Job{
 				Type: TwitterApiScraperType,
 				Arguments: map[string]interface{}{
@@ -157,6 +161,7 @@ var _ = Describe("Twitter Scraper", func() {
 
 	var twitterScraper *TwitterScraper
 	var statsCollector *stats.StatsCollector
+	var healthTracker health.CapabilityHealthTracker
 	var tempDir string
 	var err error
 
@@ -176,11 +181,12 @@ var _ = Describe("Twitter Scraper", func() {
 		}
 
 		statsCollector = stats.StartCollector(128, types.JobConfiguration{})
+		healthTracker = health.NewTracker()
 
 		twitterScraper = NewTwitterScraper(types.JobConfiguration{
 			"twitter_accounts": []string{account},
 			"data_dir":         tempDir,
-		}, statsCollector)
+		}, statsCollector, healthTracker)
 	})
 
 	AfterEach(func() {
