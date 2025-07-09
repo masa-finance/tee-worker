@@ -3,7 +3,6 @@ package capabilities
 import (
 	"reflect"
 	"slices"
-	"sort"
 	"testing"
 
 	"github.com/masa-finance/tee-worker/api/types"
@@ -23,7 +22,7 @@ func TestDetectCapabilities(t *testing.T) {
 		name      string
 		jc        types.JobConfiguration
 		jobServer JobServerInterface
-		expected  []string
+		expected  []types.Capability
 	}{
 		{
 			name: "With JobServer - gets capabilities from workers",
@@ -36,7 +35,7 @@ func TestDetectCapabilities(t *testing.T) {
 					"twitter-scraper":      {"searchbyquery", "getbyid", "getprofilebyid"},
 				},
 			},
-			expected: []string{
+			expected: []types.Capability{
 				"web-scraper",
 				"telemetry",
 				"tiktok-transcription",
@@ -49,7 +48,7 @@ func TestDetectCapabilities(t *testing.T) {
 			name:      "Without JobServer - basic capabilities only",
 			jc:        types.JobConfiguration{},
 			jobServer: nil,
-			expected: []string{
+			expected: []types.Capability{
 				"web-scraper",
 				"telemetry",
 				"tiktok-transcription",
@@ -61,7 +60,7 @@ func TestDetectCapabilities(t *testing.T) {
 				"twitter_accounts": []string{"user1:pass1"},
 			},
 			jobServer: nil,
-			expected: []string{
+			expected: []types.Capability{
 				"web-scraper",
 				"telemetry",
 				"tiktok-transcription",
@@ -76,7 +75,7 @@ func TestDetectCapabilities(t *testing.T) {
 				"twitter_api_keys": []string{"key1"},
 			},
 			jobServer: nil,
-			expected: []string{
+			expected: []types.Capability{
 				"web-scraper",
 				"telemetry",
 				"tiktok-transcription",
@@ -93,7 +92,7 @@ func TestDetectCapabilities(t *testing.T) {
 
 			// Sort both slices for comparison
 			slices.Sort(got)
-			sort.Strings(tt.expected)
+			slices.Sort(tt.expected)
 
 			if !reflect.DeepEqual(got, tt.expected) {
 				t.Errorf("DetectCapabilities() = %v, want %v", got, tt.expected)
