@@ -9,13 +9,13 @@ import (
 
 // JobServerInterface defines the methods we need from JobServer to avoid circular dependencies
 type JobServerInterface interface {
-	GetWorkerCapabilities() map[string][]string
+	GetWorkerCapabilities() map[string][]types.Capability
 }
 
 // DetectCapabilities automatically detects available capabilities based on configuration
 // If jobServer is provided, it will use the actual worker capabilities
-func DetectCapabilities(jc types.JobConfiguration, jobServer JobServerInterface) []string {
-	var detected []string
+func DetectCapabilities(jc types.JobConfiguration, jobServer JobServerInterface) []types.Capability {
+	var detected []types.Capability
 
 	// If we have a JobServer, get capabilities directly from the workers
 	if jobServer != nil {
@@ -49,36 +49,36 @@ func DetectCapabilities(jc types.JobConfiguration, jobServer JobServerInterface)
 }
 
 // MergeCapabilities combines manual and auto-detected capabilities
-func MergeCapabilities(manual string, detected []string) []string {
+func MergeCapabilities(manual string, detected []types.Capability) []types.Capability {
 	// Parse manual capabilities
-	var manualCaps []string
+	var manualCaps []types.Capability
 	if manual != "" {
-		manualCaps = strings.Split(manual, ",")
+		caps := strings.Split(manual, ",")
 		// Trim whitespace
-		for i := range manualCaps {
-			manualCaps[i] = strings.TrimSpace(manualCaps[i])
+		for _, cap := range caps {
+			manualCaps = append(manualCaps, types.Capability(strings.TrimSpace(cap)))
 		}
 	}
 
 	// Use a map to deduplicate
-	capMap := make(map[string]bool)
+	capMap := make(map[types.Capability]struct{})
 
 	// Add manual capabilities first (they take precedence)
 	for _, capability := range manualCaps {
 		if capability != "" {
-			capMap[capability] = true
+			capMap[capability] = struct{}{}
 		}
 	}
 
 	// Add auto-detected capabilities
 	for _, capability := range detected {
 		if capability != "" {
-			capMap[capability] = true
+			capMap[capability] = struct{}{}
 		}
 	}
 
 	// Convert back to slice
-	var result []string
+	var result []types.Capability
 	for capability := range capMap {
 		result = append(result, capability)
 	}

@@ -4,12 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/masa-finance/tee-types/args"
-	teetypes "github.com/masa-finance/tee-types/types"
 	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/masa-finance/tee-types/args"
+	teetypes "github.com/masa-finance/tee-types/types"
 
 	"github.com/masa-finance/tee-worker/internal/jobs/twitterx"
 	"github.com/masa-finance/tee-worker/pkg/client"
@@ -323,7 +324,7 @@ func (ts *TwitterScraper) scrapeTweetsWithApiKey(j types.Job, baseQueryEndpoint 
 		}
 
 		if result == nil || len(result.Data) == 0 {
-			if len(tweets) == 0 && err == nil {
+			if len(tweets) == 0 {
 				logrus.Infof("No tweets found for query: %s with API key.", query)
 			}
 			break
@@ -874,7 +875,7 @@ type TwitterScraper struct {
 	}
 	accountManager *twitter.TwitterAccountManager
 	statsCollector *stats.StatsCollector
-	capabilities   map[string]bool
+	capabilities   map[types.Capability]bool
 }
 
 func NewTwitterScraper(jc types.JobConfiguration, c *stats.StatsCollector) *TwitterScraper {
@@ -902,7 +903,7 @@ func NewTwitterScraper(jc types.JobConfiguration, c *stats.StatsCollector) *Twit
 		configuration:  config,
 		accountManager: accountManager,
 		statsCollector: c,
-		capabilities: map[string]bool{
+		capabilities: map[types.Capability]bool{
 			"searchbyquery":       true,
 			"searchbyfullarchive": true,
 			"searchbyprofile":     true,
@@ -926,15 +927,15 @@ func NewTwitterScraper(jc types.JobConfiguration, c *stats.StatsCollector) *Twit
 
 // GetCapabilities returns the capabilities supported by this Twitter scraper
 // based on the available credentials
-func (ts *TwitterScraper) GetCapabilities() []string {
-	var capabilities []string
-	
+func (ts *TwitterScraper) GetCapabilities() []types.Capability {
+	var capabilities []types.Capability
+
 	// Check if we have Twitter accounts
 	hasAccounts := len(ts.configuration.Accounts) > 0
-	
+
 	// Check if we have API keys
 	hasApiKeys := len(ts.configuration.ApiKeys) > 0
-	
+
 	// If we have accounts, add all credential-based capabilities
 	if hasAccounts {
 		for capability, enabled := range ts.capabilities {
@@ -944,13 +945,13 @@ func (ts *TwitterScraper) GetCapabilities() []string {
 		}
 	} else if hasApiKeys {
 		// If we only have API keys, add a subset of capabilities
-		apiCapabilities := []string{"searchbyquery", "getbyid", "getprofilebyid"}
+		apiCapabilities := []types.Capability{"searchbyquery", "getbyid", "getprofilebyid"}
 		for _, cap := range apiCapabilities {
 			if ts.capabilities[cap] {
 				capabilities = append(capabilities, cap)
 			}
 		}
-		
+
 		// Check if any API key is elevated for full archive search
 		if ts.accountManager != nil {
 			for _, apiKey := range ts.accountManager.GetApiKeys() {
@@ -961,7 +962,7 @@ func (ts *TwitterScraper) GetCapabilities() []string {
 			}
 		}
 	}
-	
+
 	return capabilities
 }
 

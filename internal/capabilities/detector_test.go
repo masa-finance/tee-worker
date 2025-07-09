@@ -2,7 +2,7 @@ package capabilities
 
 import (
 	"reflect"
-	"sort"
+	"slices"
 	"testing"
 
 	"github.com/masa-finance/tee-worker/api/types"
@@ -10,32 +10,32 @@ import (
 
 // MockJobServer implements JobServerInterface for testing
 type MockJobServer struct {
-	capabilities map[string][]string
+	capabilities map[string][]types.Capability
 }
 
-func (m *MockJobServer) GetWorkerCapabilities() map[string][]string {
+func (m *MockJobServer) GetWorkerCapabilities() map[string][]types.Capability {
 	return m.capabilities
 }
 
 func TestDetectCapabilities(t *testing.T) {
 	tests := []struct {
-		name     string
-		jc       types.JobConfiguration
+		name      string
+		jc        types.JobConfiguration
 		jobServer JobServerInterface
-		expected []string
+		expected  []types.Capability
 	}{
 		{
 			name: "With JobServer - gets capabilities from workers",
 			jc:   types.JobConfiguration{},
 			jobServer: &MockJobServer{
-				capabilities: map[string][]string{
-					"web-scraper": {"web-scraper"},
-					"telemetry": {"telemetry"},
+				capabilities: map[string][]types.Capability{
+					"web-scraper":          {"web-scraper"},
+					"telemetry":            {"telemetry"},
 					"tiktok-transcription": {"tiktok-transcription"},
-					"twitter-scraper": {"searchbyquery", "getbyid", "getprofilebyid"},
+					"twitter-scraper":      {"searchbyquery", "getbyid", "getprofilebyid"},
 				},
 			},
-			expected: []string{
+			expected: []types.Capability{
 				"web-scraper",
 				"telemetry",
 				"tiktok-transcription",
@@ -45,10 +45,10 @@ func TestDetectCapabilities(t *testing.T) {
 			},
 		},
 		{
-			name: "Without JobServer - basic capabilities only",
-			jc:   types.JobConfiguration{},
+			name:      "Without JobServer - basic capabilities only",
+			jc:        types.JobConfiguration{},
 			jobServer: nil,
-			expected: []string{
+			expected: []types.Capability{
 				"web-scraper",
 				"telemetry",
 				"tiktok-transcription",
@@ -60,7 +60,7 @@ func TestDetectCapabilities(t *testing.T) {
 				"twitter_accounts": []string{"user1:pass1"},
 			},
 			jobServer: nil,
-			expected: []string{
+			expected: []types.Capability{
 				"web-scraper",
 				"telemetry",
 				"tiktok-transcription",
@@ -75,7 +75,7 @@ func TestDetectCapabilities(t *testing.T) {
 				"twitter_api_keys": []string{"key1"},
 			},
 			jobServer: nil,
-			expected: []string{
+			expected: []types.Capability{
 				"web-scraper",
 				"telemetry",
 				"tiktok-transcription",
@@ -89,11 +89,11 @@ func TestDetectCapabilities(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := DetectCapabilities(tt.jc, tt.jobServer)
-			
+
 			// Sort both slices for comparison
-			sort.Strings(got)
-			sort.Strings(tt.expected)
-			
+			slices.Sort(got)
+			slices.Sort(tt.expected)
+
 			if !reflect.DeepEqual(got, tt.expected) {
 				t.Errorf("DetectCapabilities() = %v, want %v", got, tt.expected)
 			}
@@ -105,49 +105,49 @@ func TestMergeCapabilities(t *testing.T) {
 	tests := []struct {
 		name     string
 		manual   string
-		detected []string
-		expected []string
+		detected []types.Capability
+		expected []types.Capability
 	}{
 		{
 			name:     "Empty manual, some detected",
 			manual:   "",
-			detected: []string{"web-scraper", "telemetry"},
-			expected: []string{"web-scraper", "telemetry"},
+			detected: []types.Capability{"web-scraper", "telemetry"},
+			expected: []types.Capability{"web-scraper", "telemetry"},
 		},
 		{
 			name:     "Manual 'all' with detected",
 			manual:   "all",
-			detected: []string{"web-scraper", "telemetry", "searchbyquery"},
-			expected: []string{"all", "web-scraper", "telemetry", "searchbyquery"},
+			detected: []types.Capability{"web-scraper", "telemetry", "searchbyquery"},
+			expected: []types.Capability{"all", "web-scraper", "telemetry", "searchbyquery"},
 		},
 		{
 			name:     "Manual specific capabilities with detected",
 			manual:   "searchbyquery,getbyid",
-			detected: []string{"web-scraper", "telemetry", "searchbyprofile"},
-			expected: []string{"searchbyquery", "getbyid", "web-scraper", "telemetry", "searchbyprofile"},
+			detected: []types.Capability{"web-scraper", "telemetry", "searchbyprofile"},
+			expected: []types.Capability{"searchbyquery", "getbyid", "web-scraper", "telemetry", "searchbyprofile"},
 		},
 		{
 			name:     "Overlapping manual and detected",
 			manual:   "web-scraper,custom-cap",
-			detected: []string{"web-scraper", "telemetry"},
-			expected: []string{"web-scraper", "custom-cap", "telemetry"},
+			detected: []types.Capability{"web-scraper", "telemetry"},
+			expected: []types.Capability{"web-scraper", "custom-cap", "telemetry"},
 		},
 		{
 			name:     "Manual with spaces",
 			manual:   "cap1, cap2 , cap3",
-			detected: []string{"cap4"},
-			expected: []string{"cap1", "cap2", "cap3", "cap4"},
+			detected: []types.Capability{"cap4"},
+			expected: []types.Capability{"cap1", "cap2", "cap3", "cap4"},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := MergeCapabilities(tt.manual, tt.detected)
-			
+
 			// Sort for consistent comparison since map iteration is random
-			sort.Strings(got)
-			sort.Strings(tt.expected)
-			
+			slices.Sort(got)
+			slices.Sort(tt.expected)
+
 			if !reflect.DeepEqual(got, tt.expected) {
 				t.Errorf("MergeCapabilities() = %v, want %v", got, tt.expected)
 			}

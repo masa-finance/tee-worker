@@ -49,7 +49,7 @@ func add(jobServer *jobserver.JobServer) func(c echo.Context) error {
 		job, err := jobRequest.DecryptJob()
 		if err != nil {
 			logrus.Errorf("Error while decrypting job %s: %s", jobRequest, err)
-			return c.JSON(http.StatusInternalServerError, types.JobError{Error: fmt.Sprintf("Error while decypting job:")})
+			return c.JSON(http.StatusInternalServerError, types.JobError{Error: fmt.Sprintf("Error while decrypting job: %s", err.Error())})
 		}
 
 		uuid, err := jobServer.AddJob(*job)

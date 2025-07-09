@@ -12,40 +12,40 @@ import (
 )
 
 // These are the types of statistics that we can add. The value is the JSON key that will be used for serialization.
-type statType string
+type StatType string
 
 const (
-	TwitterScrapes             statType = "twitter_scrapes"
-	TwitterTweets              statType = "twitter_returned_tweets"
-	TwitterProfiles            statType = "twitter_returned_profiles"
-	TwitterOther               statType = "twitter_returned_other"
-	TwitterErrors              statType = "twitter_errors"
-	TwitterAuthErrors          statType = "twitter_auth_errors"
-	TwitterRateErrors          statType = "twitter_ratelimit_errors"
-	TwitterXSearchQueries      statType = "twitterx_search"
-	WebSuccess                 statType = "web_success"
-	WebErrors                  statType = "web_errors"
-	WebInvalid                 statType = "web_invalid"
-	TikTokTranscriptionSuccess statType = "tiktok_transcription_success"
-	TikTokTranscriptionErrors  statType = "tiktok_transcription_errors"
+	TwitterScrapes             StatType = "twitter_scrapes"
+	TwitterTweets              StatType = "twitter_returned_tweets"
+	TwitterProfiles            StatType = "twitter_returned_profiles"
+	TwitterOther               StatType = "twitter_returned_other"
+	TwitterErrors              StatType = "twitter_errors"
+	TwitterAuthErrors          StatType = "twitter_auth_errors"
+	TwitterRateErrors          StatType = "twitter_ratelimit_errors"
+	TwitterXSearchQueries      StatType = "twitterx_search"
+	WebSuccess                 StatType = "web_success"
+	WebErrors                  StatType = "web_errors"
+	WebInvalid                 StatType = "web_invalid"
+	TikTokTranscriptionSuccess StatType = "tiktok_transcription_success"
+	TikTokTranscriptionErrors  StatType = "tiktok_transcription_errors"
 	// TODO: Should we add stats for calls to each of the Twitter job types?
 )
 
 // AddStat is the struct used in the rest of the tee-worker for sending statistics
 type AddStat struct {
-	Type     statType
+	Type     StatType
 	WorkerID string
 	Num      uint
 }
 
-// stats is the structure we use to store the statistics
-type stats struct {
+// Stats is the structure we use to store the statistics
+type Stats struct {
 	BootTimeUnix         int64                        `json:"boot_time"`
 	LastOperationUnix    int64                        `json:"last_operation_time"`
 	CurrentTimeUnix      int64                        `json:"current_time"`
 	WorkerID             string                       `json:"worker_id"`
-	Stats                map[string]map[statType]uint `json:"stats"`
-	ReportedCapabilities []string                     `json:"reported_capabilities"`
+	Stats                map[string]map[StatType]uint `json:"stats"`
+	ReportedCapabilities []types.Capability           `json:"reported_capabilities"`
 	WorkerVersion        string                       `json:"worker_version"`
 	ApplicationVersion   string                       `json:"application_version"`
 	sync.Mutex
@@ -53,7 +53,7 @@ type stats struct {
 
 // StatsCollector is the object used to collect statistics
 type StatsCollector struct {
-	Stats            *stats
+	Stats            *Stats
 	Chan             chan AddStat
 	jobServer        capabilities.JobServerInterface
 	jobConfiguration types.JobConfiguration
@@ -63,35 +63,35 @@ type StatsCollector struct {
 func StartCollector(bufSize uint, jc types.JobConfiguration) *StatsCollector {
 	logrus.Info("Starting stats collector")
 
-	s := stats{
+	s := Stats{
 		BootTimeUnix:         time.Now().Unix(),
-		Stats:                make(map[string]map[statType]uint),
+		Stats:                make(map[string]map[StatType]uint),
 		WorkerVersion:        versioning.TEEWorkerVersion,
 		ApplicationVersion:   versioning.ApplicationVersion,
-		ReportedCapabilities: []string{},
+		ReportedCapabilities: []types.Capability{},
 	}
 
 	// Get manual capabilities from environment
 	manualCapabilities, _ := jc["capabilities"].(string)
-	
+
 	// Initial capability detection without JobServer (basic capabilities only)
 	// Full capability detection will happen when JobServer is set
 	detectedCapabilities := capabilities.DetectCapabilities(jc, nil)
-	
+
 	// Merge manual and auto-detected capabilities
 	s.ReportedCapabilities = capabilities.MergeCapabilities(manualCapabilities, detectedCapabilities)
-	
+
 	logrus.Infof("Initial capabilities (manual + basic auto-detected): %v", s.ReportedCapabilities)
 
 	ch := make(chan AddStat, bufSize)
 
-	go func(s *stats, ch chan AddStat) {
+	go func(s *Stats, ch chan AddStat) {
 		for {
 			stat := <-ch
 			s.Lock()
 			s.LastOperationUnix = time.Now().Unix()
 			if _, ok := s.Stats[stat.WorkerID]; !ok {
-				s.Stats[stat.WorkerID] = make(map[statType]uint)
+				s.Stats[stat.WorkerID] = make(map[StatType]uint)
 			}
 			if _, ok := s.Stats[stat.WorkerID][stat.Type]; ok {
 				s.Stats[stat.WorkerID][stat.Type] += stat.Num
@@ -115,7 +115,7 @@ func (s *StatsCollector) Json() ([]byte, error) {
 }
 
 // Add is a convenience method to add a number to a statistic
-func (s *StatsCollector) Add(workerID string, typ statType, num uint) {
+func (s *StatsCollector) Add(workerID string, typ StatType, num uint) {
 	s.Chan <- AddStat{WorkerID: workerID, Type: typ, Num: num}
 }
 
@@ -129,19 +129,19 @@ func (s *StatsCollector) SetWorkerID(workerID string) {
 // SetJobServer sets the JobServer reference and updates capabilities with full detection
 func (s *StatsCollector) SetJobServer(js capabilities.JobServerInterface) {
 	s.jobServer = js
-	
+
 	// Now that we have the JobServer, update capabilities with full detection
 	s.Stats.Lock()
 	defer s.Stats.Unlock()
-	
+
 	// Get manual capabilities from job configuration
 	manualCapabilities, _ := s.jobConfiguration["capabilities"].(string)
-	
+
 	// Auto-detect capabilities using the JobServer
 	detectedCapabilities := capabilities.DetectCapabilities(s.jobConfiguration, js)
-	
+
 	// Merge manual and auto-detected capabilities
 	s.Stats.ReportedCapabilities = capabilities.MergeCapabilities(manualCapabilities, detectedCapabilities)
-	
+
 	logrus.Infof("Updated capabilities with full detection (manual + worker-reported): %v", s.Stats.ReportedCapabilities)
 }
