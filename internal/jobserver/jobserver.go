@@ -121,12 +121,12 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 
 // CapabilityProvider is an interface for workers that can report their capabilities
 type CapabilityProvider interface {
-	GetCapabilities() []string
+	GetCapabilities() []types.Capability
 }
 
 // GetWorkerCapabilities returns the capabilities for all registered workers
-func (js *JobServer) GetWorkerCapabilities() map[string][]string {
-	capabilities := make(map[string][]string)
+func (js *JobServer) GetWorkerCapabilities() map[string][]types.Capability {
+	capabilities := make(map[string][]types.Capability)
 
 	for workerType, workerEntry := range js.jobWorkers {
 		if provider, ok := workerEntry.w.(CapabilityProvider); ok {
