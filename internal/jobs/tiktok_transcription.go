@@ -22,7 +22,6 @@ const TikTokTranscriptionType = "tiktok-transcription"
 // tiktokTranscriptionEndpoint is the default hardcoded endpoint for TikTok transcriptions.
 const tiktokTranscriptionEndpoint = "https://submagic-free-tools.fly.dev/api/tiktok-transcription"
 
-
 // TikTokTranscriptionConfiguration holds the configuration for the TikTok transcriber.
 // These values are typically populated from environment variables via config.go.
 type TikTokTranscriptionConfiguration struct {
@@ -40,10 +39,9 @@ type TikTokTranscriber struct {
 	httpClient    *http.Client
 }
 
-
 // GetCapabilities returns the capabilities supported by the TikTok transcriber
-func (t *TikTokTranscriber) GetCapabilities() []string {
-	return []string{"tiktok-transcription"}
+func (t *TikTokTranscriber) GetCapabilities() []types.Capability {
+	return []types.Capability{"tiktok-transcription"}
 }
 
 // NewTikTokTranscriber creates and initializes a new TikTokTranscriber.
@@ -55,28 +53,28 @@ func NewTikTokTranscriber(jc types.JobConfiguration, statsCollector *stats.Stats
 	config.TranscriptionEndpoint = tiktokTranscriptionEndpoint
 	config.APIOrigin = "https://submagic-free-tools.fly.dev"
 	config.APIReferer = "https://submagic-free-tools.fly.dev/tiktok-transcription"
-	
+
 	// Get configurable values from job configuration
 	if err := jc.Unmarshal(&config); err != nil {
 		logrus.WithError(err).Debug("TikTokTranscriber: Could not unmarshal job configuration, using all defaults")
 	}
-	
+
 	// Set defaults for configurable values if not provided
 	if config.DefaultLanguage == "" {
 		config.DefaultLanguage = "eng-US"
 	}
-	
+
 	if config.APIUserAgent == "" {
 		config.APIUserAgent = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Mobile Safari/537.36"
 	}
-	
+
 	// Log the actual configuration values being used
 	logrus.WithFields(logrus.Fields{
 		"transcription_endpoint": config.TranscriptionEndpoint,
-		"api_origin":            config.APIOrigin,
-		"api_referer":           config.APIReferer,
-		"api_user_agent":        config.APIUserAgent,
-		"default_language":      config.DefaultLanguage,
+		"api_origin":             config.APIOrigin,
+		"api_referer":            config.APIReferer,
+		"api_user_agent":         config.APIUserAgent,
+		"default_language":       config.DefaultLanguage,
 	}).Info("TikTokTranscriber initialized with configuration")
 
 	httpClient := &http.Client{

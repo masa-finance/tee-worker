@@ -155,3 +155,5 @@ func (jc JobConfiguration) GetString(key string, def string) string {
 	}
 	return def
 }
+
+type Capability string
