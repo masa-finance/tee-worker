@@ -41,8 +41,8 @@ type TikTokTranscriber struct {
 }
 
 // GetCapabilities returns the capabilities supported by the TikTok transcriber
-func (t *TikTokTranscriber) GetCapabilities() []string {
-	return []string{"tiktok-transcription"}
+func (t *TikTokTranscriber) GetCapabilities() []types.Capability {
+	return []types.Capability{"tiktok-transcription"}
 }
 
 // NewTikTokTranscriber creates and initializes a new TikTokTranscriber.

@@ -3,11 +3,12 @@ package jobs
 import (
 	"encoding/json"
 	"fmt"
-	teeargs "github.com/masa-finance/tee-types/args"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	teeargs "github.com/masa-finance/tee-types/args"
 
 	"github.com/cenkalti/backoff"
 	"github.com/gocolly/colly"
@@ -37,8 +38,8 @@ func NewWebScraper(jc types.JobConfiguration, statsCollector *stats.StatsCollect
 }
 
 // GetCapabilities returns the capabilities supported by the web scraper
-func (ws *WebScraper) GetCapabilities() []string {
-	return []string{"web-scraper"}
+func (ws *WebScraper) GetCapabilities() []types.Capability {
+	return []types.Capability{"web-scraper"}
 }
 
 func (ws *WebScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
