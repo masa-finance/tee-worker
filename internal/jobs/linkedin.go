@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"strings"
 
 	linkedinscraper "github.com/masa-finance/linkedin-scraper"
@@ -16,7 +17,53 @@ import (
 
 const (
 	LinkedInScraperType = "linkedin-scraper"
+
+	// Default values for LinkedIn search
+	DefaultSearchCount = 10
 )
+
+var (
+	// Default network filters: F (first degree), S (second degree), O (third degree+)
+	DefaultNetworkFilters = []string{"F", "S", "O"}
+)
+
+// formatDateRange converts a LinkedIn DateRange to start and end date strings
+// This function works with the LinkedIn scraper's DateRange structure
+func formatDateRange(dateRange interface{}) (string, string) {
+	var startDate, endDate string
+
+	// Handle the DateRange structure as it's used in the existing code
+	if dateRange != nil {
+		// Use reflection to access the DateRange fields since we don't import the exact type
+		// This matches the existing structure: dateRange.Start.Year, dateRange.Start.Month
+		v := reflect.ValueOf(dateRange)
+		if v.Kind() == reflect.Ptr {
+			v = v.Elem()
+		}
+
+		// Get Start field
+		if startField := v.FieldByName("Start"); startField.IsValid() && !startField.IsNil() {
+			startVal := startField.Elem()
+			if yearField := startVal.FieldByName("Year"); yearField.IsValid() {
+				if monthField := startVal.FieldByName("Month"); monthField.IsValid() {
+					startDate = fmt.Sprintf("%d-%02d", yearField.Interface(), monthField.Interface())
+				}
+			}
+		}
+
+		// Get End field
+		if endField := v.FieldByName("End"); endField.IsValid() && !endField.IsNil() {
+			endVal := endField.Elem()
+			if yearField := endVal.FieldByName("Year"); yearField.IsValid() {
+				if monthField := endVal.FieldByName("Month"); monthField.IsValid() {
+					endDate = fmt.Sprintf("%d-%02d", yearField.Interface(), monthField.Interface())
+				}
+			}
+		}
+	}
+
+	return startDate, endDate
+}
 
 type LinkedInScraper struct {
 	configuration  LinkedInScraperConfiguration
@@ -129,10 +176,10 @@ func (ls *LinkedInScraper) searchProfiles(j types.Job, client *linkedinscraper.C
 
 	// Set defaults if not provided
 	if searchArgs.Count == 0 {
-		searchArgs.Count = 10
+		searchArgs.Count = DefaultSearchCount
 	}
 	if len(searchArgs.NetworkFilters) == 0 {
-		searchArgs.NetworkFilters = []string{"F", "S", "O"} // All networks
+		searchArgs.NetworkFilters = DefaultNetworkFilters
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), j.Timeout)
@@ -171,7 +218,7 @@ func (ls *LinkedInScraper) searchProfiles(j types.Job, client *linkedinscraper.C
 
 	data, err := json.Marshal(results)
 	if err != nil {
-		return types.JobResult{Error: "failed to marshal results"}, err
+		return types.JobResult{Error: "failed to marshal results"}, fmt.Errorf("failed to marshal results %+v: %w", results, err)
 	}
 
 	return types.JobResult{Data: data}, nil
@@ -194,7 +241,7 @@ func (ls *LinkedInScraper) getProfile(j types.Job, client *linkedinscraper.Clien
 		} else if strings.Contains(err.Error(), "rate limit") || strings.Contains(err.Error(), "429") {
 			ls.statsCollector.Add(j.WorkerID, stats.LinkedInRateErrors, 1)
 		} else if strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "404") {
-			ls.statsCollector.Add(j.WorkerID, stats.LinkedInErrors, 1)
+			// Don't increment stats for user errors (invalid public identifier)
 		} else {
 			ls.statsCollector.Add(j.WorkerID, stats.LinkedInErrors, 1)
 		}
@@ -206,15 +253,7 @@ func (ls *LinkedInScraper) getProfile(j types.Job, client *linkedinscraper.Clien
 	var experiences []teetypes.Experience
 	for _, exp := range profile.Experience {
 		// Convert DateRange to string format for tee-types
-		var startDate, endDate string
-		if exp.DateRange != nil {
-			if exp.DateRange.Start != nil {
-				startDate = fmt.Sprintf("%d-%02d", exp.DateRange.Start.Year, exp.DateRange.Start.Month)
-			}
-			if exp.DateRange.End != nil {
-				endDate = fmt.Sprintf("%d-%02d", exp.DateRange.End.Year, exp.DateRange.End.Month)
-			}
-		}
+		startDate, endDate := formatDateRange(exp.DateRange)
 
 		experiences = append(experiences, teetypes.Experience{
 			Title:       exp.Title,
@@ -229,15 +268,7 @@ func (ls *LinkedInScraper) getProfile(j types.Job, client *linkedinscraper.Clien
 	var education []teetypes.Education
 	for _, edu := range profile.Education {
 		// Convert DateRange to string format for tee-types
-		var startDate, endDate string
-		if edu.DateRange != nil {
-			if edu.DateRange.Start != nil {
-				startDate = fmt.Sprintf("%d-%02d", edu.DateRange.Start.Year, edu.DateRange.Start.Month)
-			}
-			if edu.DateRange.End != nil {
-				endDate = fmt.Sprintf("%d-%02d", edu.DateRange.End.Year, edu.DateRange.End.Month)
-			}
-		}
+		startDate, endDate := formatDateRange(edu.DateRange)
 
 		education = append(education, teetypes.Education{
 			SchoolName:   edu.SchoolName,
@@ -279,7 +310,7 @@ func (ls *LinkedInScraper) getProfile(j types.Job, client *linkedinscraper.Clien
 
 	data, err := json.Marshal(result)
 	if err != nil {
-		return types.JobResult{Error: "failed to marshal results"}, err
+		return types.JobResult{Error: "failed to marshal results"}, fmt.Errorf("failed to marshal results %+v: %w", result, err)
 	}
 
 	return types.JobResult{Data: data}, nil

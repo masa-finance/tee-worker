@@ -3,7 +3,6 @@ package jobs
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -167,7 +166,7 @@ func (ttt *TikTokTranscriber) ExecuteJob(j types.Job) (types.JobResult, error) {
 		errMsg := fmt.Sprintf("API request failed with status code %d. Response: %s", apiResp.StatusCode, string(bodyBytes))
 		logrus.WithField("job_uuid", j.UUID).Error(errMsg)
 		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1)
-		return types.JobResult{Error: errMsg}, errors.New(errMsg)
+		return types.JobResult{Error: errMsg}, fmt.Errorf("%s", errMsg)
 	}
 
 	var parsedAPIResponse APIResponse
@@ -180,7 +179,7 @@ func (ttt *TikTokTranscriber) ExecuteJob(j types.Job) (types.JobResult, error) {
 		errMsg := fmt.Sprintf("API returned an error: %s", parsedAPIResponse.Error)
 		logrus.WithField("job_uuid", j.UUID).Error(errMsg)
 		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1)
-		return types.JobResult{Error: errMsg}, errors.New(errMsg)
+		return types.JobResult{Error: errMsg}, fmt.Errorf("%s", errMsg)
 	}
 
 	// Sub-Step 3.2: Extract Transcription and Metadata
@@ -188,7 +187,7 @@ func (ttt *TikTokTranscriber) ExecuteJob(j types.Job) (types.JobResult, error) {
 		errMsg := "No transcripts found in API response"
 		logrus.WithField("job_uuid", j.UUID).Warn(errMsg)
 		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1) // Or a different stat for "no_transcript_found"
-		return types.JobResult{Error: errMsg}, errors.New(errMsg)
+		return types.JobResult{Error: errMsg}, fmt.Errorf("%s", errMsg)
 	}
 
 	vttText := ""
@@ -226,7 +225,7 @@ func (ttt *TikTokTranscriber) ExecuteJob(j types.Job) (types.JobResult, error) {
 		errMsg := "Suitable transcript could not be extracted from API response"
 		logrus.WithField("job_uuid", j.UUID).Error(errMsg)
 		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1)
-		return types.JobResult{Error: errMsg}, errors.New(errMsg)
+		return types.JobResult{Error: errMsg}, fmt.Errorf("%s", errMsg)
 	}
 
 	logrus.Debugf("Job %s: Raw VTT content for language %s:\n%s", j.UUID, finalDetectedLanguage, vttText)
@@ -238,7 +237,7 @@ func (ttt *TikTokTranscriber) ExecuteJob(j types.Job) (types.JobResult, error) {
 		errMsg := fmt.Sprintf("Failed to convert VTT to plain text: %v", err)
 		logrus.WithField("job_uuid", j.UUID).Error(errMsg)
 		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1)
-		return types.JobResult{Error: errMsg}, errors.New(errMsg)
+		return types.JobResult{Error: errMsg}, fmt.Errorf("%s", errMsg)
 	}
 
 	// Process Result & Return
