@@ -110,7 +110,6 @@ func (ls *LinkedInScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 	case "getprofile":
 		return ls.getProfile(j, client, jobArgs)
 	default:
-		ls.statsCollector.Add(j.WorkerID, stats.LinkedInErrors, 1)
 		return types.JobResult{Error: "invalid search type: " + jobArgs.QueryType}, fmt.Errorf("invalid search type: %s", jobArgs.QueryType)
 	}
 }
@@ -118,7 +117,6 @@ func (ls *LinkedInScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 func (ls *LinkedInScraper) searchProfiles(j types.Job, client *linkedinscraper.Client, args *args.LinkedInArguments) (types.JobResult, error) {
 	// Validate query is not empty
 	if args.Query == "" {
-		ls.statsCollector.Add(j.WorkerID, stats.LinkedInErrors, 1)
 		return types.JobResult{Error: "query is required"}, fmt.Errorf("query is required")
 	}
 
@@ -182,7 +180,6 @@ func (ls *LinkedInScraper) searchProfiles(j types.Job, client *linkedinscraper.C
 func (ls *LinkedInScraper) getProfile(j types.Job, client *linkedinscraper.Client, args *args.LinkedInArguments) (types.JobResult, error) {
 	// Validate public identifier is not empty
 	if args.PublicIdentifier == "" {
-		ls.statsCollector.Add(j.WorkerID, stats.LinkedInErrors, 1)
 		return types.JobResult{Error: "public_identifier is required"}, fmt.Errorf("public_identifier is required")
 	}
 
