@@ -12,6 +12,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+var (
+	// MinersWhiteList is set by the build process
+	// it contains a comma separated list of miners that are allowed to send jobs to the worker
+	// If empty, anyone is allowed to send jobs to the worker
+	MinersWhiteList = ""
+)
+
 // TODO: Revamp the whole config, using a Map and having multiple global functions to get the config is not nice
 func init() {
 	switch strings.ToLower(os.Getenv("LOG_LEVEL")) {

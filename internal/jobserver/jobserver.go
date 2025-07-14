@@ -3,12 +3,15 @@ package jobserver
 import (
 	"context"
 	"errors"
+	"slices"
+	"strings"
 	"sync"
 
 	"github.com/sirupsen/logrus"
 
 	"github.com/google/uuid"
 	"github.com/masa-finance/tee-worker/api/types"
+	"github.com/masa-finance/tee-worker/internal/config"
 	"github.com/masa-finance/tee-worker/internal/jobs"
 	"github.com/masa-finance/tee-worker/internal/jobs/stats"
 	"github.com/masa-finance/tee-worker/pkg/tee"
@@ -120,12 +123,12 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 
 // CapabilityProvider is an interface for workers that can report their capabilities
 type CapabilityProvider interface {
-	GetCapabilities() []string
+	GetCapabilities() []types.Capability
 }
 
 // GetWorkerCapabilities returns the capabilities for all registered workers
-func (js *JobServer) GetWorkerCapabilities() map[string][]string {
-	capabilities := make(map[string][]string)
+func (js *JobServer) GetWorkerCapabilities() map[string][]types.Capability {
+	capabilities := make(map[string][]types.Capability)
 
 	for workerType, workerEntry := range js.jobWorkers {
 		if provider, ok := workerEntry.w.(CapabilityProvider); ok {
@@ -156,6 +159,25 @@ func (js *JobServer) AddJob(j types.Job) (string, error) {
 
 	if j.TargetWorker != "" && j.TargetWorker != tee.WorkerID {
 		return "", errors.New("this job is not for this worker")
+	}
+
+	if j.Type != jobs.TelemetryJobType && config.MinersWhiteList != "" {
+		var miners []string
+
+		// In standalone mode, we just whitelist ourselves
+		if config.StandaloneMode() {
+			miners = []string{tee.WorkerID}
+		} else {
+			miners = strings.Split(config.MinersWhiteList, ",")
+		}
+
+		logrus.Debugf("Checking if job from miner %s is whitelisted. Miners white list: %+v", j.WorkerID, miners)
+
+		if !slices.Contains(miners, j.WorkerID) {
+			logrus.Debugf("Job from non-whitelisted miner %s", j.WorkerID)
+			return "", errors.New("this job is not from a whitelisted miner")
+		}
+		logrus.Debugf("Job from whitelisted miner %s", j.WorkerID)
 	}
 
 	// TODO The default should come from config.go, but during tests the config is not necessarily read
