@@ -108,12 +108,10 @@ func (ttt *TikTokTranscriber) ExecuteJob(j types.Job) (types.JobResult, error) {
 
 	args := &args.TikTokTranscriptionArguments{}
 	if err := j.Arguments.Unmarshal(args); err != nil {
-		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1)
 		return types.JobResult{Error: "Failed to unmarshal job arguments"}, fmt.Errorf("unmarshal job arguments: %w", err)
 	}
 
 	if args.VideoURL == "" {
-		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1)
 		return types.JobResult{Error: "VideoURL is required"}, fmt.Errorf("videoURL is required")
 	}
 	// Sanitize/Validate VideoURL further if necessary (e.g., ensure it's a TikTok URL)
