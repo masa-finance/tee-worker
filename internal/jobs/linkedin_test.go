@@ -127,7 +127,6 @@ var _ = Describe("LinkedIn Scraper", func() {
 			err = res.Unmarshal(&results)
 			Expect(err).NotTo(HaveOccurred())
 			// Results might be empty if there aren't enough profiles
-			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("should error on empty query", func() {
