@@ -90,13 +90,11 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 			w: jobs.NewLinkedInScraper(jc, s),
 		},
 	}
-	logrus.Infof("Initialized job worker for: %s", jobs.WebScraperType)
-	logrus.Infof("Initialized job worker for: %s", jobs.TwitterScraperType)
-	logrus.Infof("Initialized job worker for: %s", jobs.TwitterCredentialScraperType)
-	logrus.Infof("Initialized job worker for: %s", jobs.TwitterApiScraperType)
-	logrus.Infof("Initialized job worker for: %s", jobs.TelemetryJobType)
-	logrus.Infof("Initialized job worker for: %s", jobs.TikTokTranscriptionType)
-	logrus.Infof("Initialized job worker for: %s", jobs.LinkedInScraperType)
+
+	// Log initialization for each job worker
+	for jobType := range jobworkers {
+		logrus.Infof("Initialized job worker for: %s", jobType)
+	}
 
 	logrus.Info("Job workers setup completed.")
 
@@ -111,12 +109,12 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 		jobWorkers:       jobworkers,
 		executedJobs:     make(map[string]bool),
 	}
-	
+
 	// Set the JobServer reference in the stats collector for capability reporting
 	if s != nil {
 		s.SetJobServer(js)
 	}
-	
+
 	return js
 }
 
@@ -128,13 +126,13 @@ type CapabilityProvider interface {
 // GetWorkerCapabilities returns the capabilities for all registered workers
 func (js *JobServer) GetWorkerCapabilities() map[string][]string {
 	capabilities := make(map[string][]string)
-	
+
 	for workerType, workerEntry := range js.jobWorkers {
 		if provider, ok := workerEntry.w.(CapabilityProvider); ok {
 			capabilities[workerType] = provider.GetCapabilities()
 		}
 	}
-	
+
 	return capabilities
 }
 
