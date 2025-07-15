@@ -19,7 +19,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 )
 
-replace github.com/imperatrona/twitter-scraper => github.com/masa-finance/twitter-scraper v1.0.1
+replace github.com/imperatrona/twitter-scraper => github.com/masa-finance/twitter-scraper v1.0.2
 
 require (
 	github.com/AlexEidt/Vidio v1.5.1 // indirect
