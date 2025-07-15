@@ -28,6 +28,11 @@ const (
 	WebInvalid                 StatType = "web_invalid"
 	TikTokTranscriptionSuccess StatType = "tiktok_transcription_success"
 	TikTokTranscriptionErrors  StatType = "tiktok_transcription_errors"
+	LinkedInScrapes            StatType = "linkedin_scrapes"
+	LinkedInProfiles           StatType = "linkedin_returned_profiles"
+	LinkedInErrors             StatType = "linkedin_errors"
+	LinkedInAuthErrors         StatType = "linkedin_auth_errors"
+	LinkedInRateErrors         StatType = "linkedin_ratelimit_errors"
 	// TODO: Should we add stats for calls to each of the Twitter job types?
 )
 

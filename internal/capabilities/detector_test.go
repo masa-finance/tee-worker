@@ -84,6 +84,103 @@ func TestDetectCapabilities(t *testing.T) {
 				"getprofilebyid",
 			},
 		},
+		{
+			name: "Without JobServer - with LinkedIn credentials array",
+			jc: types.JobConfiguration{
+				"linkedin_credentials": []interface{}{
+					map[string]interface{}{
+						"li_at_cookie": "cookie1",
+						"csrf_token":   "token1",
+						"jsessionid":   "session1",
+					},
+				},
+			},
+			jobServer: nil,
+			expected: []types.Capability{
+				"web-scraper",
+				"telemetry",
+				"tiktok-transcription",
+				"searchbyquery",
+				"getprofile",
+			},
+		},
+		{
+			name: "Without JobServer - with LinkedIn individual credentials",
+			jc: types.JobConfiguration{
+				"linkedin_li_at_cookie": "cookie1",
+				"linkedin_csrf_token":   "token1",
+				"linkedin_jsessionid":   "session1",
+			},
+			jobServer: nil,
+			expected: []types.Capability{
+				"web-scraper",
+				"telemetry",
+				"tiktok-transcription",
+				"searchbyquery",
+				"getprofile",
+			},
+		},
+		{
+			name: "Without JobServer - with both Twitter and LinkedIn credentials",
+			jc: types.JobConfiguration{
+				"twitter_accounts":      []string{"user1:pass1"},
+				"linkedin_li_at_cookie": "cookie1",
+				"linkedin_csrf_token":   "token1",
+				"linkedin_jsessionid":   "session1",
+			},
+			jobServer: nil,
+			expected: []types.Capability{
+				"web-scraper",
+				"telemetry",
+				"tiktok-transcription",
+				"searchbyquery",
+				"getbyid",
+				"getprofilebyid",
+				"getprofile",
+			},
+		},
+		{
+			name: "Without JobServer - with incomplete LinkedIn credentials",
+			jc: types.JobConfiguration{
+				"linkedin_li_at_cookie": "cookie1",
+				"linkedin_csrf_token":   "token1",
+				// Missing linkedin_jsessionid
+			},
+			jobServer: nil,
+			expected: []types.Capability{
+				"web-scraper",
+				"telemetry",
+				"tiktok-transcription",
+			},
+		},
+		{
+			name: "Without JobServer - with incomplete LinkedIn credentials (missing csrf_token)",
+			jc: types.JobConfiguration{
+				"linkedin_li_at_cookie": "cookie1",
+				"linkedin_jsessionid":   "session1",
+				// Missing linkedin_csrf_token
+			},
+			jobServer: nil,
+			expected: []types.Capability{
+				"web-scraper",
+				"telemetry",
+				"tiktok-transcription",
+			},
+		},
+		{
+			name: "Without JobServer - with incomplete LinkedIn credentials (missing jsessionid)",
+			jc: types.JobConfiguration{
+				"linkedin_li_at_cookie": "cookie1",
+				"linkedin_csrf_token":   "token1",
+				// Missing linkedin_jsessionid
+			},
+			jobServer: nil,
+			expected: []types.Capability{
+				"web-scraper",
+				"telemetry",
+				"tiktok-transcription",
+			},
+		},
 	}
 
 	for _, tt := range tests {
