@@ -565,3 +565,41 @@ There are others, see the `/debug/pprof` index page for a complete list.
 The `/debug/pprof/trace?seconds=XX` will give you an XX-second execution trace, which you can use via the `go tool trace` command.
 
 For more information, see [the official docs](https://pkg.go.dev/net/http/pprof). [This link](https://gist.github.com/andrewhodel/ed7625a14eb87404cafd37493849d1ba) also contains useful information.
+
+## Testing
+
+You can run the unit tests using `make test`. If you need to do manual testing you can run `docker compose -f docker-compose.dev.yml up --build`. Once it's running you can use `curl` from another terminal window to send requests and check the responses (see the scraping examples above). To shut down use `docker compose -f docker-compose.dev.yml down`, or simply Ctrl+C.
+
+If the tee-worker keeps crashing because your host does not support SGX emulation, i.e. some later Intel processors or Mac M-series, you can do one of the following.
+
+### Testing remotely
+
+If you have SSH access to a host that can support SGX emulation, you can instruct Docker to use a remote Docker daemon. For this, set the `DOCKER_HOST` environment variable to `ssh://<remote_host>`. You need to have SSH access via a private key (no password required). If you're using a shared host, you should copy `docker-compose.dev.yml` to a file that is not committed, rename the `masa-tee-worker` container to something else (i.e. appending your handle) and changing the `ports` specification to use a unique port (e.g. `8080:8081`) so you don't have conflicts with other users.
+
+Since Docker does not support remote port forwarding, you will also have to run a separate SSH command to forward the listen port (set to 8080 in `docker-compose.dev.yml`). You can use `ssh -NT -L 8080:localhost:8080 <remote_host> &`. This will start an SSH command in the background that will forward port 8080 to the remote host.
+
+To verify that everything is set up correctly, run `curl localhost:8080/readyz`. You should get a JSON reply with the tee-worker readiness status.
+
+Once you're done with your testing remember to run `fg` and then Ctrl+C out of the SSH session.
+
+### Using QEMU
+
+You can also create a virtual machine using QEMU, and enable SGX emulation on it.
+
+#### Some notes regarding M-series Macs
+
+The TEE simulator does not work with Apple Virtualization. You will have to use QEMU (which will be very very slow, therefore it is preferred to use the option above). To use `docker compose` with the stack you will have to do the following:
+
+* Do not use Docker Desktop. Install the `docker` and `docker-compose` Homebrew packages.
+* Create the `colima` VM with the following command line:
+
+``` bash
+colima start --arch x86_64 --cpu-type max --cpu 2 --memory 4 --disk 60 --network-address --vm-type qemu
+
+```
+
+Or edit `$HOME/.colima/_templates/default.yaml`, modify the appropriate parameters and use `colima start`. The `--network-address` flag ensures that exposed ports are visible on the MacOS side, otherwise they will only be visible inside the Colima vm.
+
+Once you have done this you can run `docker compose -f docker-compose.dev.yml up --build` without setting up `DOCKER_HOST`. Be aware that sometimes the Colima VM hangs, so you have to do `colima stop default` and `colima start default`. In extreme cases you might need to reboot your Mac.
+
+
