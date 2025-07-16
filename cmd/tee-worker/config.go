@@ -33,11 +33,11 @@ func readConfig() types.JobConfiguration {
 
 	// Read the env file
 	if err := godotenv.Load(filepath.Join(dataDir, ".env")); err != nil {
-		if !standaloneMode() {
+		if os.Getenv("OE_SIMULATION") == "" {
 			fmt.Println("Failed reading env file!")
 			panic(err)
 		}
-		fmt.Println("Failed reading env file, reading from environment variables")
+		fmt.Println("Failed reading env file. Running in simulation mode, reading from environment variables")
 	}
 
 	// Result cache config
