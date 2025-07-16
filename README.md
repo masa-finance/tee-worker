@@ -49,7 +49,7 @@ docker run --device /dev/sgx_enclave --device /dev/sgx_provision --net host --rm
 
 ## Credentials & Environment Variables
 
-The tee-worker requires various environment variables for operation. These should be set in `.masa/.env` (for Docker) or exported in your shell (for local runs).
+The tee-worker requires various environment variables for operation. These should be set in `.masa/.env` (for Docker) or exported in your shell (for local runs). You can use `.env.example` as a reference.
 
 - `API_KEY`: (Optional) API key required for authenticating all HTTP requests to the tee-worker API. If set, all requests must include this key in the `Authorization: Bearer <API_KEY>` or `X-API-Key` header.
 - `WEBSCRAPER_BLACKLIST`: Comma-separated list of domains to block for web scraping.
