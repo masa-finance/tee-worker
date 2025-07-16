@@ -129,7 +129,7 @@ All tagged images are available here: https://hub.docker.com/r/masaengineering/t
 
 ### Docker compose
 
-There is an example docker compose file to run the container with the appropriate environment variables.
+There are two example docker compose file to run the container with the appropriate environment variables. They are similar but `docker-compose.yml` is meant as an example for using in production, while `docker-compose.dev.yml` is meant for testing.
 
 ```bash
 docker-compose up
