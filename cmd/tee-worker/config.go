@@ -33,6 +33,10 @@ func readConfig() types.JobConfiguration {
 
 	// Read the env file
 	if err := godotenv.Load(filepath.Join(dataDir, ".env")); err != nil {
+		if !standaloneMode() {
+			fmt.Println("Failed reading env file!")
+			panic(err)
+		}
 		fmt.Println("Failed reading env file, reading from environment variables")
 	}
 

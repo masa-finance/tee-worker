@@ -590,7 +590,7 @@ You can also create a virtual machine using QEMU, and enable SGX emulation on it
 
 The TEE simulator does not work with Apple Virtualization. You will have to use QEMU (which will be very very slow, therefore it is preferred to use the option above). To use `docker compose` with the stack you will have to do the following:
 
-* Do not use Docker Desktop. Install the `docker` and `docker-compose` Homebrew packages.
+* Do not use Docker Desktop. Install the `docker`, `docker-compose`, `lima` and `lima-additional-guestagents` Homebrew packages.
 * Create the `colima` VM with the following command line:
 
 ``` bash
@@ -603,3 +603,4 @@ Or edit `$HOME/.colima/_templates/default.yaml`, modify the appropriate paramete
 Once you have done this you can run `docker compose -f docker-compose.dev.yml up --build` without setting up `DOCKER_HOST`. Be aware that sometimes the Colima VM hangs, so you have to do `colima stop default` and `colima start default`. In extreme cases you might need to reboot your Mac.
 
 
+ 
