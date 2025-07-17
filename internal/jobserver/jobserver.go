@@ -126,13 +126,34 @@ type CapabilityProvider interface {
 
 // GetWorkerCapabilities returns the structured capabilities for all registered workers
 func (js *JobServer) GetWorkerCapabilities() types.WorkerCapabilities {
-	var allCapabilities types.WorkerCapabilities
+	// Use a map to deduplicate capabilities by scraper type
+	scraperCapMap := make(map[string]map[types.Capability]struct{})
 
 	for _, workerEntry := range js.jobWorkers {
 		if provider, ok := workerEntry.w.(CapabilityProvider); ok {
 			scraperCaps := provider.GetStructuredCapabilities()
-			allCapabilities = append(allCapabilities, scraperCaps...)
+			for _, scraperCap := range scraperCaps {
+				if scraperCapMap[scraperCap.Scraper] == nil {
+					scraperCapMap[scraperCap.Scraper] = make(map[types.Capability]struct{})
+				}
+				for _, capability := range scraperCap.Capabilities {
+					scraperCapMap[scraperCap.Scraper][capability] = struct{}{}
+				}
+			}
 		}
+	}
+
+	// Convert map back to slice format
+	var allCapabilities types.WorkerCapabilities
+	for scraper, capabilitySet := range scraperCapMap {
+		var capabilities []types.Capability
+		for capability := range capabilitySet {
+			capabilities = append(capabilities, capability)
+		}
+		allCapabilities = append(allCapabilities, types.ScraperCapability{
+			Scraper:      scraper,
+			Capabilities: capabilities,
+		})
 	}
 
 	return allCapabilities
