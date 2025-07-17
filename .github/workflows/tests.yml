@@ -43,7 +43,8 @@ jobs:
       run: |
         getenvs=$(find . -name \*.go | xargs grep Getenv | sed -e 's/.*Getenv("\([^"]*\).*/\1/' | sort -u)
         jsons=$(grep fromHost ./tee/masa-tee-worker.json|sed 's/,$//' | jq -r .name | sort)
-        echo Environment variables missing from ./tee/masa-tee-worker.json:
-        if ! diff <(echo "$getenvs") <(echo "$jsons") | grep \<; then
+
+        echo Environment variables missing from ./tee/masa-tee-worker.json
+        if diff <(echo "$getenvs") <(echo "$jsons") | grep \<; then
           exit 1
         fi
