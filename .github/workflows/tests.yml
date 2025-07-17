@@ -41,9 +41,16 @@ jobs:
         token: ${{ secrets.CODECOV_TOKEN }}
     - name: Verify that all environment variables used are in the TEE manifest
       run: |
+        set +e
         getenvs=$(find . -name \*.go | xargs grep Getenv | sed -e 's/.*Getenv("\([^"]*\).*/\1/' | sort -u)
         jsons=$(grep fromHost ./tee/masa-tee-worker.json|sed 's/,$//' | jq -r .name | sort)
         diff=$(diff <(echo "$getenvs") <(echo "$jsons") | grep \<)
+        echo $getenvs
+        echo
+        echo $jsons
+        echo
+        echo $diff
+        echo
         if [ -n "$diff" ]; then
           echo "Environment variables are missing from ./tee/masa-tee-worker.json:"
           echo
