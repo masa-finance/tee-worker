@@ -566,6 +566,10 @@ The `/debug/pprof/trace?seconds=XX` will give you an XX-second execution trace, 
 
 For more information, see [the official docs](https://pkg.go.dev/net/http/pprof). [This link](https://gist.github.com/andrewhodel/ed7625a14eb87404cafd37493849d1ba) also contains useful information.
 
+## Development notes
+
+If you add an environment variable, make sure that you also add it to `./tee/masa-tee-worker.json`. There is a CI test to ensure that all environment variables used are included in that file.
+
 ## Testing
 
 You can run the unit tests using `make test`. If you need to do manual testing you can run `docker compose -f docker-compose.dev.yml up --build`. Once it's running you can use `curl` from another terminal window to send requests and check the responses (see the scraping examples above). To shut down use `docker compose -f docker-compose.dev.yml down`, or simply Ctrl+C.
