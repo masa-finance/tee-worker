@@ -574,9 +574,9 @@ If the tee-worker keeps crashing because your host does not support SGX emulatio
 
 ### Testing remotely
 
-If you have SSH access to a host that can support SGX emulation, you can instruct Docker to use a remote Docker daemon. For this, set the `DOCKER_HOST` environment variable to `ssh://<remote_host>`. You need to have SSH access via a private key (no password required). If you're using a shared host, you should copy `docker-compose.dev.yml` to a file that is not committed, rename the `masa-tee-worker` container to something else (i.e. appending your handle) and changing the `ports` specification to use a unique port (e.g. `8080:8081`) so you don't have conflicts with other users.
+If you have SSH access to a host that can support SGX emulation, you can instruct Docker to use a remote Docker daemon. For this, set the `DOCKER_HOST` environment variable to `ssh://<remote_host>`. You need to have SSH access via a private key (no password required). If you're using a shared host, you should copy `docker-compose.dev.yml` to a file that is not committed, rename the `masa-tee-worker` container to something else (e.g. appending your handle) and changing the `ports` specification to use a unique port (e.g. `8080:8081`) so you don't have conflicts with other users.
 
-Since Docker does not support remote port forwarding, you will also have to run a separate SSH command to forward the listen port (set to 8080 in `docker-compose.dev.yml`). You can use `ssh -NT -L 8080:localhost:8080 <remote_host> &`. This will start an SSH command in the background that will forward port 8080 to the remote host.
+Since Docker does not support remote port forwarding, you will also have to run a separate SSH command to forward the listen port (set to 8080 in `docker-compose.dev.yml`, or changed above). If it's set to e.g. 8081, You can use `ssh -NT -L 8080:localhost:8081 <remote_host> &`. This will start an SSH command in the background that will forward port 8080 to the remote host.
 
 To verify that everything is set up correctly, run `curl localhost:8080/readyz`. You should get a JSON reply with the tee-worker readiness status.
 
