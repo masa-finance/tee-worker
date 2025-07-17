@@ -121,20 +121,42 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 
 // CapabilityProvider is an interface for workers that can report their capabilities
 type CapabilityProvider interface {
-	GetCapabilities() []types.Capability
+	GetStructuredCapabilities() []types.ScraperCapability
 }
 
-// GetWorkerCapabilities returns the capabilities for all registered workers
-func (js *JobServer) GetWorkerCapabilities() map[string][]types.Capability {
-	capabilities := make(map[string][]types.Capability)
+// GetWorkerCapabilities returns the structured capabilities for all registered workers
+func (js *JobServer) GetWorkerCapabilities() types.WorkerCapabilities {
+	// Use a map to deduplicate capabilities by scraper type
+	scraperCapMap := make(map[string]map[types.Capability]struct{})
 
-	for workerType, workerEntry := range js.jobWorkers {
+	for _, workerEntry := range js.jobWorkers {
 		if provider, ok := workerEntry.w.(CapabilityProvider); ok {
-			capabilities[workerType] = provider.GetCapabilities()
+			scraperCaps := provider.GetStructuredCapabilities()
+			for _, scraperCap := range scraperCaps {
+				if scraperCapMap[scraperCap.Scraper] == nil {
+					scraperCapMap[scraperCap.Scraper] = make(map[types.Capability]struct{})
+				}
+				for _, capability := range scraperCap.Capabilities {
+					scraperCapMap[scraperCap.Scraper][capability] = struct{}{}
+				}
+			}
 		}
 	}
 
-	return capabilities
+	// Convert map back to slice format
+	var allCapabilities types.WorkerCapabilities
+	for scraper, capabilitySet := range scraperCapMap {
+		var capabilities []types.Capability
+		for capability := range capabilitySet {
+			capabilities = append(capabilities, capability)
+		}
+		allCapabilities = append(allCapabilities, types.ScraperCapability{
+			Scraper:      scraper,
+			Capabilities: capabilities,
+		})
+	}
+
+	return allCapabilities
 }
 
 func (js *JobServer) Run(ctx context.Context) {

@@ -78,3 +78,7 @@ bp-todo.md
 # TEE
 tee/private.pem
 .aider*
+
+# worker_id and cookies files in .masa
+.masa/*.json
+.masa/worker_id
