@@ -33,8 +33,11 @@ func readConfig() types.JobConfiguration {
 
 	// Read the env file
 	if err := godotenv.Load(filepath.Join(dataDir, ".env")); err != nil {
-		fmt.Println("Failed reading env file!")
-		panic(err)
+		if os.Getenv("OE_SIMULATION") == "" {
+			fmt.Println("Failed reading env file!")
+			panic(err)
+		}
+		fmt.Println("Failed reading env file. Running in simulation mode, reading from environment variables")
 	}
 
 	// Result cache config
@@ -105,7 +108,7 @@ func readConfig() types.JobConfiguration {
 	jc["tiktok_default_language"] = tikTokLang
 
 	// TikTok API Origin and Referer now use hardcoded defaults in NewTikTokTranscriber
-	
+
 	if userAgent := os.Getenv("TIKTOK_API_USER_AGENT"); userAgent != "" {
 		jc["tiktok_api_user_agent"] = userAgent
 	} // Default for userAgent is set in NewTikTokTranscriber
