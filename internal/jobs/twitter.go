@@ -925,42 +925,75 @@ func NewTwitterScraper(jc types.JobConfiguration, c *stats.StatsCollector) *Twit
 	}
 }
 
-// GetCapabilities returns the capabilities supported by this Twitter scraper
-// based on the available credentials
-func (ts *TwitterScraper) GetCapabilities() []types.Capability {
-	var capabilities []types.Capability
+// GetStructuredCapabilities returns the structured capabilities supported by this Twitter scraper
+// based on the available credentials and API keys
+func (ts *TwitterScraper) GetStructuredCapabilities() []types.ScraperCapability {
+	var capabilities []types.ScraperCapability
 
-	// Check if we have Twitter accounts
-	hasAccounts := len(ts.configuration.Accounts) > 0
-
-	// Check if we have API keys
-	hasApiKeys := len(ts.configuration.ApiKeys) > 0
-
-	// If we have accounts, add all credential-based capabilities
-	if hasAccounts {
+	// Check if we have Twitter accounts for credential-based scraping
+	if len(ts.configuration.Accounts) > 0 {
+		var credCaps []types.Capability
 		for capability, enabled := range ts.capabilities {
 			if enabled {
-				capabilities = append(capabilities, capability)
+				credCaps = append(credCaps, capability)
 			}
 		}
-	} else if hasApiKeys {
-		// If we only have API keys, add a subset of capabilities
-		apiCapabilities := []types.Capability{"searchbyquery", "getbyid", "getprofilebyid"}
-		for _, cap := range apiCapabilities {
-			if ts.capabilities[cap] {
-				capabilities = append(capabilities, cap)
-			}
+		if len(credCaps) > 0 {
+			capabilities = append(capabilities, types.ScraperCapability{
+				Scraper:      "twitter-credential",
+				Capabilities: credCaps,
+			})
 		}
+	}
 
-		// Check if any API key is elevated for full archive search
+	// Check if we have API keys for API-based scraping
+	if len(ts.configuration.ApiKeys) > 0 {
+		apiCaps := []types.Capability{"searchbyquery", "getbyid", "getprofilebyid"}
+
+		// Check for elevated API capabilities
 		if ts.accountManager != nil {
 			for _, apiKey := range ts.accountManager.GetApiKeys() {
 				if apiKey.Type == twitter.TwitterApiKeyTypeElevated {
-					capabilities = append(capabilities, "searchbyfullarchive")
+					apiCaps = append(apiCaps, "searchbyfullarchive")
 					break
 				}
 			}
 		}
+
+		capabilities = append(capabilities, types.ScraperCapability{
+			Scraper:      "twitter-api",
+			Capabilities: apiCaps,
+		})
+	}
+
+	// Add general twitter scraper capability (uses best available method)
+	if len(ts.configuration.Accounts) > 0 || len(ts.configuration.ApiKeys) > 0 {
+		var generalCaps []types.Capability
+		if len(ts.configuration.Accounts) > 0 {
+			// Use all capabilities if we have accounts
+			for capability, enabled := range ts.capabilities {
+				if enabled {
+					generalCaps = append(generalCaps, capability)
+				}
+			}
+		} else {
+			// Use API capabilities if we only have keys
+			generalCaps = []types.Capability{"searchbyquery", "getbyid", "getprofilebyid"}
+			// Check for elevated capabilities
+			if ts.accountManager != nil {
+				for _, apiKey := range ts.accountManager.GetApiKeys() {
+					if apiKey.Type == twitter.TwitterApiKeyTypeElevated {
+						generalCaps = append(generalCaps, "searchbyfullarchive")
+						break
+					}
+				}
+			}
+		}
+
+		capabilities = append(capabilities, types.ScraperCapability{
+			Scraper:      "twitter",
+			Capabilities: generalCaps,
+		})
 	}
 
 	return capabilities

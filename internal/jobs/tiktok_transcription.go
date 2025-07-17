@@ -39,9 +39,14 @@ type TikTokTranscriber struct {
 	httpClient    *http.Client
 }
 
-// GetCapabilities returns the capabilities supported by the TikTok transcriber
-func (t *TikTokTranscriber) GetCapabilities() []types.Capability {
-	return []types.Capability{"tiktok-transcription"}
+// GetStructuredCapabilities returns the structured capabilities supported by the TikTok transcriber
+func (t *TikTokTranscriber) GetStructuredCapabilities() []types.ScraperCapability {
+	return []types.ScraperCapability{
+		{
+			Scraper:      "tiktok",
+			Capabilities: []types.Capability{"tiktok-transcription"},
+		},
+	}
 }
 
 // NewTikTokTranscriber creates and initializes a new TikTokTranscriber.

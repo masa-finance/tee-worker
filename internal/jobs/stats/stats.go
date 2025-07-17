@@ -45,7 +45,7 @@ type Stats struct {
 	CurrentTimeUnix      int64                        `json:"current_time"`
 	WorkerID             string                       `json:"worker_id"`
 	Stats                map[string]map[StatType]uint `json:"stats"`
-	ReportedCapabilities []types.Capability           `json:"reported_capabilities"`
+	ReportedCapabilities types.WorkerCapabilities     `json:"reported_capabilities"`
 	WorkerVersion        string                       `json:"worker_version"`
 	ApplicationVersion   string                       `json:"application_version"`
 	sync.Mutex
@@ -68,20 +68,14 @@ func StartCollector(bufSize uint, jc types.JobConfiguration) *StatsCollector {
 		Stats:                make(map[string]map[StatType]uint),
 		WorkerVersion:        versioning.TEEWorkerVersion,
 		ApplicationVersion:   versioning.ApplicationVersion,
-		ReportedCapabilities: []types.Capability{},
+		ReportedCapabilities: types.WorkerCapabilities{},
 	}
-
-	// Get manual capabilities from environment
-	manualCapabilities, _ := jc["capabilities"].(string)
 
 	// Initial capability detection without JobServer (basic capabilities only)
 	// Full capability detection will happen when JobServer is set
-	detectedCapabilities := capabilities.DetectCapabilities(jc, nil)
+	s.ReportedCapabilities = capabilities.DetectCapabilities(jc, nil)
 
-	// Merge manual and auto-detected capabilities
-	s.ReportedCapabilities = capabilities.MergeCapabilities(manualCapabilities, detectedCapabilities)
-
-	logrus.Infof("Initial capabilities (manual + basic auto-detected): %v", s.ReportedCapabilities)
+	logrus.Infof("Initial structured capabilities: %+v", s.ReportedCapabilities)
 
 	ch := make(chan AddStat, bufSize)
 
@@ -134,14 +128,8 @@ func (s *StatsCollector) SetJobServer(js capabilities.JobServerInterface) {
 	s.Stats.Lock()
 	defer s.Stats.Unlock()
 
-	// Get manual capabilities from job configuration
-	manualCapabilities, _ := s.jobConfiguration["capabilities"].(string)
-
 	// Auto-detect capabilities using the JobServer
-	detectedCapabilities := capabilities.DetectCapabilities(s.jobConfiguration, js)
+	s.Stats.ReportedCapabilities = capabilities.DetectCapabilities(s.jobConfiguration, js)
 
-	// Merge manual and auto-detected capabilities
-	s.Stats.ReportedCapabilities = capabilities.MergeCapabilities(manualCapabilities, detectedCapabilities)
-
-	logrus.Infof("Updated capabilities with full detection (manual + worker-reported): %v", s.Stats.ReportedCapabilities)
+	logrus.Infof("Updated structured capabilities with JobServer: %+v", s.Stats.ReportedCapabilities)
 }

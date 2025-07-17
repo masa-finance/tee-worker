@@ -37,9 +37,14 @@ func NewWebScraper(jc types.JobConfiguration, statsCollector *stats.StatsCollect
 	}
 }
 
-// GetCapabilities returns the capabilities supported by the web scraper
-func (ws *WebScraper) GetCapabilities() []types.Capability {
-	return []types.Capability{"web-scraper"}
+// GetStructuredCapabilities returns the structured capabilities supported by the web scraper
+func (ws *WebScraper) GetStructuredCapabilities() []types.ScraperCapability {
+	return []types.ScraperCapability{
+		{
+			Scraper:      "web",
+			Capabilities: []types.Capability{"web-scraper"},
+		},
+	}
 }
 
 func (ws *WebScraper) ExecuteJob(j types.Job) (types.JobResult, error) {

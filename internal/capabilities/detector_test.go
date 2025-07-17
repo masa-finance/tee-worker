@@ -2,7 +2,6 @@ package capabilities
 
 import (
 	"reflect"
-	"slices"
 	"testing"
 
 	"github.com/masa-finance/tee-worker/api/types"
@@ -10,10 +9,10 @@ import (
 
 // MockJobServer implements JobServerInterface for testing
 type MockJobServer struct {
-	capabilities map[string][]types.Capability
+	capabilities types.WorkerCapabilities
 }
 
-func (m *MockJobServer) GetWorkerCapabilities() map[string][]types.Capability {
+func (m *MockJobServer) GetWorkerCapabilities() types.WorkerCapabilities {
 	return m.capabilities
 }
 
@@ -22,36 +21,34 @@ func TestDetectCapabilities(t *testing.T) {
 		name      string
 		jc        types.JobConfiguration
 		jobServer JobServerInterface
-		expected  []types.Capability
+		expected  types.WorkerCapabilities
 	}{
 		{
 			name: "With JobServer - gets capabilities from workers",
 			jc:   types.JobConfiguration{},
 			jobServer: &MockJobServer{
-				capabilities: map[string][]types.Capability{
-					"web-scraper":          {"web-scraper"},
-					"telemetry":            {"telemetry"},
-					"tiktok-transcription": {"tiktok-transcription"},
-					"twitter-scraper":      {"searchbyquery", "getbyid", "getprofilebyid"},
+				capabilities: types.WorkerCapabilities{
+					{Scraper: "web", Capabilities: []types.Capability{"web-scraper"}},
+					{Scraper: "telemetry", Capabilities: []types.Capability{"telemetry"}},
+					{Scraper: "tiktok", Capabilities: []types.Capability{"tiktok-transcription"}},
+					{Scraper: "twitter", Capabilities: []types.Capability{"searchbyquery", "getbyid", "getprofilebyid"}},
 				},
 			},
-			expected: []types.Capability{
-				"web-scraper",
-				"telemetry",
-				"tiktok-transcription",
-				"searchbyquery",
-				"getbyid",
-				"getprofilebyid",
+			expected: types.WorkerCapabilities{
+				{Scraper: "web", Capabilities: []types.Capability{"web-scraper"}},
+				{Scraper: "telemetry", Capabilities: []types.Capability{"telemetry"}},
+				{Scraper: "tiktok", Capabilities: []types.Capability{"tiktok-transcription"}},
+				{Scraper: "twitter", Capabilities: []types.Capability{"searchbyquery", "getbyid", "getprofilebyid"}},
 			},
 		},
 		{
 			name:      "Without JobServer - basic capabilities only",
 			jc:        types.JobConfiguration{},
 			jobServer: nil,
-			expected: []types.Capability{
-				"web-scraper",
-				"telemetry",
-				"tiktok-transcription",
+			expected: types.WorkerCapabilities{
+				{Scraper: "web", Capabilities: []types.Capability{"web-scraper"}},
+				{Scraper: "telemetry", Capabilities: []types.Capability{"telemetry"}},
+				{Scraper: "tiktok", Capabilities: []types.Capability{"tiktok-transcription"}},
 			},
 		},
 		{
@@ -60,13 +57,22 @@ func TestDetectCapabilities(t *testing.T) {
 				"twitter_accounts": []string{"user1:pass1"},
 			},
 			jobServer: nil,
-			expected: []types.Capability{
-				"web-scraper",
-				"telemetry",
-				"tiktok-transcription",
-				"searchbyquery",
-				"getbyid",
-				"getprofilebyid",
+			expected: types.WorkerCapabilities{
+				{Scraper: "web", Capabilities: []types.Capability{"web-scraper"}},
+				{Scraper: "telemetry", Capabilities: []types.Capability{"telemetry"}},
+				{Scraper: "tiktok", Capabilities: []types.Capability{"tiktok-transcription"}},
+				{Scraper: "twitter-credential", Capabilities: []types.Capability{
+					"searchbyquery", "searchbyfullarchive", "searchbyprofile", "searchfollowers",
+					"getbyid", "getreplies", "getretweeters", "gettweets", "getmedia",
+					"gethometweets", "getforyoutweets", "getbookmarks", "getprofilebyid",
+					"gettrends", "getfollowing", "getfollowers", "getspace",
+				}},
+				{Scraper: "twitter", Capabilities: []types.Capability{
+					"searchbyquery", "searchbyfullarchive", "searchbyprofile", "searchfollowers",
+					"getbyid", "getreplies", "getretweeters", "gettweets", "getmedia",
+					"gethometweets", "getforyoutweets", "getbookmarks", "getprofilebyid",
+					"gettrends", "getfollowing", "getfollowers", "getspace",
+				}},
 			},
 		},
 		{
@@ -75,13 +81,38 @@ func TestDetectCapabilities(t *testing.T) {
 				"twitter_api_keys": []string{"key1"},
 			},
 			jobServer: nil,
-			expected: []types.Capability{
-				"web-scraper",
-				"telemetry",
-				"tiktok-transcription",
-				"searchbyquery",
-				"getbyid",
-				"getprofilebyid",
+			expected: types.WorkerCapabilities{
+				{Scraper: "web", Capabilities: []types.Capability{"web-scraper"}},
+				{Scraper: "telemetry", Capabilities: []types.Capability{"telemetry"}},
+				{Scraper: "tiktok", Capabilities: []types.Capability{"tiktok-transcription"}},
+				{Scraper: "twitter-api", Capabilities: []types.Capability{"searchbyquery", "getbyid", "getprofilebyid"}},
+				{Scraper: "twitter", Capabilities: []types.Capability{"searchbyquery", "getbyid", "getprofilebyid"}},
+			},
+		},
+		{
+			name: "Without JobServer - with both accounts and API keys",
+			jc: types.JobConfiguration{
+				"twitter_accounts": []string{"user1:pass1"},
+				"twitter_api_keys": []string{"key1"},
+			},
+			jobServer: nil,
+			expected: types.WorkerCapabilities{
+				{Scraper: "web", Capabilities: []types.Capability{"web-scraper"}},
+				{Scraper: "telemetry", Capabilities: []types.Capability{"telemetry"}},
+				{Scraper: "tiktok", Capabilities: []types.Capability{"tiktok-transcription"}},
+				{Scraper: "twitter-credential", Capabilities: []types.Capability{
+					"searchbyquery", "searchbyfullarchive", "searchbyprofile", "searchfollowers",
+					"getbyid", "getreplies", "getretweeters", "gettweets", "getmedia",
+					"gethometweets", "getforyoutweets", "getbookmarks", "getprofilebyid",
+					"gettrends", "getfollowing", "getfollowers", "getspace",
+				}},
+				{Scraper: "twitter", Capabilities: []types.Capability{
+					"searchbyquery", "searchbyfullarchive", "searchbyprofile", "searchfollowers",
+					"getbyid", "getreplies", "getretweeters", "gettweets", "getmedia",
+					"gethometweets", "getforyoutweets", "getbookmarks", "getprofilebyid",
+					"gettrends", "getfollowing", "getfollowers", "getspace",
+				}},
+				{Scraper: "twitter-api", Capabilities: []types.Capability{"searchbyquery", "getbyid", "getprofilebyid"}},
 			},
 		},
 	}
@@ -90,10 +121,6 @@ func TestDetectCapabilities(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got := DetectCapabilities(tt.jc, tt.jobServer)
 
-			// Sort both slices for comparison
-			slices.Sort(got)
-			slices.Sort(tt.expected)
-
 			if !reflect.DeepEqual(got, tt.expected) {
 				t.Errorf("DetectCapabilities() = %v, want %v", got, tt.expected)
 			}
@@ -101,55 +128,81 @@ func TestDetectCapabilities(t *testing.T) {
 	}
 }
 
-func TestMergeCapabilities(t *testing.T) {
+// Helper function to find a scraper capability by name
+func findScraperCapability(capabilities types.WorkerCapabilities, scraperName string) *types.ScraperCapability {
+	for _, cap := range capabilities {
+		if cap.Scraper == scraperName {
+			return &cap
+		}
+	}
+	return nil
+}
+
+func TestDetectCapabilities_ScraperTypes(t *testing.T) {
 	tests := []struct {
-		name     string
-		manual   string
-		detected []types.Capability
-		expected []types.Capability
+		name         string
+		jc           types.JobConfiguration
+		expectedKeys []string // scraper names we expect
 	}{
 		{
-			name:     "Empty manual, some detected",
-			manual:   "",
-			detected: []types.Capability{"web-scraper", "telemetry"},
-			expected: []types.Capability{"web-scraper", "telemetry"},
+			name: "With accounts only",
+			jc: types.JobConfiguration{
+				"twitter_accounts": []string{"user:pass"},
+			},
+			expectedKeys: []string{"web", "telemetry", "tiktok", "twitter-credential", "twitter"},
 		},
 		{
-			name:     "Manual 'all' with detected",
-			manual:   "all",
-			detected: []types.Capability{"web-scraper", "telemetry", "searchbyquery"},
-			expected: []types.Capability{"all", "web-scraper", "telemetry", "searchbyquery"},
+			name: "With API keys only",
+			jc: types.JobConfiguration{
+				"twitter_api_keys": []string{"key123"},
+			},
+			expectedKeys: []string{"web", "telemetry", "tiktok", "twitter-api", "twitter"},
 		},
 		{
-			name:     "Manual specific capabilities with detected",
-			manual:   "searchbyquery,getbyid",
-			detected: []types.Capability{"web-scraper", "telemetry", "searchbyprofile"},
-			expected: []types.Capability{"searchbyquery", "getbyid", "web-scraper", "telemetry", "searchbyprofile"},
-		},
-		{
-			name:     "Overlapping manual and detected",
-			manual:   "web-scraper,custom-cap",
-			detected: []types.Capability{"web-scraper", "telemetry"},
-			expected: []types.Capability{"web-scraper", "custom-cap", "telemetry"},
-		},
-		{
-			name:     "Manual with spaces",
-			manual:   "cap1, cap2 , cap3",
-			detected: []types.Capability{"cap4"},
-			expected: []types.Capability{"cap1", "cap2", "cap3", "cap4"},
+			name: "With both accounts and keys",
+			jc: types.JobConfiguration{
+				"twitter_accounts": []string{"user:pass"},
+				"twitter_api_keys": []string{"key123"},
+			},
+			expectedKeys: []string{"web", "telemetry", "tiktok", "twitter-credential", "twitter", "twitter-api"},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := MergeCapabilities(tt.manual, tt.detected)
+			caps := DetectCapabilities(tt.jc, nil)
 
-			// Sort for consistent comparison since map iteration is random
-			slices.Sort(got)
-			slices.Sort(tt.expected)
+			scraperNames := make([]string, len(caps))
+			for i, cap := range caps {
+				scraperNames[i] = cap.Scraper
+			}
 
-			if !reflect.DeepEqual(got, tt.expected) {
-				t.Errorf("MergeCapabilities() = %v, want %v", got, tt.expected)
+			// Check that all expected keys are present
+			for _, expectedKey := range tt.expectedKeys {
+				found := false
+				for _, scraperName := range scraperNames {
+					if scraperName == expectedKey {
+						found = true
+						break
+					}
+				}
+				if !found {
+					t.Errorf("Expected scraper %s not found in %v", expectedKey, scraperNames)
+				}
+			}
+
+			// Check that no unexpected keys are present
+			for _, scraperName := range scraperNames {
+				found := false
+				for _, expectedKey := range tt.expectedKeys {
+					if scraperName == expectedKey {
+						found = true
+						break
+					}
+				}
+				if !found {
+					t.Errorf("Unexpected scraper %s found in %v", scraperName, scraperNames)
+				}
 			}
 		})
 	}
