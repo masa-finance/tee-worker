@@ -26,7 +26,6 @@
       {"name": "LOG_LEVEL", "fromHost": true},
       {"name": "API_KEY", "fromHost":true},
       {"name": "CAPABILITIES", "fromHost":true},
-      {"name": "DATA_DIR", "fromHost":true},
       {"name": "ENABLE_PPROF", "fromHost":true},
       {"name": "JOB_TIMEOUT_SECONDS", "fromHost":true},
       {"name": "LISTEN_ADDRESS", "fromHost":true},
