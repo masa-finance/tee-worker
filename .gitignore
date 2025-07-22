@@ -82,3 +82,5 @@ tee/private.pem
 # worker_id and cookies files in .masa
 .masa/*.json
 .masa/worker_id
+
+.testdir/*.json

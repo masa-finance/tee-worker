@@ -58,3 +58,7 @@ test: tee/private.pem $(TEST_COOKIE_DIR)
 test-capabilities: tee/private.pem $(TEST_COOKIE_DIR)
 	@docker build --target=dependencies --build-arg baseimage=builder --secret id=private_key,src=./tee/private.pem -t $(IMAGE) -f Dockerfile .
 	@docker run --user root -e TWITTER_TEST_ACCOUNT -e LOG_LEVEL=debug -e TEST_COOKIE_DIR=/cookies -v $(TEST_COOKIE_DIR):/cookies -v $(PWD)/coverage:/app/coverage --rm --workdir /app $(IMAGE) go test -coverprofile=coverage/coverage-capabilities.txt -covermode=atomic -v ./internal/capabilities
+
+test-jobs: tee/private.pem $(TEST_COOKIE_DIR)
+	@docker build --target=dependencies --build-arg baseimage=builder --secret id=private_key,src=./tee/private.pem -t $(IMAGE) -f Dockerfile .
+	@docker run --user root --env-file $(PWD)/.env -e TEST_COOKIE_DIR=/cookies -v $(TEST_COOKIE_DIR):/cookies -v $(PWD)/coverage:/app/coverage --rm --workdir /app $(IMAGE) go test -coverprofile=coverage/coverage-jobs.txt -covermode=atomic -v ./internal/jobs

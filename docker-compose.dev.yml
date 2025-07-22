@@ -4,8 +4,6 @@ services:
     # image: masaengineering/tee-worker:main
     # Uncomment to build from source
     build: .
-    env_file:
-      - ./.masa/.env
     ports:
        - "${PORT:-8080}:${PORT:-8080}"
     environment:
@@ -16,8 +14,6 @@ services:
       OE_LOG_LEVEL: INFO
       LOG_LEVEL: DEBUG
       STANDALONE: true
-    volumes:
-      - ./.masa:/home/masa
     restart: always
     # uncomment if running with Intel SGX
     # devices:
