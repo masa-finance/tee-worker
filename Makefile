@@ -1,7 +1,6 @@
 VERSION?=$(shell git describe --tags --abbrev=0)
 PWD:=$(shell pwd)
 IMAGE?=masa-tee-worker:latest
-TEST_COOKIE_DIR?=$(PWD)/.testdir
 export DISTRIBUTOR_PUBKEY?=$(shell cat tee/keybroker.pub | base64 -w0)
 export MINERS_WHITE_LIST?=
 
@@ -48,17 +47,14 @@ tee/keybroker.pub: tee/keybroker.pem
 docker-build: tee/private.pem
 	docker build --build-arg DISTRIBUTOR_PUBKEY="$(DISTRIBUTOR_PUBKEY)" --build-arg MINERS_WHITE_LIST="$(MINERS_WHITE_LIST)" --secret id=private_key,src=./tee/private.pem  -t $(IMAGE) -f Dockerfile .
 
-$(TEST_COOKIE_DIR):
-	@mkdir -p $(TEST_COOKIE_DIR)
-
-test: tee/private.pem $(TEST_COOKIE_DIR)
+test: tee/private.pem
 	@docker build --target=dependencies --build-arg baseimage=builder --secret id=private_key,src=./tee/private.pem -t $(IMAGE) -f Dockerfile .
-	@docker run --user root -e TWITTER_TEST_ACCOUNT -e LOG_LEVEL=debug -e TEST_COOKIE_DIR=/cookies -v $(TEST_COOKIE_DIR):/cookies -v $(PWD)/coverage:/app/coverage --rm --workdir /app $(IMAGE) go test -coverprofile=coverage/coverage.txt -covermode=atomic -v ./...
+	@docker run --user root -e TWITTER_TEST_ACCOUNT -e LOG_LEVEL=debug -v $(PWD)/coverage:/app/coverage --rm --workdir /app $(IMAGE) go test -coverprofile=coverage/coverage.txt -covermode=atomic -v ./...
 
-test-capabilities: tee/private.pem $(TEST_COOKIE_DIR)
+test-capabilities: tee/private.pem
 	@docker build --target=dependencies --build-arg baseimage=builder --secret id=private_key,src=./tee/private.pem -t $(IMAGE) -f Dockerfile .
-	@docker run --user root -e TWITTER_TEST_ACCOUNT -e LOG_LEVEL=debug -e TEST_COOKIE_DIR=/cookies -v $(TEST_COOKIE_DIR):/cookies -v $(PWD)/coverage:/app/coverage --rm --workdir /app $(IMAGE) go test -coverprofile=coverage/coverage-capabilities.txt -covermode=atomic -v ./internal/capabilities
+	@docker run --user root -e TWITTER_TEST_ACCOUNT -e LOG_LEVEL=debug -v $(PWD)/coverage:/app/coverage --rm --workdir /app $(IMAGE) go test -coverprofile=coverage/coverage-capabilities.txt -covermode=atomic -v ./internal/capabilities
 
-test-jobs: tee/private.pem $(TEST_COOKIE_DIR)
+test-jobs: tee/private.pem
 	@docker build --target=dependencies --build-arg baseimage=builder --secret id=private_key,src=./tee/private.pem -t $(IMAGE) -f Dockerfile .
-	@docker run --user root --env-file $(PWD)/.env -e TEST_COOKIE_DIR=/cookies -v $(TEST_COOKIE_DIR):/cookies -v $(PWD)/coverage:/app/coverage --rm --workdir /app $(IMAGE) go test -coverprofile=coverage/coverage-jobs.txt -covermode=atomic -v ./internal/jobs
+	@docker run --user root --env-file $(PWD)/.env -v $(PWD)/.masa:/home/masa -v $(PWD)/coverage:/app/coverage --rm --workdir /app $(IMAGE) go test -coverprofile=coverage/coverage-jobs.txt -covermode=atomic -v ./internal/jobs
