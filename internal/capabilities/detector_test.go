@@ -28,17 +28,17 @@ func TestDetectCapabilities(t *testing.T) {
 			jc:   types.JobConfiguration{},
 			jobServer: &MockJobServer{
 				capabilities: types.WorkerCapabilities{
-					{Scraper: "web", Capabilities: []types.Capability{"web-scraper"}},
-					{Scraper: "telemetry", Capabilities: []types.Capability{"telemetry"}},
-					{Scraper: "tiktok", Capabilities: []types.Capability{"tiktok-transcription"}},
-					{Scraper: "twitter", Capabilities: []types.Capability{"searchbyquery", "getbyid", "getprofilebyid"}},
+					{JobType: "web", Capabilities: []types.Capability{"web-scraper"}},
+					{JobType: "telemetry", Capabilities: []types.Capability{"telemetry"}},
+					{JobType: "tiktok", Capabilities: []types.Capability{"tiktok-transcription"}},
+					{JobType: "twitter", Capabilities: []types.Capability{"searchbyquery", "getbyid", "getprofilebyid"}},
 				},
 			},
 			expected: types.WorkerCapabilities{
-				{Scraper: "web", Capabilities: []types.Capability{"web-scraper"}},
-				{Scraper: "telemetry", Capabilities: []types.Capability{"telemetry"}},
-				{Scraper: "tiktok", Capabilities: []types.Capability{"tiktok-transcription"}},
-				{Scraper: "twitter", Capabilities: []types.Capability{"searchbyquery", "getbyid", "getprofilebyid"}},
+				{JobType: "web", Capabilities: []types.Capability{"web-scraper"}},
+				{JobType: "telemetry", Capabilities: []types.Capability{"telemetry"}},
+				{JobType: "tiktok", Capabilities: []types.Capability{"tiktok-transcription"}},
+				{JobType: "twitter", Capabilities: []types.Capability{"searchbyquery", "getbyid", "getprofilebyid"}},
 			},
 		},
 		{
@@ -46,9 +46,9 @@ func TestDetectCapabilities(t *testing.T) {
 			jc:        types.JobConfiguration{},
 			jobServer: nil,
 			expected: types.WorkerCapabilities{
-				{Scraper: "web", Capabilities: []types.Capability{"web-scraper"}},
-				{Scraper: "telemetry", Capabilities: []types.Capability{"telemetry"}},
-				{Scraper: "tiktok", Capabilities: []types.Capability{"tiktok-transcription"}},
+				{JobType: "web", Capabilities: []types.Capability{"web-scraper"}},
+				{JobType: "telemetry", Capabilities: []types.Capability{"telemetry"}},
+				{JobType: "tiktok", Capabilities: []types.Capability{"tiktok-transcription"}},
 			},
 		},
 		{
@@ -58,16 +58,16 @@ func TestDetectCapabilities(t *testing.T) {
 			},
 			jobServer: nil,
 			expected: types.WorkerCapabilities{
-				{Scraper: "web", Capabilities: []types.Capability{"web-scraper"}},
-				{Scraper: "telemetry", Capabilities: []types.Capability{"telemetry"}},
-				{Scraper: "tiktok", Capabilities: []types.Capability{"tiktok-transcription"}},
-				{Scraper: "twitter-credential", Capabilities: []types.Capability{
+				{JobType: "web", Capabilities: []types.Capability{"web-scraper"}},
+				{JobType: "telemetry", Capabilities: []types.Capability{"telemetry"}},
+				{JobType: "tiktok", Capabilities: []types.Capability{"tiktok-transcription"}},
+				{JobType: "twitter-credential", Capabilities: []types.Capability{
 					"searchbyquery", "searchbyfullarchive", "searchbyprofile", "searchfollowers",
 					"getbyid", "getreplies", "getretweeters", "gettweets", "getmedia",
 					"gethometweets", "getforyoutweets", "getbookmarks", "getprofilebyid",
 					"gettrends", "getfollowing", "getfollowers", "getspace",
 				}},
-				{Scraper: "twitter", Capabilities: []types.Capability{
+				{JobType: "twitter", Capabilities: []types.Capability{
 					"searchbyquery", "searchbyfullarchive", "searchbyprofile", "searchfollowers",
 					"getbyid", "getreplies", "getretweeters", "gettweets", "getmedia",
 					"gethometweets", "getforyoutweets", "getbookmarks", "getprofilebyid",
@@ -82,11 +82,11 @@ func TestDetectCapabilities(t *testing.T) {
 			},
 			jobServer: nil,
 			expected: types.WorkerCapabilities{
-				{Scraper: "web", Capabilities: []types.Capability{"web-scraper"}},
-				{Scraper: "telemetry", Capabilities: []types.Capability{"telemetry"}},
-				{Scraper: "tiktok", Capabilities: []types.Capability{"tiktok-transcription"}},
-				{Scraper: "twitter-api", Capabilities: []types.Capability{"searchbyquery", "getbyid", "getprofilebyid"}},
-				{Scraper: "twitter", Capabilities: []types.Capability{"searchbyquery", "getbyid", "getprofilebyid"}},
+				{JobType: "web", Capabilities: []types.Capability{"web-scraper"}},
+				{JobType: "telemetry", Capabilities: []types.Capability{"telemetry"}},
+				{JobType: "tiktok", Capabilities: []types.Capability{"tiktok-transcription"}},
+				{JobType: "twitter-api", Capabilities: []types.Capability{"searchbyquery", "getbyid", "getprofilebyid"}},
+				{JobType: "twitter", Capabilities: []types.Capability{"searchbyquery", "getbyid", "getprofilebyid"}},
 			},
 		},
 		{
@@ -97,22 +97,22 @@ func TestDetectCapabilities(t *testing.T) {
 			},
 			jobServer: nil,
 			expected: types.WorkerCapabilities{
-				{Scraper: "web", Capabilities: []types.Capability{"web-scraper"}},
-				{Scraper: "telemetry", Capabilities: []types.Capability{"telemetry"}},
-				{Scraper: "tiktok", Capabilities: []types.Capability{"tiktok-transcription"}},
-				{Scraper: "twitter-credential", Capabilities: []types.Capability{
+				{JobType: "web", Capabilities: []types.Capability{"web-scraper"}},
+				{JobType: "telemetry", Capabilities: []types.Capability{"telemetry"}},
+				{JobType: "tiktok", Capabilities: []types.Capability{"tiktok-transcription"}},
+				{JobType: "twitter-credential", Capabilities: []types.Capability{
 					"searchbyquery", "searchbyfullarchive", "searchbyprofile", "searchfollowers",
 					"getbyid", "getreplies", "getretweeters", "gettweets", "getmedia",
 					"gethometweets", "getforyoutweets", "getbookmarks", "getprofilebyid",
 					"gettrends", "getfollowing", "getfollowers", "getspace",
 				}},
-				{Scraper: "twitter", Capabilities: []types.Capability{
+				{JobType: "twitter", Capabilities: []types.Capability{
 					"searchbyquery", "searchbyfullarchive", "searchbyprofile", "searchfollowers",
 					"getbyid", "getreplies", "getretweeters", "gettweets", "getmedia",
 					"gethometweets", "getforyoutweets", "getbookmarks", "getprofilebyid",
 					"gettrends", "getfollowing", "getfollowers", "getspace",
 				}},
-				{Scraper: "twitter-api", Capabilities: []types.Capability{"searchbyquery", "getbyid", "getprofilebyid"}},
+				{JobType: "twitter-api", Capabilities: []types.Capability{"searchbyquery", "getbyid", "getprofilebyid"}},
 			},
 		},
 	}
@@ -131,7 +131,7 @@ func TestDetectCapabilities(t *testing.T) {
 // Helper function to find a scraper capability by name
 func findScraperCapability(capabilities types.WorkerCapabilities, scraperName string) *types.ScraperCapability {
 	for _, cap := range capabilities {
-		if cap.Scraper == scraperName {
+		if cap.JobType == scraperName {
 			return &cap
 		}
 	}
@@ -174,7 +174,7 @@ func TestDetectCapabilities_ScraperTypes(t *testing.T) {
 
 			scraperNames := make([]string, len(caps))
 			for i, cap := range caps {
-				scraperNames[i] = cap.Scraper
+				scraperNames[i] = cap.JobType
 			}
 
 			// Check that all expected keys are present

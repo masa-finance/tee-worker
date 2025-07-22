@@ -940,7 +940,7 @@ func (ts *TwitterScraper) GetStructuredCapabilities() []types.ScraperCapability 
 		}
 		if len(credCaps) > 0 {
 			capabilities = append(capabilities, types.ScraperCapability{
-				Scraper:      "twitter-credential",
+				JobType:      "twitter-credential",
 				Capabilities: credCaps,
 			})
 		}
@@ -961,7 +961,7 @@ func (ts *TwitterScraper) GetStructuredCapabilities() []types.ScraperCapability 
 		}
 
 		capabilities = append(capabilities, types.ScraperCapability{
-			Scraper:      "twitter-api",
+			JobType:      "twitter-api",
 			Capabilities: apiCaps,
 		})
 	}
@@ -991,7 +991,7 @@ func (ts *TwitterScraper) GetStructuredCapabilities() []types.ScraperCapability 
 		}
 
 		capabilities = append(capabilities, types.ScraperCapability{
-			Scraper:      "twitter",
+			JobType:      "twitter",
 			Capabilities: generalCaps,
 		})
 	}

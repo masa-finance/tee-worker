@@ -41,7 +41,7 @@ func NewWebScraper(jc types.JobConfiguration, statsCollector *stats.StatsCollect
 func (ws *WebScraper) GetStructuredCapabilities() []types.ScraperCapability {
 	return []types.ScraperCapability{
 		{
-			Scraper:      "web",
+			JobType:      "web",
 			Capabilities: []types.Capability{"web-scraper"},
 		},
 	}

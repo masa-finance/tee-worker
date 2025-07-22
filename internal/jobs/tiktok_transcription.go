@@ -43,7 +43,7 @@ type TikTokTranscriber struct {
 func (t *TikTokTranscriber) GetStructuredCapabilities() []types.ScraperCapability {
 	return []types.ScraperCapability{
 		{
-			Scraper:      "tiktok",
+			JobType:      "tiktok",
 			Capabilities: []types.Capability{"tiktok-transcription"},
 		},
 	}

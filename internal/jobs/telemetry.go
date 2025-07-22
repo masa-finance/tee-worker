@@ -20,7 +20,7 @@ func NewTelemetryJob(jc types.JobConfiguration, c *stats.StatsCollector) Telemet
 func (t TelemetryJob) GetStructuredCapabilities() []types.ScraperCapability {
 	return []types.ScraperCapability{
 		{
-			Scraper:      "telemetry",
+			JobType:      "telemetry",
 			Capabilities: []types.Capability{"telemetry"},
 		},
 	}
