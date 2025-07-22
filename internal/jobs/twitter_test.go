@@ -1,8 +1,10 @@
 package jobs_test
 
 import (
-	teetypes "github.com/masa-finance/tee-types/types"
 	"os"
+	"strings"
+
+	teetypes "github.com/masa-finance/tee-types/types"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -14,6 +16,20 @@ import (
 	"github.com/masa-finance/tee-worker/internal/jobs/stats"
 )
 
+// parseTwitterAccounts parses TWITTER_ACCOUNTS environment variable like production does
+func parseTwitterAccounts() []string {
+	accountsEnv := os.Getenv("TWITTER_ACCOUNTS")
+	if accountsEnv == "" {
+		return nil
+	}
+
+	accounts := strings.Split(accountsEnv, ",")
+	for i, account := range accounts {
+		accounts[i] = strings.TrimSpace(account)
+	}
+	return accounts
+}
+
 var _ = Describe("Twitter Scraper", func() {
 
 	// --- New tests for specialized job types ---
@@ -21,35 +37,32 @@ var _ = Describe("Twitter Scraper", func() {
 		var statsCollector *stats.StatsCollector
 		var tempDir string
 		var err error
-		var credentialAccount string
+		var twitterAccounts []string
 		var apiKey string
 
 		BeforeEach(func() {
 			logrus.SetLevel(logrus.DebugLevel)
 			os.Setenv("LOG_LEVEL", "debug")
 
-			CIDir := os.Getenv("TEST_COOKIE_DIR")
-			if CIDir != "" {
-				tempDir = CIDir
-			} else {
-				tempDir, err = os.MkdirTemp("", "twitter")
-				Expect(err).NotTo(HaveOccurred())
-			}
-			credentialAccount = os.Getenv("TWITTER_TEST_ACCOUNT")
+			tempDir = ".masa"
+			err = os.MkdirAll(tempDir, 0755)
+			Expect(err).NotTo(HaveOccurred())
+
+			twitterAccounts = parseTwitterAccounts()
 			apiKey = os.Getenv("TWITTER_TEST_API_KEY")
 			statsCollector = stats.StartCollector(128, types.JobConfiguration{})
 		})
 
 		AfterEach(func() {
-			os.RemoveAll(tempDir)
+			// Don't remove .masa directory as it's used by production
 		})
 
 		It("should use credentials for twitter-credential-scraper", func() {
-			if credentialAccount == "" {
-				Skip("TWITTER_TEST_ACCOUNT is not set")
+			if len(twitterAccounts) == 0 {
+				Skip("TWITTER_ACCOUNTS is not set")
 			}
 			scraper := NewTwitterScraper(types.JobConfiguration{
-				"twitter_accounts": []string{credentialAccount},
+				"twitter_accounts": twitterAccounts,
 				"data_dir":         tempDir,
 			}, statsCollector)
 			res, err := scraper.ExecuteJob(types.Job{
@@ -114,11 +127,11 @@ var _ = Describe("Twitter Scraper", func() {
 		})
 
 		It("should prefer credentials if both are present for twitter-scraper", func() {
-			if credentialAccount == "" || apiKey == "" {
-				Skip("TWITTER_TEST_ACCOUNT or TWITTER_TEST_API_KEY is not set")
+			if len(twitterAccounts) == 0 || apiKey == "" {
+				Skip("TWITTER_ACCOUNTS or TWITTER_TEST_API_KEY is not set")
 			}
 			scraper := NewTwitterScraper(types.JobConfiguration{
-				"twitter_accounts": []string{credentialAccount},
+				"twitter_accounts": twitterAccounts,
 				"twitter_api_keys": []string{apiKey},
 				"data_dir":         tempDir,
 			}, statsCollector)
@@ -161,30 +174,26 @@ var _ = Describe("Twitter Scraper", func() {
 	var err error
 
 	BeforeEach(func() {
-		CIDir := os.Getenv("TEST_COOKIE_DIR")
-		if CIDir != "" {
-			tempDir = CIDir
-		} else {
-			tempDir, err = os.MkdirTemp("", "twitter")
-			Expect(err).NotTo(HaveOccurred())
-		}
+		tempDir = ".masa"
+		err = os.MkdirAll(tempDir, 0755)
+		Expect(err).NotTo(HaveOccurred())
 
-		account := os.Getenv("TWITTER_TEST_ACCOUNT")
+		twitterAccounts := parseTwitterAccounts()
 
-		if account == "" {
-			Skip("TWITTER_TEST_ACCOUNT is not set")
+		if len(twitterAccounts) == 0 {
+			Skip("TWITTER_ACCOUNTS is not set")
 		}
 
 		statsCollector = stats.StartCollector(128, types.JobConfiguration{})
 
 		twitterScraper = NewTwitterScraper(types.JobConfiguration{
-			"twitter_accounts": []string{account},
+			"twitter_accounts": twitterAccounts,
 			"data_dir":         tempDir,
 		}, statsCollector)
 	})
 
 	AfterEach(func() {
-		os.RemoveAll(tempDir)
+		// Don't remove .masa directory as it's used by production
 	})
 
 	It("should scrape tweets with a search query", func() {

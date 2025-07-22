@@ -49,11 +49,11 @@ docker-build: tee/private.pem
 
 test: tee/private.pem
 	@docker build --target=dependencies --build-arg baseimage=builder --secret id=private_key,src=./tee/private.pem -t $(IMAGE) -f Dockerfile .
-	@docker run --user root -e TWITTER_TEST_ACCOUNT -e LOG_LEVEL=debug -v $(PWD)/coverage:/app/coverage --rm --workdir /app $(IMAGE) go test -coverprofile=coverage/coverage.txt -covermode=atomic -v ./...
+	@docker run --user root --env-file $(PWD)/.env -e LOG_LEVEL=debug -v $(PWD)/coverage:/app/coverage --rm --workdir /app $(IMAGE) go test -coverprofile=coverage/coverage.txt -covermode=atomic -v ./...
 
 test-capabilities: tee/private.pem
 	@docker build --target=dependencies --build-arg baseimage=builder --secret id=private_key,src=./tee/private.pem -t $(IMAGE) -f Dockerfile .
-	@docker run --user root -e TWITTER_TEST_ACCOUNT -e LOG_LEVEL=debug -v $(PWD)/coverage:/app/coverage --rm --workdir /app $(IMAGE) go test -coverprofile=coverage/coverage-capabilities.txt -covermode=atomic -v ./internal/capabilities
+	@docker run --user root --env-file $(PWD)/.env -e LOG_LEVEL=debug -v $(PWD)/coverage:/app/coverage --rm --workdir /app $(IMAGE) go test -coverprofile=coverage/coverage-capabilities.txt -covermode=atomic -v ./internal/capabilities
 
 test-jobs: tee/private.pem
 	@docker build --target=dependencies --build-arg baseimage=builder --secret id=private_key,src=./tee/private.pem -t $(IMAGE) -f Dockerfile .
