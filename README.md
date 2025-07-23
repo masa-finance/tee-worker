@@ -244,7 +244,7 @@ Twitter scraping is available through three job types:
 **`getreplies`** - Get replies to a specific tweet
 ```json
 {
-  "type": "twitter-scraper",
+  "type": "twitter-credential-scraper",
   "arguments": {
     "type": "getreplies",
     "query": "1234567890",
@@ -256,7 +256,7 @@ Twitter scraping is available through three job types:
 **`getretweeters`** - Get users who retweeted a specific tweet
 ```json
 {
-  "type": "twitter-scraper",
+  "type": "twitter-credential-scraper",
   "arguments": {
     "type": "getretweeters",
     "query": "1234567890",
@@ -270,7 +270,7 @@ Twitter scraping is available through three job types:
 **`gettweets`** - Get tweets from a user's timeline
 ```json
 {
-  "type": "twitter-scraper",
+  "type": "twitter-credential-scraper",
   "arguments": {
     "type": "gettweets",
     "query": "NASA",
@@ -282,7 +282,7 @@ Twitter scraping is available through three job types:
 **`getmedia`** - Get media (photos/videos) from a user
 ```json
 {
-  "type": "twitter-scraper",
+  "type": "twitter-credential-scraper",
   "arguments": {
     "type": "getmedia",
     "query": "NASA",
@@ -318,7 +318,7 @@ Twitter scraping is available through three job types:
 **`searchbyprofile`** - Get user profile information
 ```json
 {
-  "type": "twitter-scraper",
+  "type": "twitter-credential-scraper",
   "arguments": {
     "type": "searchbyprofile",
     "query": "NASA_Marshall"
@@ -340,7 +340,7 @@ Twitter scraping is available through three job types:
 **`getfollowers`** - Get followers of a profile
 ```json
 {
-  "type": "twitter-scraper",
+  "type": "twitter-credential-scraper",
   "arguments": {
     "type": "getfollowers",
     "query": "NASA",
@@ -352,7 +352,7 @@ Twitter scraping is available through three job types:
 **`getfollowing`** - Get users that a profile is following
 ```json
 {
-  "type": "twitter-scraper",
+  "type": "twitter-credential-scraper",
   "arguments": {
     "type": "getfollowing",
     "query": "NASA",
@@ -366,7 +366,7 @@ Twitter scraping is available through three job types:
 **`gettrends`** - Get trending topics (no query required)
 ```json
 {
-  "type": "twitter-scraper",
+  "type": "twitter-credential-scraper",
   "arguments": {
     "type": "gettrends"
   }
