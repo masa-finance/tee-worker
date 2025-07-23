@@ -131,13 +131,13 @@ func (js *JobServer) GetWorkerCapabilities() types.WorkerCapabilities {
 
 	for _, workerEntry := range js.jobWorkers {
 		if provider, ok := workerEntry.w.(CapabilityProvider); ok {
-			scraperCaps := provider.GetStructuredCapabilities()
-			for _, scraperCap := range scraperCaps {
-				if jobTypeCapMap[scraperCap.JobType] == nil {
-					jobTypeCapMap[scraperCap.JobType] = make(map[types.Capability]struct{})
+			structuredCapabilities := provider.GetStructuredCapabilities()
+			for _, structuredCapability := range structuredCapabilities {
+				if jobTypeCapMap[structuredCapability.JobType] == nil {
+					jobTypeCapMap[structuredCapability.JobType] = make(map[types.Capability]struct{})
 				}
-				for _, capability := range scraperCap.Capabilities {
-					jobTypeCapMap[scraperCap.JobType][capability] = struct{}{}
+				for _, capability := range structuredCapability.Capabilities {
+					jobTypeCapMap[structuredCapability.JobType][capability] = struct{}{}
 				}
 			}
 		}
