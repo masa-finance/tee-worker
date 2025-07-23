@@ -4,6 +4,9 @@ IMAGE?=masa-tee-worker:latest
 export DISTRIBUTOR_PUBKEY?=$(shell cat tee/keybroker.pub | base64 -w0)
 export MINERS_WHITE_LIST?=
 
+# Helper to conditionally add --env-file if .env exists
+ENV_FILE_ARG = $(shell [ -f .env ] && echo "--env-file $(PWD)/.env" || echo "")
+
 print-version:
 	@echo "Version: ${VERSION}"
 
@@ -49,20 +52,20 @@ docker-build: tee/private.pem
 
 test: tee/private.pem
 	@docker build --target=dependencies --build-arg baseimage=builder --secret id=private_key,src=./tee/private.pem -t $(IMAGE) -f Dockerfile .
-	@docker run --user root --env-file $(PWD)/.env -e LOG_LEVEL=debug -v $(PWD)/coverage:/app/coverage --rm --workdir /app $(IMAGE) go test -coverprofile=coverage/coverage.txt -covermode=atomic -v ./...
+	@docker run --user root $(ENV_FILE_ARG) -e LOG_LEVEL=debug -v $(PWD)/coverage:/app/coverage --rm --workdir /app $(IMAGE) go test -coverprofile=coverage/coverage.txt -covermode=atomic -v ./...
 
 test-capabilities: tee/private.pem
 	@docker build --target=dependencies --build-arg baseimage=builder --secret id=private_key,src=./tee/private.pem -t $(IMAGE) -f Dockerfile .
-	@docker run --user root --env-file $(PWD)/.env -e LOG_LEVEL=debug -v $(PWD)/coverage:/app/coverage --rm --workdir /app $(IMAGE) go test -coverprofile=coverage/coverage-capabilities.txt -covermode=atomic -v ./internal/capabilities
+	@docker run --user root $(ENV_FILE_ARG) -e LOG_LEVEL=debug -v $(PWD)/coverage:/app/coverage --rm --workdir /app $(IMAGE) go test -coverprofile=coverage/coverage-capabilities.txt -covermode=atomic -v ./internal/capabilities
 
 test-jobs: tee/private.pem
 	@docker build --target=dependencies --build-arg baseimage=builder --secret id=private_key,src=./tee/private.pem -t $(IMAGE) -f Dockerfile .
-	@docker run --user root --env-file $(PWD)/.env -v $(PWD)/.masa:/home/masa -v $(PWD)/coverage:/app/coverage --rm --workdir /app $(IMAGE) go test -coverprofile=coverage/coverage-jobs.txt -covermode=atomic -v ./internal/jobs
+	@docker run --user root $(ENV_FILE_ARG) -v $(PWD)/.masa:/home/masa -v $(PWD)/coverage:/app/coverage --rm --workdir /app $(IMAGE) go test -coverprofile=coverage/coverage-jobs.txt -covermode=atomic -v ./internal/jobs
 
 test-twitter: tee/private.pem
 	@docker build --target=dependencies --build-arg baseimage=builder --secret id=private_key,src=./tee/private.pem -t $(IMAGE) -f Dockerfile .
-	@docker run --user root --env-file $(PWD)/.env -v $(PWD)/.masa:/home/masa -v $(PWD)/coverage:/app/coverage --rm --workdir /app $(IMAGE) go test -v ./internal/jobs/twitter_test.go ./internal/jobs/jobs_suite_test.go
+	@docker run --user root $(ENV_FILE_ARG) -v $(PWD)/.masa:/home/masa -v $(PWD)/coverage:/app/coverage --rm --workdir /app $(IMAGE) go test -v ./internal/jobs/twitter_test.go ./internal/jobs/jobs_suite_test.go
 
 test-telemetry: tee/private.pem
 	@docker build --target=dependencies --build-arg baseimage=builder --secret id=private_key,src=./tee/private.pem -t $(IMAGE) -f Dockerfile .
-	@docker run --user root --env-file $(PWD)/.env -v $(PWD)/.masa:/home/masa -v $(PWD)/coverage:/app/coverage --rm --workdir /app $(IMAGE) go test -v ./internal/jobs/telemetry_test.go ./internal/jobs/jobs_suite_test.go
+	@docker run --user root $(ENV_FILE_ARG) -v $(PWD)/.masa:/home/masa -v $(PWD)/coverage:/app/coverage --rm --workdir /app $(IMAGE) go test -v ./internal/jobs/telemetry_test.go ./internal/jobs/jobs_suite_test.go
