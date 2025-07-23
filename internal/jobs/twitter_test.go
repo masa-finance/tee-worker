@@ -258,31 +258,31 @@ var _ = Describe("Twitter Scraper", func() {
 		Expect(statsCollector.Stats.Stats[j.WorkerID][stats.TwitterProfiles]).To(BeNumerically("==", uint(len(results))))
 	})
 
-	// It("should scrape tweets with a search query", func() {
-	// 	j := types.Job{
-	// 		Type: TwitterScraperType,
-	// 		Arguments: map[string]interface{}{
-	// 			"type":  "searchfollowers",
-	// 			"query": "getmasafi",
-	// 			"count": 1,
-	// 		},
-	// 		WorkerID: "foo",
-	// 	}
-	// 	res, err := twitterScraper.ExecuteJob(j)
-	// 	Expect(err).NotTo(HaveOccurred())
-	// 	Expect(res.Error).To(BeEmpty())
+	It("should scrape tweets with a search query", func() {
+		j := types.Job{
+			Type: TwitterScraperType,
+			Arguments: map[string]interface{}{
+				"type":  "searchfollowers",
+				"query": "getmasafi",
+				"count": 1,
+			},
+			WorkerID: "foo",
+		}
+		res, err := twitterScraper.ExecuteJob(j)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(res.Error).To(BeEmpty())
 
-	// 	var results []*twitterscraper.Profile
-	// 	err = res.Unmarshal(&results)
-	// 	Expect(err).NotTo(HaveOccurred())
-	// 	Expect(len(results)).ToNot(BeZero())
-	// 	Expect(results[0].Username).ToNot(BeEmpty())
+		var results []*twitterscraper.Profile
+		err = res.Unmarshal(&results)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(len(results)).ToNot(BeZero())
+		Expect(results[0].Username).ToNot(BeEmpty())
 
-	// 	Expect(statsCollector.Stats.Stats[j.WorkerID][stats.TwitterScrapes]).To(BeNumerically("==", 1))
-	// 	Expect(statsCollector.Stats.Stats[j.WorkerID][stats.TwitterProfiles]).To(BeNumerically("==", uint(len(results))))
-	// })
+		Expect(statsCollector.Stats.Stats[j.WorkerID][stats.TwitterScrapes]).To(BeNumerically("==", 1))
+		Expect(statsCollector.Stats.Stats[j.WorkerID][stats.TwitterProfiles]).To(BeNumerically("==", uint(len(results))))
+	})
 
-	FIt("should get tweet by ID", func() {
+	It("should get tweet by ID", func() {
 		logrus.SetLevel(logrus.DebugLevel) // Ensure debug logs are visible
 
 		res, err := twitterScraper.ExecuteJob(types.Job{
