@@ -23,15 +23,15 @@ func DetectCapabilities(jc types.JobConfiguration, jobServer JobServerInterface)
 
 	// Always available scrapers
 	capabilities = append(capabilities,
-		types.ScraperCapability{
+		types.JobCapability{
 			JobType:      "web",
 			Capabilities: []types.Capability{"web-scraper"},
 		},
-		types.ScraperCapability{
+		types.JobCapability{
 			JobType:      "telemetry",
 			Capabilities: []types.Capability{"telemetry"},
 		},
-		types.ScraperCapability{
+		types.JobCapability{
 			JobType:      "tiktok",
 			Capabilities: []types.Capability{"tiktok-transcription"},
 		},
@@ -47,11 +47,11 @@ func DetectCapabilities(jc types.JobConfiguration, jobServer JobServerInterface)
 		}
 
 		capabilities = append(capabilities,
-			types.ScraperCapability{
+			types.JobCapability{
 				JobType:      "twitter-credential",
 				Capabilities: allTwitterCaps,
 			},
-			types.ScraperCapability{
+			types.JobCapability{
 				JobType:      "twitter",
 				Capabilities: allTwitterCaps,
 			},
@@ -62,7 +62,7 @@ func DetectCapabilities(jc types.JobConfiguration, jobServer JobServerInterface)
 		apiCaps := []types.Capability{"searchbyquery", "getbyid", "getprofilebyid"}
 		// Note: Can't detect elevated keys during fallback
 
-		capabilities = append(capabilities, types.ScraperCapability{
+		capabilities = append(capabilities, types.JobCapability{
 			JobType:      "twitter-api",
 			Capabilities: apiCaps,
 		})
@@ -76,7 +76,7 @@ func DetectCapabilities(jc types.JobConfiguration, jobServer JobServerInterface)
 			}
 		}
 		if !hasGeneralTwitter {
-			capabilities = append(capabilities, types.ScraperCapability{
+			capabilities = append(capabilities, types.JobCapability{
 				JobType:      "twitter",
 				Capabilities: apiCaps,
 			})

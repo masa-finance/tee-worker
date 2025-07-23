@@ -927,8 +927,8 @@ func NewTwitterScraper(jc types.JobConfiguration, c *stats.StatsCollector) *Twit
 
 // GetStructuredCapabilities returns the structured capabilities supported by this Twitter scraper
 // based on the available credentials and API keys
-func (ts *TwitterScraper) GetStructuredCapabilities() []types.ScraperCapability {
-	var capabilities []types.ScraperCapability
+func (ts *TwitterScraper) GetStructuredCapabilities() []types.JobCapability {
+	var capabilities []types.JobCapability
 
 	// Check if we have Twitter accounts for credential-based scraping
 	if len(ts.configuration.Accounts) > 0 {
@@ -939,7 +939,7 @@ func (ts *TwitterScraper) GetStructuredCapabilities() []types.ScraperCapability 
 			}
 		}
 		if len(credCaps) > 0 {
-			capabilities = append(capabilities, types.ScraperCapability{
+			capabilities = append(capabilities, types.JobCapability{
 				JobType:      "twitter-credential",
 				Capabilities: credCaps,
 			})
@@ -960,7 +960,7 @@ func (ts *TwitterScraper) GetStructuredCapabilities() []types.ScraperCapability 
 			}
 		}
 
-		capabilities = append(capabilities, types.ScraperCapability{
+		capabilities = append(capabilities, types.JobCapability{
 			JobType:      "twitter-api",
 			Capabilities: apiCaps,
 		})
@@ -990,7 +990,7 @@ func (ts *TwitterScraper) GetStructuredCapabilities() []types.ScraperCapability 
 			}
 		}
 
-		capabilities = append(capabilities, types.ScraperCapability{
+		capabilities = append(capabilities, types.JobCapability{
 			JobType:      "twitter",
 			Capabilities: generalCaps,
 		})

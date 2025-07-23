@@ -17,8 +17,8 @@ func NewTelemetryJob(jc types.JobConfiguration, c *stats.StatsCollector) Telemet
 }
 
 // GetStructuredCapabilities returns the structured capabilities supported by the telemetry job
-func (t TelemetryJob) GetStructuredCapabilities() []types.ScraperCapability {
-	return []types.ScraperCapability{
+func (t TelemetryJob) GetStructuredCapabilities() []types.JobCapability {
+	return []types.JobCapability{
 		{
 			JobType:      "telemetry",
 			Capabilities: []types.Capability{"telemetry"},

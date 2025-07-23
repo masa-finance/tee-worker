@@ -121,7 +121,7 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 
 // CapabilityProvider is an interface for workers that can report their capabilities
 type CapabilityProvider interface {
-	GetStructuredCapabilities() []types.ScraperCapability
+	GetStructuredCapabilities() []types.JobCapability
 }
 
 // GetWorkerCapabilities returns the structured capabilities for all registered workers
@@ -150,7 +150,7 @@ func (js *JobServer) GetWorkerCapabilities() types.WorkerCapabilities {
 		for capability := range capabilitySet {
 			capabilities = append(capabilities, capability)
 		}
-		allCapabilities = append(allCapabilities, types.ScraperCapability{
+		allCapabilities = append(allCapabilities, types.JobCapability{
 			JobType:      jobType,
 			Capabilities: capabilities,
 		})

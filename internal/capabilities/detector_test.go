@@ -128,10 +128,10 @@ func TestDetectCapabilities(t *testing.T) {
 	}
 }
 
-// Helper function to find a scraper capability by name
-func findScraperCapability(capabilities types.WorkerCapabilities, scraperName string) *types.ScraperCapability {
+// Helper function to find a job capability by name
+func findJobCapability(capabilities types.WorkerCapabilities, jobName string) *types.JobCapability {
 	for _, cap := range capabilities {
-		if cap.JobType == scraperName {
+		if cap.JobType == jobName {
 			return &cap
 		}
 	}
