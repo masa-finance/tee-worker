@@ -269,6 +269,9 @@ var _ = Describe("Twitter Scraper", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(results).ToNot(BeEmpty())
 
+		// Wait briefly for asynchronous stats processing to complete
+		time.Sleep(100 * time.Millisecond)
+
 		Expect(results[0].Text).ToNot(BeEmpty())
 		Expect(statsCollector.Stats.Stats[j.WorkerID][stats.TwitterScrapes]).To(BeNumerically("==", 1))
 		Expect(statsCollector.Stats.Stats[j.WorkerID][stats.TwitterTweets]).To(BeNumerically("==", uint(len(results))))
