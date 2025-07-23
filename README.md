@@ -70,16 +70,12 @@ The `CAPABILITIES` environment variable defines the actions the worker can perfo
 
 **Capability Detection and Reporting:**
 
-1. **Auto-detection**: If `CAPABILITIES` is not set, the worker automatically detects available capabilities based on:
-   - Twitter credentials (username:password pairs) - enables credential-based features
-   - Twitter API keys - enables API-based features  
-   - Available services (web scraper, TikTok transcription, telemetry)
+The worker automatically detects available capabilities based on:
+- Twitter credentials (username:password pairs) - enables credential-based features
+- Twitter API keys - enables API-based features  
+- Available services (web scraper, TikTok transcription, telemetry)
 
-2. **Manual Configuration**: When `CAPABILITIES` is set, it specifies additional capabilities beyond auto-detected ones.
-
-3. **Combined Reporting**: The telemetry report includes both manually configured and auto-detected capabilities, providing complete visibility of the worker's actual capabilities. For example:
-   - If `CAPABILITIES="all"` and Twitter credentials are configured, telemetry will report: `["all", "searchbyquery", "getbyid", ...]`
-   - This ensures transparency in resource allocation and worker evaluation within the MASA ecosystem.
+The telemetry report includes all auto-detected capabilities, providing complete visibility of the worker's actual capabilities and ensuring transparency in resource allocation and worker evaluation within the MASA ecosystem.
 
 **Job Types and Capabilities Structure:**
 
@@ -102,7 +98,7 @@ Each job type represents a distinct service with its own set of capabilities:
    - **Requirements**: None (always available)
 
 4. **`twitter-credential`** - Twitter scraping with credentials
-   - **Sub-capabilities**: `["searchbyquery", "searchbyfullarchive", "searchbyprofile", "searchfollowers", "getbyid", "getreplies", "getretweeters", "gettweets", "getmedia", "gethometweets", "getforyoutweets", "getbookmarks", "getprofilebyid", "gettrends", "getfollowing", "getfollowers", "getspace"]`
+   - **Sub-capabilities**: `["searchbyquery", "searchbyfullarchive", "searchbyprofile", "getbyid", "getreplies", "getretweeters", "gettweets", "getmedia", "gethometweets", "getforyoutweets", "getprofilebyid", "gettrends", "getfollowing", "getfollowers", "getspace"]`
    - **Requirements**: `TWITTER_ACCOUNTS` environment variable
 
 5. **`twitter-api`** - Twitter scraping with API keys
@@ -115,17 +111,11 @@ Each job type represents a distinct service with its own set of capabilities:
 
 **Twitter Sub-Capability Status:**
 
-✅ **Working Sub-Capabilities (12):**
+✅ **Working Sub-Capabilities (13):**
 - `searchbyquery`, `searchbyfullarchive`, `searchbyprofile`
 - `getbyid`, `getreplies`, `getretweeters` 
 - `gettweets`, `getmedia`, `gethometweets`, `getforyoutweets`
-- `getprofilebyid`, `gettrends`, `getfollowing`, `getfollowers`
-
-❌ **Broken/Unsupported Sub-Capabilities (4):**
-- `searchfollowers`: Currently broken - use `getfollowers` instead
-- `getbookmarks`: Currently broken - returns empty results  
-- `getspace`: Currently broken - Twitter Spaces functionality unstable
-- `getspaces`: Not implemented - no method exists
+- `getprofilebyid`, `gettrends`, `getfollowing`, `getfollowers`, `getspace`
 
 **Capability Detection Logic:**
 
@@ -135,16 +125,6 @@ The system auto-detects capabilities based on environment configuration:
 - If both are set → enables all three Twitter job types
 - Core services (`web`, `telemetry`, `tiktok`) are always available
 
-**Manual Capability Override:**
-
-```env
-# Let auto-detection determine capabilities (recommended)
-# CAPABILITIES="" 
-
-# Override with specific sub-capabilities (advanced usage)
-CAPABILITIES="searchbyquery,getbyid,gettweets,getprofilebyid"
-```
-
 **API Job Types vs Capability Job Types:**
 
 Note the distinction between:
@@ -152,6 +132,188 @@ Note the distinction between:
 - **Capability Job Types** (used in telemetry): `twitter`, `twitter-credential`, `twitter-api`
 
 The API job types determine authentication behavior, while capability job types are used for capability reporting and detection.
+
+**Sub-Capability Examples:**
+
+Below are example job calls for each supported sub-capability:
+
+**Web Scraping:**
+```json
+{
+  "type": "web-scraper",
+  "arguments": {
+    "url": "https://www.google.com",
+    "depth": 1
+  }
+}
+```
+
+**TikTok Transcription:**
+```json
+{
+  "type": "tiktok-transcription", 
+  "arguments": {
+    "video_url": "https://www.tiktok.com/@coachty23/video/7502100651397172526",
+    "language": "eng-US"
+  }
+}
+```
+
+**Twitter Sub-Capabilities:**
+
+**Tweet Search Operations:**
+```json
+// Search tweets by query
+{
+  "type": "twitter-scraper",
+  "arguments": {
+    "type": "searchbyquery",
+    "query": "AI",
+    "max_results": 2
+  }
+}
+
+// Search full archive (requires elevated API key for API-based scraping)
+{
+  "type": "twitter-api-scraper",
+  "arguments": {
+    "type": "searchbyfullarchive", 
+    "query": "climate change",
+    "max_results": 100
+  }
+}
+```
+
+**Single Tweet Operations:**
+```json
+// Get tweet by ID
+{
+  "type": "twitter-scraper",
+  "arguments": {
+    "type": "getbyid",
+    "query": "1881258110712492142"
+  }
+}
+
+// Get replies to a tweet
+{
+  "type": "twitter-scraper", 
+  "arguments": {
+    "type": "getreplies",
+    "query": "1234567890"
+  }
+}
+```
+
+**User Timeline Operations:**
+```json
+// Get user tweets
+{
+  "type": "twitter-scraper",
+  "arguments": {
+    "type": "gettweets",
+    "query": "NASA", 
+    "max_results": 5
+  }
+}
+
+// Get user media (photos/videos)
+{
+  "type": "twitter-scraper",
+  "arguments": {
+    "type": "getmedia",
+    "query": "NASA",
+    "max_results": 5
+  }
+}
+
+// Get home timeline (credential-based only)
+{
+  "type": "twitter-credential-scraper",
+  "arguments": {
+    "type": "gethometweets",
+    "max_results": 5
+  }
+}
+
+// Get "For You" timeline (credential-based only)
+{
+  "type": "twitter-credential-scraper", 
+  "arguments": {
+    "type": "getforyoutweets",
+    "max_results": 5
+  }
+}
+```
+
+**Profile Operations:**
+```json
+// Get profile by username
+{
+  "type": "twitter-scraper",
+  "arguments": {
+    "type": "searchbyprofile",
+    "query": "NASA_Marshall"
+  }
+}
+
+// Get profile by user ID
+{
+  "type": "twitter-scraper",
+  "arguments": {
+    "type": "getprofilebyid", 
+    "query": "44196397"
+  }
+}
+
+// Get followers
+{
+  "type": "twitter-scraper",
+  "arguments": {
+    "type": "getfollowers",
+    "query": "NASA"
+  }
+}
+
+// Get following
+{
+  "type": "twitter-scraper",
+  "arguments": {
+    "type": "getfollowing",
+    "query": "NASA",
+    "max_results": 5
+  }
+}
+
+// Get retweeters
+{
+  "type": "twitter-scraper",
+  "arguments": {
+    "type": "getretweeters",
+    "query": "1234567890",
+    "max_results": 5
+  }
+}
+```
+
+**Other Operations:**
+```json
+// Get trending topics
+{
+  "type": "twitter-scraper",
+  "arguments": {
+    "type": "gettrends"
+  }
+}
+```
+
+**Telemetry:**
+```json
+{
+  "type": "telemetry",
+  "arguments": {}
+}
+```
 
 See `.env.example` for more details.
 
@@ -679,12 +841,12 @@ Performs different types of Twitter searches using various authentication method
     ```
     Returns: Array of trending topic strings
 
-**Broken/Unsupported Operations:**
+**Note on Previously Unsupported Operations:**
 
-❌ **`searchfollowers`** - Currently broken, use `getfollowers` instead
-❌ **`getbookmarks`** - Currently broken, returns empty results  
-❌ **`getspace`** - Currently broken, Twitter Spaces functionality unstable
-❌ **`getspaces`** - Not implemented
+The following Twitter operations have been removed from the worker as they were broken or unsupported:
+- `searchfollowers` (use `getfollowers` instead)
+- `getbookmarks` (was returning empty results)  
+- `getspaces` (not implemented)
 
 **Pagination Support:**
 

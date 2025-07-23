@@ -40,9 +40,9 @@ func DetectCapabilities(jc types.JobConfiguration, jobServer JobServerInterface)
 	// Twitter capabilities based on configuration
 	if accounts, ok := jc["twitter_accounts"].([]string); ok && len(accounts) > 0 {
 		allTwitterCaps := []types.Capability{
-			"searchbyquery", "searchbyfullarchive", "searchbyprofile", "searchfollowers",
+			"searchbyquery", "searchbyfullarchive", "searchbyprofile",
 			"getbyid", "getreplies", "getretweeters", "gettweets", "getmedia",
-			"gethometweets", "getforyoutweets", "getbookmarks", "getprofilebyid",
+			"gethometweets", "getforyoutweets", "getprofilebyid",
 			"gettrends", "getfollowing", "getfollowers", "getspace",
 		}
 
