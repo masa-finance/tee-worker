@@ -393,32 +393,6 @@ var _ = Describe("Twitter Scraper", func() {
 		Expect(len(media[0].Photos) + len(media[0].Videos)).ToNot(BeZero())
 	})
 
-	// note, returning "job result is empty" even when account has bookmarks
-	// It("should fetch bookmarks", func() {
-	// 	j := types.Job{
-	// 		Type: TwitterScraperType,
-	// 		Arguments: map[string]interface{}{
-	// 			"type":        "getbookmarks",
-	// 			"max_results": 5,
-	// 		},
-	// 		Timeout: 10 * time.Second,
-	// 	}
-	// 	res, err := twitterScraper.ExecuteJob(j)
-	// 	Expect(err).NotTo(HaveOccurred())
-	// 	Expect(res.Error).To(BeEmpty())
-
-	// 	var bookmarks []*teetypes.TweetResult
-	// 	err = res.Unmarshal(&bookmarks)
-	// 	Expect(err).NotTo(HaveOccurred())
-	// 	Expect(res.Error).To(BeEmpty())
-
-	// 	// Wait briefly for asynchronous stats processing to complete
-	// 	time.Sleep(100 * time.Millisecond)
-
-	// 	Expect(statsCollector.Stats.Stats[j.WorkerID][stats.TwitterScrapes]).To(BeNumerically("==", 1))
-	// 	Expect(statsCollector.Stats.Stats[j.WorkerID][stats.TwitterTweets]).To(BeNumerically("==", uint(len(bookmarks))))
-	// })
-
 	It("should fetch home tweets", func() {
 		j := types.Job{
 			Type: TwitterScraperType,
@@ -498,25 +472,6 @@ var _ = Describe("Twitter Scraper", func() {
 		Expect(statsCollector.Stats.Stats[j.WorkerID][stats.TwitterProfiles]).To(BeNumerically("==", 1))
 	})
 
-	// note, needs to be constructed to fetch live spaces first... hard to test hardcoded ids
-	// It("should fetch space", func() {
-	// 	res, err := twitterScraper.ExecuteJob(types.Job{
-	// 		Type: TwitterScraperType,
-	// 		Arguments: map[string]interface{}{
-	// 			"type":  "getspace",
-	// 			"query": "1YpKkZEWlBaxj",
-	// 		},
-	// 		Timeout: 10 * time.Second,
-	// 	})
-	// 	Expect(err).NotTo(HaveOccurred())
-	// 	Expect(res.Error).To(BeEmpty())
-
-	// 	var space *twitterscraper.Space
-	// 	err = res.Unmarshal(&space)
-	// 	Expect(err).NotTo(HaveOccurred())
-	// 	Expect(space.ID).ToNot(BeEmpty())
-	// })
-
 	It("should fetch following", func() {
 		j := types.Job{
 			Type: TwitterScraperType,
@@ -590,5 +545,50 @@ var _ = Describe("Twitter Scraper", func() {
 		Expect(len(result)).ToNot(BeZero())
 		fmt.Println(string(result))
 	})
+
+	// note, needs to be constructed to fetch live spaces first... hard to test hardcoded ids
+	// It("should fetch space", func() {
+	// 	res, err := twitterScraper.ExecuteJob(types.Job{
+	// 		Type: TwitterScraperType,
+	// 		Arguments: map[string]interface{}{
+	// 			"type":  "getspace",
+	// 			"query": "1YpKkZEWlBaxj",
+	// 		},
+	// 		Timeout: 10 * time.Second,
+	// 	})
+	// 	Expect(err).NotTo(HaveOccurred())
+	// 	Expect(res.Error).To(BeEmpty())
+
+	// 	var space *twitterscraper.Space
+	// 	err = res.Unmarshal(&space)
+	// 	Expect(err).NotTo(HaveOccurred())
+	// 	Expect(space.ID).ToNot(BeEmpty())
+	// })
+
+	// note, returning "job result is empty" even when account has bookmarks
+	// It("should fetch bookmarks", func() {
+	// 	j := types.Job{
+	// 		Type: TwitterScraperType,
+	// 		Arguments: map[string]interface{}{
+	// 			"type":        "getbookmarks",
+	// 			"max_results": 5,
+	// 		},
+	// 		Timeout: 10 * time.Second,
+	// 	}
+	// 	res, err := twitterScraper.ExecuteJob(j)
+	// 	Expect(err).NotTo(HaveOccurred())
+	// 	Expect(res.Error).To(BeEmpty())
+
+	// 	var bookmarks []*teetypes.TweetResult
+	// 	err = res.Unmarshal(&bookmarks)
+	// 	Expect(err).NotTo(HaveOccurred())
+	// 	Expect(res.Error).To(BeEmpty())
+
+	// 	// Wait briefly for asynchronous stats processing to complete
+	// 	time.Sleep(100 * time.Millisecond)
+
+	// 	Expect(statsCollector.Stats.Stats[j.WorkerID][stats.TwitterScrapes]).To(BeNumerically("==", 1))
+	// 	Expect(statsCollector.Stats.Stats[j.WorkerID][stats.TwitterTweets]).To(BeNumerically("==", uint(len(bookmarks))))
+	// })
 
 })
