@@ -570,7 +570,7 @@ var _ = Describe("Twitter Scraper", func() {
 		Expect(statsCollector.Stats.Stats[j.WorkerID][stats.TwitterProfiles]).To(BeNumerically("==", uint(len(results))))
 	})
 
-	FIt("should get trends", func() {
+	It("should get trends", func() {
 		j := types.Job{
 			Type: TwitterScraperType,
 			Arguments: map[string]interface{}{
