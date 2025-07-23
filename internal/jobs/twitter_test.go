@@ -3,6 +3,7 @@ package jobs_test
 import (
 	"os"
 	"strings"
+	"time"
 
 	teetypes "github.com/masa-finance/tee-types/types"
 
@@ -82,10 +83,11 @@ var _ = Describe("Twitter Scraper", func() {
 			res, err := scraper.ExecuteJob(types.Job{
 				Type: TwitterCredentialScraperType,
 				Arguments: map[string]interface{}{
-					"type":  "searchbyquery",
-					"query": "NASA",
-					"count": 1,
+					"type":        "searchbyquery",
+					"query":       "NASA",
+					"max_results": 1,
 				},
+				Timeout: 10 * time.Second,
 			})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(res.Error).To(BeEmpty())
@@ -106,10 +108,11 @@ var _ = Describe("Twitter Scraper", func() {
 			res, err := scraper.ExecuteJob(types.Job{
 				Type: TwitterApiScraperType,
 				Arguments: map[string]interface{}{
-					"type":  "searchbyquery",
-					"query": "NASA",
-					"count": 1,
+					"type":        "searchbyquery",
+					"query":       "NASA",
+					"max_results": 1,
 				},
+				Timeout: 10 * time.Second,
 			})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(res.Error).To(BeEmpty())
@@ -131,10 +134,11 @@ var _ = Describe("Twitter Scraper", func() {
 			res, err := scraper.ExecuteJob(types.Job{
 				Type: TwitterCredentialScraperType,
 				Arguments: map[string]interface{}{
-					"type":  "searchbyquery",
-					"query": "NASA",
-					"count": 1,
+					"type":        "searchbyquery",
+					"query":       "NASA",
+					"max_results": 1,
 				},
+				Timeout: 10 * time.Second,
 			})
 			Expect(err).To(HaveOccurred())
 			Expect(res.Error).NotTo(BeEmpty())
@@ -152,10 +156,11 @@ var _ = Describe("Twitter Scraper", func() {
 			res, err := scraper.ExecuteJob(types.Job{
 				Type: TwitterScraperType,
 				Arguments: map[string]interface{}{
-					"type":  "searchbyquery",
-					"query": "NASA",
-					"count": 1,
+					"type":        "searchbyquery",
+					"query":       "NASA",
+					"max_results": 1,
 				},
+				Timeout: 10 * time.Second,
 			})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(res.Error).To(BeEmpty())
@@ -172,10 +177,11 @@ var _ = Describe("Twitter Scraper", func() {
 			res, err := scraper.ExecuteJob(types.Job{
 				Type: TwitterApiScraperType,
 				Arguments: map[string]interface{}{
-					"type":  "searchbyquery",
-					"query": "NASA",
-					"count": 1,
+					"type":        "searchbyquery",
+					"query":       "NASA",
+					"max_results": 1,
 				},
+				Timeout: 10 * time.Second,
 			})
 			Expect(err).To(HaveOccurred())
 			Expect(res.Error).NotTo(BeEmpty())
@@ -214,10 +220,11 @@ var _ = Describe("Twitter Scraper", func() {
 		j := types.Job{
 			Type: TwitterScraperType,
 			Arguments: map[string]interface{}{
-				"type":  "searchbyquery",
-				"query": "AI",
-				"count": 1,
+				"type":        "searchbyquery",
+				"query":       "AI",
+				"max_results": 2,
 			},
+			Timeout: 10 * time.Second,
 		}
 		res, err := twitterScraper.ExecuteJob(j)
 		Expect(err).NotTo(HaveOccurred())
@@ -239,9 +246,8 @@ var _ = Describe("Twitter Scraper", func() {
 			Arguments: map[string]interface{}{
 				"type":  "searchbyprofile",
 				"query": "NASA_Marshall",
-				"count": 1,
 			},
-			WorkerID: "foo",
+			Timeout: 10 * time.Second,
 		}
 		res, err := twitterScraper.ExecuteJob(j)
 		Expect(err).NotTo(HaveOccurred())
@@ -255,8 +261,7 @@ var _ = Describe("Twitter Scraper", func() {
 		Expect(result.Website).To(ContainSubstring("nasa.gov"))
 
 		Expect(statsCollector.Stats.Stats[j.WorkerID][stats.TwitterScrapes]).To(BeNumerically("==", 1))
-		// TODO: investigate why this doesn't increment...
-		// Expect(statsCollector.Stats.Stats[j.WorkerID][stats.TwitterProfiles]).To(BeNumerically("==", 1))
+		Expect(statsCollector.Stats.Stats[j.WorkerID][stats.TwitterProfiles]).To(BeNumerically("==", 1))
 	})
 
 	It("should scrape tweets with a search query", func() {
@@ -267,7 +272,6 @@ var _ = Describe("Twitter Scraper", func() {
 				"query": "getmasafi",
 				"count": 1,
 			},
-			WorkerID: "foo",
 		}
 		res, err := twitterScraper.ExecuteJob(j)
 		Expect(err).NotTo(HaveOccurred())
