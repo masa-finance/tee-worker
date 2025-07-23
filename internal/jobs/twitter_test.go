@@ -222,6 +222,34 @@ var _ = Describe("Twitter Scraper", func() {
 		// Don't remove .masa directory as it's used by production
 	})
 
+	// note, needs full archive key in TWITTER_API_KEYS to run...
+	// It("should scrape tweets with full archive", func() {
+	// 	j := types.Job{
+	// 		Type: TwitterApiScraperType,
+	// 		Arguments: map[string]interface{}{
+	// 			"type":        "searchbyfullarchive",
+	// 			"query":       "AI",
+	// 			"max_results": 2,
+	// 		},
+	// 		Timeout: 10 * time.Second,
+	// 	}
+	// 	res, err := twitterScraper.ExecuteJob(j)
+	// 	Expect(err).NotTo(HaveOccurred())
+	// 	Expect(res.Error).To(BeEmpty())
+
+	// 	var results []*teetypes.TweetResult
+	// 	err = res.Unmarshal(&results)
+	// 	Expect(err).NotTo(HaveOccurred())
+	// 	Expect(results).ToNot(BeEmpty())
+
+	// 	// Wait briefly for asynchronous stats processing to complete
+	// 	time.Sleep(100 * time.Millisecond)
+
+	// 	Expect(results[0].Text).ToNot(BeEmpty())
+	// 	Expect(statsCollector.Stats.Stats[j.WorkerID][stats.TwitterScrapes]).To(BeNumerically("==", 1))
+	// 	Expect(statsCollector.Stats.Stats[j.WorkerID][stats.TwitterTweets]).To(BeNumerically("==", uint(len(results))))
+	// })
+
 	It("should scrape tweets with a search query", func() {
 		j := types.Job{
 			Type: TwitterScraperType,
