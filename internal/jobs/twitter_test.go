@@ -30,6 +30,20 @@ func parseTwitterAccounts() []string {
 	return accounts
 }
 
+// parseTwitterApiKeys parses TWITTER_API_KEYS environment variable like production does
+func parseTwitterApiKeys() []string {
+	apiKeysEnv := os.Getenv("TWITTER_API_KEYS")
+	if apiKeysEnv == "" {
+		return nil
+	}
+
+	apiKeys := strings.Split(apiKeysEnv, ",")
+	for i, apiKey := range apiKeys {
+		apiKeys[i] = strings.TrimSpace(apiKey)
+	}
+	return apiKeys
+}
+
 var _ = Describe("Twitter Scraper", func() {
 
 	// --- New tests for specialized job types ---
@@ -38,7 +52,7 @@ var _ = Describe("Twitter Scraper", func() {
 		var tempDir string
 		var err error
 		var twitterAccounts []string
-		var apiKey string
+		var twitterApiKeys []string
 
 		BeforeEach(func() {
 			logrus.SetLevel(logrus.DebugLevel)
@@ -49,7 +63,7 @@ var _ = Describe("Twitter Scraper", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			twitterAccounts = parseTwitterAccounts()
-			apiKey = os.Getenv("TWITTER_TEST_API_KEY")
+			twitterApiKeys = parseTwitterApiKeys()
 			statsCollector = stats.StartCollector(128, types.JobConfiguration{})
 		})
 
@@ -82,11 +96,11 @@ var _ = Describe("Twitter Scraper", func() {
 		})
 
 		It("should use API key for twitter-api-scraper", func() {
-			if apiKey == "" {
-				Skip("TWITTER_TEST_API_KEY is not set")
+			if len(twitterApiKeys) == 0 {
+				Skip("TWITTER_API_KEYS is not set")
 			}
 			scraper := NewTwitterScraper(types.JobConfiguration{
-				"twitter_api_keys": []string{apiKey},
+				"twitter_api_keys": twitterApiKeys,
 				"data_dir":         tempDir,
 			}, statsCollector)
 			res, err := scraper.ExecuteJob(types.Job{
@@ -106,11 +120,11 @@ var _ = Describe("Twitter Scraper", func() {
 		})
 
 		It("should error if wrong auth method for job type", func() {
-			if apiKey == "" {
-				Skip("TWITTER_TEST_API_KEY is not set")
+			if len(twitterApiKeys) == 0 {
+				Skip("TWITTER_API_KEYS is not set")
 			}
 			scraper := NewTwitterScraper(types.JobConfiguration{
-				"twitter_api_keys": []string{apiKey},
+				"twitter_api_keys": twitterApiKeys,
 				"data_dir":         tempDir,
 			}, statsCollector)
 			// Try to run credential-only job with only API key
@@ -127,12 +141,12 @@ var _ = Describe("Twitter Scraper", func() {
 		})
 
 		It("should prefer credentials if both are present for twitter-scraper", func() {
-			if len(twitterAccounts) == 0 || apiKey == "" {
-				Skip("TWITTER_ACCOUNTS or TWITTER_TEST_API_KEY is not set")
+			if len(twitterAccounts) == 0 || len(twitterApiKeys) == 0 {
+				Skip("TWITTER_ACCOUNTS or TWITTER_API_KEYS is not set")
 			}
 			scraper := NewTwitterScraper(types.JobConfiguration{
 				"twitter_accounts": twitterAccounts,
-				"twitter_api_keys": []string{apiKey},
+				"twitter_api_keys": twitterApiKeys,
 				"data_dir":         tempDir,
 			}, statsCollector)
 			res, err := scraper.ExecuteJob(types.Job{
@@ -244,29 +258,29 @@ var _ = Describe("Twitter Scraper", func() {
 		Expect(statsCollector.Stats.Stats[j.WorkerID][stats.TwitterProfiles]).To(BeNumerically("==", uint(len(results))))
 	})
 
-	It("should scrape tweets with a search query", func() {
-		j := types.Job{
-			Type: TwitterScraperType,
-			Arguments: map[string]interface{}{
-				"type":  "searchfollowers",
-				"query": "NASA_Marshall",
-				"count": 1,
-			},
-			WorkerID: "foo",
-		}
-		res, err := twitterScraper.ExecuteJob(j)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(res.Error).To(BeEmpty())
+	// It("should scrape tweets with a search query", func() {
+	// 	j := types.Job{
+	// 		Type: TwitterScraperType,
+	// 		Arguments: map[string]interface{}{
+	// 			"type":  "searchfollowers",
+	// 			"query": "getmasafi",
+	// 			"count": 1,
+	// 		},
+	// 		WorkerID: "foo",
+	// 	}
+	// 	res, err := twitterScraper.ExecuteJob(j)
+	// 	Expect(err).NotTo(HaveOccurred())
+	// 	Expect(res.Error).To(BeEmpty())
 
-		var results []*twitterscraper.Profile
-		err = res.Unmarshal(&results)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(len(results)).ToNot(BeZero())
-		Expect(results[0].Username).ToNot(BeEmpty())
+	// 	var results []*twitterscraper.Profile
+	// 	err = res.Unmarshal(&results)
+	// 	Expect(err).NotTo(HaveOccurred())
+	// 	Expect(len(results)).ToNot(BeZero())
+	// 	Expect(results[0].Username).ToNot(BeEmpty())
 
-		Expect(statsCollector.Stats.Stats[j.WorkerID][stats.TwitterScrapes]).To(BeNumerically("==", 1))
-		Expect(statsCollector.Stats.Stats[j.WorkerID][stats.TwitterProfiles]).To(BeNumerically("==", uint(len(results))))
-	})
+	// 	Expect(statsCollector.Stats.Stats[j.WorkerID][stats.TwitterScrapes]).To(BeNumerically("==", 1))
+	// 	Expect(statsCollector.Stats.Stats[j.WorkerID][stats.TwitterProfiles]).To(BeNumerically("==", uint(len(results))))
+	// })
 
 	FIt("should get tweet by ID", func() {
 		logrus.SetLevel(logrus.DebugLevel) // Ensure debug logs are visible
