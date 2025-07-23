@@ -61,12 +61,9 @@ The tee-worker requires various environment variables for operation. These shoul
 - `LISTEN_ADDRESS`: The address the service listens on (default: `:8080`).
 - `RESULT_CACHE_MAX_SIZE`: Maximum number of job results to keep in the result cache (default: `1000`).
 - `RESULT_CACHE_MAX_AGE_SECONDS`: Maximum age (in seconds) to keep a result in the cache (default: `600`).
-- `CAPABILITIES`: Comma-separated list of capabilities to enable for the worker. This is a security feature to limit the actions the worker can perform. If not set, the worker will automatically determine the capabilities (auto-detection) based on the provided credentials and available features. When set, manual capabilities are combined with auto-detected capabilities in telemetry reports, ensuring complete visibility of the worker's actual capabilities.
 - `JOB_TIMEOUT_SECONDS`: Maximum duration of a job when multiple calls are needed to get the number of results requested (default: `300`).
 
 ### Capabilities
-
-The `CAPABILITIES` environment variable defines the actions the worker can perform. This is a security feature to limit the actions the worker can perform.
 
 **Capability Detection and Reporting:**
 
@@ -876,10 +873,6 @@ API_KEY="your-secret-api-key"
 RESULT_CACHE_MAX_SIZE=1000
 RESULT_CACHE_MAX_AGE_SECONDS=600
 JOB_TIMEOUT_SECONDS=300
-
-# Capabilities (choose one approach)
-CAPABILITIES="*"  # All capabilities (default)
-# CAPABILITIES="searchbyquery,getbyid,gettweets,getprofilebyid"  # Only specific working capabilities
 ```
 
 #### `tiktok-transcription`

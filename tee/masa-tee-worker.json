@@ -25,7 +25,6 @@
       {"name": "STANDALONE", "fromHost": true},
       {"name": "LOG_LEVEL", "fromHost": true},
       {"name": "API_KEY", "fromHost":true},
-      {"name": "CAPABILITIES", "fromHost":true},
       {"name": "DATA_DIR", "fromHost":true},
       {"name": "ENABLE_PPROF", "fromHost":true},
       {"name": "JOB_TIMEOUT_SECONDS", "fromHost":true},
@@ -38,7 +37,6 @@
       {"name": "TIKTOK_API_USER_AGENT", "fromHost":true},
       {"name": "TIKTOK_DEFAULT_LANGUAGE", "fromHost":true},
       {"name": "TWITTER_ACCOUNTS", "fromHost":true},
-      {"name": "TWITTER_API_KEY", "fromHost":true},
       {"name": "TWITTER_API_KEYS", "fromHost":true},
       {"name": "TWITTER_SKIP_LOGIN_VERIFICATION", "fromHost":true},
       {"name": "WEBSCRAPER_BLACKLIST", "fromHost":true}

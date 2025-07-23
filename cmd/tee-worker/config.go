@@ -130,7 +130,7 @@ func readConfig() types.JobConfiguration {
 	}
 
 	jc["profiling_enabled"] = os.Getenv("ENABLE_PPROF") == "true"
-	jc["capabilities"] = os.Getenv("CAPABILITIES")
+	// jc["capabilities"] = os.Getenv("CAPABILITIES") // Removed: Manual capabilities not implemented, using automatic detection only
 
 	return jc
 }
