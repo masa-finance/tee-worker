@@ -160,7 +160,6 @@ Below are example job calls for each supported sub-capability:
 
 **Tweet Search Operations:**
 ```json
-// Search tweets by query
 {
   "type": "twitter-scraper",
   "arguments": {
@@ -170,7 +169,6 @@ Below are example job calls for each supported sub-capability:
   }
 }
 
-// Search full archive (requires elevated API key for API-based scraping)
 {
   "type": "twitter-api-scraper",
   "arguments": {
@@ -183,7 +181,6 @@ Below are example job calls for each supported sub-capability:
 
 **Single Tweet Operations:**
 ```json
-// Get tweet by ID
 {
   "type": "twitter-scraper",
   "arguments": {
@@ -192,7 +189,6 @@ Below are example job calls for each supported sub-capability:
   }
 }
 
-// Get replies to a tweet
 {
   "type": "twitter-scraper", 
   "arguments": {
@@ -204,7 +200,6 @@ Below are example job calls for each supported sub-capability:
 
 **User Timeline Operations:**
 ```json
-// Get user tweets
 {
   "type": "twitter-scraper",
   "arguments": {
@@ -214,7 +209,6 @@ Below are example job calls for each supported sub-capability:
   }
 }
 
-// Get user media (photos/videos)
 {
   "type": "twitter-scraper",
   "arguments": {
@@ -224,7 +218,6 @@ Below are example job calls for each supported sub-capability:
   }
 }
 
-// Get home timeline (credential-based only)
 {
   "type": "twitter-credential-scraper",
   "arguments": {
@@ -233,7 +226,6 @@ Below are example job calls for each supported sub-capability:
   }
 }
 
-// Get "For You" timeline (credential-based only)
 {
   "type": "twitter-credential-scraper", 
   "arguments": {
@@ -245,7 +237,6 @@ Below are example job calls for each supported sub-capability:
 
 **Profile Operations:**
 ```json
-// Get profile by username
 {
   "type": "twitter-scraper",
   "arguments": {
@@ -254,7 +245,6 @@ Below are example job calls for each supported sub-capability:
   }
 }
 
-// Get profile by user ID
 {
   "type": "twitter-scraper",
   "arguments": {
@@ -263,7 +253,6 @@ Below are example job calls for each supported sub-capability:
   }
 }
 
-// Get followers
 {
   "type": "twitter-scraper",
   "arguments": {
@@ -272,7 +261,6 @@ Below are example job calls for each supported sub-capability:
   }
 }
 
-// Get following
 {
   "type": "twitter-scraper",
   "arguments": {
@@ -282,7 +270,6 @@ Below are example job calls for each supported sub-capability:
   }
 }
 
-// Get retweeters
 {
   "type": "twitter-scraper",
   "arguments": {
@@ -295,7 +282,6 @@ Below are example job calls for each supported sub-capability:
 
 **Other Operations:**
 ```json
-// Get trending topics
 {
   "type": "twitter-scraper",
   "arguments": {
