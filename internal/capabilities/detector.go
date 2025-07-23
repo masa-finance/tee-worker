@@ -5,6 +5,22 @@ import (
 	"github.com/masa-finance/tee-worker/api/types"
 )
 
+// AlwaysAvailableCapabilities defines the scrapers that are always available regardless of configuration
+var AlwaysAvailableCapabilities = teetypes.WorkerCapabilities{
+	teetypes.JobCapability{
+		JobType:      string(teetypes.WebJob),
+		Capabilities: []teetypes.Capability{"web-scraper"},
+	},
+	teetypes.JobCapability{
+		JobType:      string(teetypes.TelemetryJob),
+		Capabilities: []teetypes.Capability{"telemetry"},
+	},
+	teetypes.JobCapability{
+		JobType:      string(teetypes.TiktokJob),
+		Capabilities: []teetypes.Capability{"tiktok-transcription"},
+	},
+}
+
 // JobServerInterface defines the methods we need from JobServer to avoid circular dependencies
 type JobServerInterface interface {
 	GetWorkerCapabilities() teetypes.WorkerCapabilities
@@ -22,21 +38,8 @@ func DetectCapabilities(jc types.JobConfiguration, jobServer JobServerInterface)
 	// This maintains backward compatibility and is used during initialization
 	var capabilities teetypes.WorkerCapabilities
 
-	// Always available scrapers
-	capabilities = append(capabilities,
-		teetypes.JobCapability{
-			JobType:      "web",
-			Capabilities: []teetypes.Capability{"web-scraper"},
-		},
-		teetypes.JobCapability{
-			JobType:      "telemetry",
-			Capabilities: []teetypes.Capability{"telemetry"},
-		},
-		teetypes.JobCapability{
-			JobType:      "tiktok",
-			Capabilities: []teetypes.Capability{"tiktok-transcription"},
-		},
-	)
+	// Start with always available scrapers
+	capabilities = append(capabilities, AlwaysAvailableCapabilities...)
 
 	// Twitter capabilities based on configuration
 	if accounts, ok := jc["twitter_accounts"].([]string); ok && len(accounts) > 0 {
@@ -49,11 +52,11 @@ func DetectCapabilities(jc types.JobConfiguration, jobServer JobServerInterface)
 
 		capabilities = append(capabilities,
 			teetypes.JobCapability{
-				JobType:      "twitter-credential",
+				JobType:      string(teetypes.TwitterCredentialJob),
 				Capabilities: allTwitterCaps,
 			},
 			teetypes.JobCapability{
-				JobType:      "twitter",
+				JobType:      string(teetypes.TwitterJob),
 				Capabilities: allTwitterCaps,
 			},
 		)
@@ -65,11 +68,11 @@ func DetectCapabilities(jc types.JobConfiguration, jobServer JobServerInterface)
 
 		capabilities = append(capabilities,
 			teetypes.JobCapability{
-				JobType:      "twitter-api",
+				JobType:      string(teetypes.TwitterApiJob),
 				Capabilities: apiCaps,
 			},
 			teetypes.JobCapability{
-				JobType:      "twitter",
+				JobType:      string(teetypes.TwitterJob),
 				Capabilities: apiCaps,
 			},
 		)
