@@ -1215,20 +1215,59 @@ func (ts *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 		return types.JobResult{Error: "job result data is empty"}, fmt.Errorf("job result data is empty")
 	}
 
-	// Unmarshal result to typed structure
-	var results []*teetypes.TweetResult
-	if err := jobResult.Unmarshal(&results); err != nil {
-		logrus.Errorf("Error while unmarshalling job result for job ID %s, type %s: %v", j.UUID, j.Type, err)
-		return types.JobResult{Error: "error unmarshalling job result for final validation and result length check"}, err
-	}
-
-	// Final validation after unmarshaling
-	if len(results) == 0 {
-		logrus.Errorf("Job result is empty for job ID %s, type %s", j.UUID, j.Type)
-		return types.JobResult{Error: "job result is empty"}, fmt.Errorf("job result is empty")
+	// Validate result based on operation type
+	if err := ts.validateJobResult(jobResult, jobArgs.QueryType); err != nil {
+		logrus.Errorf("Error while validating job result for job ID %s, type %s: %v", j.UUID, j.Type, err)
+		return types.JobResult{Error: "error validating job result"}, err
 	}
 
 	return jobResult, nil
+}
+
+// validateJobResult validates the job result based on the query type
+func (ts *TwitterScraper) validateJobResult(jobResult types.JobResult, queryType string) error {
+	switch strings.ToLower(queryType) {
+	case "getbyid", "getprofilebyid":
+		// These operations return single objects, not slices
+		var singleResult interface{}
+		if err := jobResult.Unmarshal(&singleResult); err != nil {
+			return fmt.Errorf("error unmarshalling single result: %w", err)
+		}
+		if singleResult == nil {
+			return fmt.Errorf("single result is nil")
+		}
+	case "searchbyprofile":
+		// Profile search returns a single Profile, not a slice
+		var profile twitterscraper.Profile
+		if err := jobResult.Unmarshal(&profile); err != nil {
+			return fmt.Errorf("error unmarshalling profile result: %w", err)
+		}
+	case "getspace":
+		// Space lookup returns a single Space, not a slice
+		var space twitterscraper.Space
+		if err := jobResult.Unmarshal(&space); err != nil {
+			return fmt.Errorf("error unmarshalling space result: %w", err)
+		}
+	case "searchfollowers", "getfollowing", "getretweeters":
+		// These return slices of Profile objects
+		var profiles []*twitterscraper.Profile
+		if err := jobResult.Unmarshal(&profiles); err != nil {
+			return fmt.Errorf("error unmarshalling profile results: %w", err)
+		}
+		if len(profiles) == 0 {
+			return fmt.Errorf("profile results are empty")
+		}
+	default:
+		// Most operations return slices of TweetResult
+		var results []*teetypes.TweetResult
+		if err := jobResult.Unmarshal(&results); err != nil {
+			return fmt.Errorf("error unmarshalling tweet results: %w", err)
+		}
+		if len(results) == 0 {
+			return fmt.Errorf("tweet results are empty")
+		}
+	}
+	return nil
 }
 
 func (ts *TwitterScraper) FetchHomeTweets(j types.Job, baseDir string, count int, cursor string) ([]*twitterscraper.Tweet, string, error) {

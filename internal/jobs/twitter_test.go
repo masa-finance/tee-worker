@@ -1,7 +1,6 @@
 package jobs_test
 
 import (
-	"fmt"
 	"os"
 	"strings"
 
@@ -58,7 +57,7 @@ var _ = Describe("Twitter Scraper", func() {
 			// Don't remove .masa directory as it's used by production
 		})
 
-		XIt("should use credentials for twitter-credential-scraper", func() {
+		It("should use credentials for twitter-credential-scraper", func() {
 			if len(twitterAccounts) == 0 {
 				Skip("TWITTER_ACCOUNTS is not set")
 			}
@@ -82,7 +81,7 @@ var _ = Describe("Twitter Scraper", func() {
 			Expect(results).ToNot(BeEmpty())
 		})
 
-		XIt("should use API key for twitter-api-scraper", func() {
+		It("should use API key for twitter-api-scraper", func() {
 			if apiKey == "" {
 				Skip("TWITTER_TEST_API_KEY is not set")
 			}
@@ -106,7 +105,7 @@ var _ = Describe("Twitter Scraper", func() {
 			Expect(results).ToNot(BeEmpty())
 		})
 
-		XIt("should error if wrong auth method for job type", func() {
+		It("should error if wrong auth method for job type", func() {
 			if apiKey == "" {
 				Skip("TWITTER_TEST_API_KEY is not set")
 			}
@@ -127,7 +126,7 @@ var _ = Describe("Twitter Scraper", func() {
 			Expect(res.Error).NotTo(BeEmpty())
 		})
 
-		XIt("should prefer credentials if both are present for twitter-scraper", func() {
+		It("should prefer credentials if both are present for twitter-scraper", func() {
 			if len(twitterAccounts) == 0 || apiKey == "" {
 				Skip("TWITTER_ACCOUNTS or TWITTER_TEST_API_KEY is not set")
 			}
@@ -152,7 +151,7 @@ var _ = Describe("Twitter Scraper", func() {
 			Expect(results).ToNot(BeEmpty())
 		})
 
-		XIt("should error if neither credentials nor API key are present", func() {
+		It("should error if neither credentials nor API key are present", func() {
 			scraper := NewTwitterScraper(types.JobConfiguration{
 				"data_dir": tempDir,
 			}, statsCollector)
@@ -197,7 +196,7 @@ var _ = Describe("Twitter Scraper", func() {
 		// Don't remove .masa directory as it's used by production
 	})
 
-	XIt("should scrape tweets with a search query", func() {
+	It("should scrape tweets with a search query", func() {
 		j := types.Job{
 			Type: TwitterScraperType,
 			Arguments: map[string]interface{}{
@@ -220,7 +219,7 @@ var _ = Describe("Twitter Scraper", func() {
 		Expect(statsCollector.Stats.Stats[j.WorkerID][stats.TwitterTweets]).To(BeNumerically("==", uint(len(results))))
 	})
 
-	XIt("should scrape a profile", func() {
+	It("should scrape a profile", func() {
 		j := types.Job{
 			Type: TwitterScraperType,
 			Arguments: map[string]interface{}{
@@ -245,7 +244,7 @@ var _ = Describe("Twitter Scraper", func() {
 		Expect(statsCollector.Stats.Stats[j.WorkerID][stats.TwitterProfiles]).To(BeNumerically("==", uint(len(results))))
 	})
 
-	XIt("should scrape tweets with a search query", func() {
+	It("should scrape tweets with a search query", func() {
 		j := types.Job{
 			Type: TwitterScraperType,
 			Arguments: map[string]interface{}{
@@ -269,7 +268,9 @@ var _ = Describe("Twitter Scraper", func() {
 		Expect(statsCollector.Stats.Stats[j.WorkerID][stats.TwitterProfiles]).To(BeNumerically("==", uint(len(results))))
 	})
 
-	It("should get tweet by ID", func() {
+	FIt("should get tweet by ID", func() {
+		logrus.SetLevel(logrus.DebugLevel) // Ensure debug logs are visible
+
 		res, err := twitterScraper.ExecuteJob(types.Job{
 			Type: TwitterScraperType,
 			Arguments: map[string]interface{}{
@@ -280,25 +281,29 @@ var _ = Describe("Twitter Scraper", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(res.Error).To(BeEmpty())
 
-		// Debug: Print the raw response
-		fmt.Printf("Raw response: %+v\n", res)
+		// Debug: Print the raw response using logrus for visibility
+		logrus.Infof("Raw response Data length: %d", len(res.Data))
+		logrus.Infof("Raw response Error: %s", res.Error)
+		logrus.Infof("Raw response NextCursor: %s", res.NextCursor)
 
-		// Try unmarshaling to a generic interface first
+		// Try unmarshaling to a generic interface first for debugging
 		var rawResult interface{}
 		err = res.Unmarshal(&rawResult)
 		Expect(err).NotTo(HaveOccurred())
-		fmt.Printf("Unmarshaled result: %+v\n", rawResult)
+		logrus.Infof("Unmarshaled generic result type: %T", rawResult)
 
-		// Now try the specific type
-		var tweet *twitterscraper.Tweet
+		// Now try the correct type - should be a single TweetResult, not twitterscraper.Tweet
+		var tweet *teetypes.TweetResult
 		err = res.Unmarshal(&tweet)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(tweet).NotTo(BeNil())
-		Expect(tweet.ID).To(Equal("1881258110712492142")) // ← Fixed expected ID
+		Expect(tweet.TweetID).To(Equal("1881258110712492142")) // Use TweetID field, not ID
 		Expect(tweet.Text).NotTo(BeEmpty())
+
+		logrus.Infof("Successfully unmarshaled tweet: ID=%s, Text=%s", tweet.TweetID, tweet.Text)
 	})
 
-	XIt("should fetch tweet replies", func() {
+	It("should fetch tweet replies", func() {
 		res, err := twitterScraper.ExecuteJob(types.Job{
 			Type: TwitterScraperType,
 			Arguments: map[string]interface{}{
@@ -316,7 +321,7 @@ var _ = Describe("Twitter Scraper", func() {
 		Expect(replies[0].Text).ToNot(BeEmpty())
 	})
 
-	XIt("should fetch tweet retweeters", func() {
+	It("should fetch tweet retweeters", func() {
 		res, err := twitterScraper.ExecuteJob(types.Job{
 			Type: TwitterScraperType,
 			Arguments: map[string]interface{}{
@@ -335,7 +340,7 @@ var _ = Describe("Twitter Scraper", func() {
 		Expect(retweeters[0].Username).ToNot(BeEmpty())
 	})
 
-	XIt("should fetch user tweets", func() {
+	It("should fetch user tweets", func() {
 		res, err := twitterScraper.ExecuteJob(types.Job{
 			Type: TwitterScraperType,
 			Arguments: map[string]interface{}{
@@ -354,7 +359,7 @@ var _ = Describe("Twitter Scraper", func() {
 		Expect(tweets[0].Text).ToNot(BeEmpty())
 	})
 
-	XIt("should fetch user media", func() {
+	It("should fetch user media", func() {
 		res, err := twitterScraper.ExecuteJob(types.Job{
 			Type: TwitterScraperType,
 			Arguments: map[string]interface{}{
@@ -373,7 +378,7 @@ var _ = Describe("Twitter Scraper", func() {
 		Expect(len(media[0].Photos) + len(media[0].Videos)).ToNot(BeZero())
 	})
 
-	XIt("should fetch bookmarks", func() {
+	It("should fetch bookmarks", func() {
 		res, err := twitterScraper.ExecuteJob(types.Job{
 			Type: TwitterScraperType,
 			Arguments: map[string]interface{}{
@@ -391,7 +396,7 @@ var _ = Describe("Twitter Scraper", func() {
 		Expect(bookmarks[0].Text).ToNot(BeEmpty())
 	})
 
-	XIt("should fetch home tweets", func() {
+	It("should fetch home tweets", func() {
 		res, err := twitterScraper.ExecuteJob(types.Job{
 			Type: TwitterScraperType,
 			Arguments: map[string]interface{}{
@@ -409,7 +414,7 @@ var _ = Describe("Twitter Scraper", func() {
 		Expect(tweets[0].Text).ToNot(BeEmpty())
 	})
 
-	XIt("should fetch for you tweets", func() {
+	It("should fetch for you tweets", func() {
 		res, err := twitterScraper.ExecuteJob(types.Job{
 			Type: TwitterScraperType,
 			Arguments: map[string]interface{}{
@@ -428,7 +433,7 @@ var _ = Describe("Twitter Scraper", func() {
 		Expect(tweets[0].Text).ToNot(BeEmpty())
 	})
 
-	XIt("should fetch profile by ID", func() {
+	It("should fetch profile by ID", func() {
 		res, err := twitterScraper.ExecuteJob(types.Job{
 			Type: TwitterScraperType,
 			Arguments: map[string]interface{}{
@@ -445,7 +450,7 @@ var _ = Describe("Twitter Scraper", func() {
 		Expect(profile.Username).To(Equal("NASA"))
 	})
 
-	XIt("should fetch space", func() {
+	It("should fetch space", func() {
 		res, err := twitterScraper.ExecuteJob(types.Job{
 			Type: TwitterScraperType,
 			Arguments: map[string]interface{}{
@@ -462,7 +467,7 @@ var _ = Describe("Twitter Scraper", func() {
 		Expect(space.ID).ToNot(BeEmpty())
 	})
 
-	XIt("should fetch following", func() {
+	It("should fetch following", func() {
 		res, err := twitterScraper.ExecuteJob(types.Job{
 			Type: TwitterScraperType,
 			Arguments: map[string]interface{}{

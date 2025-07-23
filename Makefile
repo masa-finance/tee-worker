@@ -58,3 +58,11 @@ test-capabilities: tee/private.pem
 test-jobs: tee/private.pem
 	@docker build --target=dependencies --build-arg baseimage=builder --secret id=private_key,src=./tee/private.pem -t $(IMAGE) -f Dockerfile .
 	@docker run --user root --env-file $(PWD)/.env -v $(PWD)/.masa:/home/masa -v $(PWD)/coverage:/app/coverage --rm --workdir /app $(IMAGE) go test -coverprofile=coverage/coverage-jobs.txt -covermode=atomic -v ./internal/jobs
+
+test-twitter: tee/private.pem
+	@docker build --target=dependencies --build-arg baseimage=builder --secret id=private_key,src=./tee/private.pem -t $(IMAGE) -f Dockerfile .
+	@docker run --user root --env-file $(PWD)/.env -v $(PWD)/.masa:/home/masa -v $(PWD)/coverage:/app/coverage --rm --workdir /app $(IMAGE) go test -v ./internal/jobs/twitter_test.go ./internal/jobs/jobs_suite_test.go
+
+test-telemetry: tee/private.pem
+	@docker build --target=dependencies --build-arg baseimage=builder --secret id=private_key,src=./tee/private.pem -t $(IMAGE) -f Dockerfile .
+	@docker run --user root --env-file $(PWD)/.env -v $(PWD)/.masa:/home/masa -v $(PWD)/coverage:/app/coverage --rm --workdir /app $(IMAGE) go test -v ./internal/jobs/telemetry_test.go ./internal/jobs/jobs_suite_test.go
