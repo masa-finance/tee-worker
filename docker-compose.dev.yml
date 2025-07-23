@@ -3,7 +3,9 @@ services:
     network_mode: "host"
     # image: masaengineering/tee-worker:main
     # Uncomment to build from source
-    build: .
+    build:
+      context: ..  # Use parent directory so Docker can access both tee-worker and tee-types
+      dockerfile: tee-worker/Dockerfile  # Path to Dockerfile from parent context
     env_file:
       - .env
     ports:

@@ -16,9 +16,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// TikTokTranscriptionType is the job type identifier for TikTok transcriptions.
-const TikTokTranscriptionType = "tiktok-transcription"
-
 // tiktokTranscriptionEndpoint is the default hardcoded endpoint for TikTok transcriptions.
 const tiktokTranscriptionEndpoint = "https://submagic-free-tools.fly.dev/api/tiktok-transcription"
 
@@ -40,11 +37,11 @@ type TikTokTranscriber struct {
 }
 
 // GetStructuredCapabilities returns the structured capabilities supported by the TikTok transcriber
-func (t *TikTokTranscriber) GetStructuredCapabilities() []types.JobCapability {
-	return []types.JobCapability{
+func (t *TikTokTranscriber) GetStructuredCapabilities() []teetypes.JobCapability {
+	return []teetypes.JobCapability{
 		{
-			JobType:      "tiktok",
-			Capabilities: []types.Capability{"tiktok-transcription"},
+			JobType:      string(teetypes.TiktokJob),
+			Capabilities: []teetypes.Capability{"tiktok-transcription"},
 		},
 	}
 }

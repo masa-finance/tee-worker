@@ -1,17 +1,18 @@
 package capabilities
 
 import (
+	teetypes "github.com/masa-finance/tee-types/types"
 	"github.com/masa-finance/tee-worker/api/types"
 )
 
 // JobServerInterface defines the methods we need from JobServer to avoid circular dependencies
 type JobServerInterface interface {
-	GetWorkerCapabilities() types.WorkerCapabilities
+	GetWorkerCapabilities() teetypes.WorkerCapabilities
 }
 
 // DetectCapabilities automatically detects available capabilities based on configuration
 // If jobServer is provided, it will use the actual worker capabilities
-func DetectCapabilities(jc types.JobConfiguration, jobServer JobServerInterface) types.WorkerCapabilities {
+func DetectCapabilities(jc types.JobConfiguration, jobServer JobServerInterface) teetypes.WorkerCapabilities {
 	// If we have a JobServer, get capabilities directly from the workers
 	if jobServer != nil {
 		return jobServer.GetWorkerCapabilities()
@@ -19,27 +20,27 @@ func DetectCapabilities(jc types.JobConfiguration, jobServer JobServerInterface)
 
 	// Fallback to basic detection if no JobServer is available
 	// This maintains backward compatibility and is used during initialization
-	var capabilities types.WorkerCapabilities
+	var capabilities teetypes.WorkerCapabilities
 
 	// Always available scrapers
 	capabilities = append(capabilities,
-		types.JobCapability{
+		teetypes.JobCapability{
 			JobType:      "web",
-			Capabilities: []types.Capability{"web-scraper"},
+			Capabilities: []teetypes.Capability{"web-scraper"},
 		},
-		types.JobCapability{
+		teetypes.JobCapability{
 			JobType:      "telemetry",
-			Capabilities: []types.Capability{"telemetry"},
+			Capabilities: []teetypes.Capability{"telemetry"},
 		},
-		types.JobCapability{
+		teetypes.JobCapability{
 			JobType:      "tiktok",
-			Capabilities: []types.Capability{"tiktok-transcription"},
+			Capabilities: []teetypes.Capability{"tiktok-transcription"},
 		},
 	)
 
 	// Twitter capabilities based on configuration
 	if accounts, ok := jc["twitter_accounts"].([]string); ok && len(accounts) > 0 {
-		allTwitterCaps := []types.Capability{
+		allTwitterCaps := []teetypes.Capability{
 			"searchbyquery", "searchbyfullarchive", "searchbyprofile",
 			"getbyid", "getreplies", "getretweeters", "gettweets", "getmedia",
 			"gethometweets", "getforyoutweets", "getprofilebyid",
@@ -47,40 +48,31 @@ func DetectCapabilities(jc types.JobConfiguration, jobServer JobServerInterface)
 		}
 
 		capabilities = append(capabilities,
-			types.JobCapability{
+			teetypes.JobCapability{
 				JobType:      "twitter-credential",
 				Capabilities: allTwitterCaps,
 			},
-			types.JobCapability{
+			teetypes.JobCapability{
 				JobType:      "twitter",
 				Capabilities: allTwitterCaps,
 			},
 		)
 	}
 
+	// Twitter API capabilities based on configuration
 	if apiKeys, ok := jc["twitter_api_keys"].([]string); ok && len(apiKeys) > 0 {
-		apiCaps := []types.Capability{"searchbyquery", "getbyid", "getprofilebyid"}
-		// Note: Can't detect elevated keys during fallback
+		apiCaps := []teetypes.Capability{"searchbyquery", "getbyid", "getprofilebyid"}
 
-		capabilities = append(capabilities, types.JobCapability{
-			JobType:      "twitter-api",
-			Capabilities: apiCaps,
-		})
-
-		// If we don't already have general twitter (no accounts), add it
-		hasGeneralTwitter := false
-		for _, cap := range capabilities {
-			if cap.JobType == "twitter" {
-				hasGeneralTwitter = true
-				break
-			}
-		}
-		if !hasGeneralTwitter {
-			capabilities = append(capabilities, types.JobCapability{
+		capabilities = append(capabilities,
+			teetypes.JobCapability{
+				JobType:      "twitter-api",
+				Capabilities: apiCaps,
+			},
+			teetypes.JobCapability{
 				JobType:      "twitter",
 				Capabilities: apiCaps,
-			})
-		}
+			},
+		)
 	}
 
 	return capabilities

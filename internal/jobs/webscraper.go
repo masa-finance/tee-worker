@@ -9,6 +9,7 @@ import (
 	"time"
 
 	teeargs "github.com/masa-finance/tee-types/args"
+	teetypes "github.com/masa-finance/tee-types/types"
 
 	"github.com/cenkalti/backoff"
 	"github.com/gocolly/colly"
@@ -16,8 +17,6 @@ import (
 	"github.com/masa-finance/tee-worker/internal/jobs/stats"
 	"github.com/sirupsen/logrus"
 )
-
-const WebScraperType = "web-scraper"
 
 type WebScraper struct {
 	configuration WebScraperConfiguration
@@ -38,11 +37,11 @@ func NewWebScraper(jc types.JobConfiguration, statsCollector *stats.StatsCollect
 }
 
 // GetStructuredCapabilities returns the structured capabilities supported by the web scraper
-func (ws *WebScraper) GetStructuredCapabilities() []types.JobCapability {
-	return []types.JobCapability{
+func (ws *WebScraper) GetStructuredCapabilities() []teetypes.JobCapability {
+	return []teetypes.JobCapability{
 		{
-			JobType:      "web",
-			Capabilities: []types.Capability{"web-scraper"},
+			JobType:      string(teetypes.WebJob),
+			Capabilities: []teetypes.Capability{"web-scraper"},
 		},
 	}
 }

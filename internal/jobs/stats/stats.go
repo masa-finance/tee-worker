@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	teetypes "github.com/masa-finance/tee-types/types"
 	"github.com/masa-finance/tee-worker/api/types"
 	"github.com/masa-finance/tee-worker/internal/capabilities"
 	"github.com/masa-finance/tee-worker/internal/versioning"
@@ -45,7 +46,7 @@ type Stats struct {
 	CurrentTimeUnix      int64                        `json:"current_time"`
 	WorkerID             string                       `json:"worker_id"`
 	Stats                map[string]map[StatType]uint `json:"stats"`
-	ReportedCapabilities types.WorkerCapabilities     `json:"reported_capabilities"`
+	ReportedCapabilities teetypes.WorkerCapabilities  `json:"reported_capabilities"`
 	WorkerVersion        string                       `json:"worker_version"`
 	ApplicationVersion   string                       `json:"application_version"`
 	sync.Mutex
@@ -68,7 +69,7 @@ func StartCollector(bufSize uint, jc types.JobConfiguration) *StatsCollector {
 		Stats:                make(map[string]map[StatType]uint),
 		WorkerVersion:        versioning.TEEWorkerVersion,
 		ApplicationVersion:   versioning.ApplicationVersion,
-		ReportedCapabilities: types.WorkerCapabilities{},
+		ReportedCapabilities: teetypes.WorkerCapabilities{},
 	}
 
 	// Initial capability detection without JobServer (basic capabilities only)

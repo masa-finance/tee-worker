@@ -10,6 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/google/uuid"
+	teetypes "github.com/masa-finance/tee-types/types"
 	"github.com/masa-finance/tee-worker/api/types"
 	"github.com/masa-finance/tee-worker/internal/config"
 	"github.com/masa-finance/tee-worker/internal/jobs"
@@ -71,31 +72,31 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 	// Initialize job workers
 	logrus.Info("Setting up job workers...")
 	jobworkers := map[string]*jobWorkerEntry{
-		jobs.WebScraperType: {
+		string(teetypes.WebJob): {
 			w: jobs.NewWebScraper(jc, s),
 		},
-		jobs.TwitterScraperType: {
+		string(teetypes.TwitterJob): {
 			w: jobs.NewTwitterScraper(jc, s),
 		},
-		jobs.TwitterCredentialScraperType: {
+		string(teetypes.TwitterCredentialJob): {
 			w: jobs.NewTwitterScraper(jc, s), // Uses the same implementation as standard Twitter scraper
 		},
-		jobs.TwitterApiScraperType: {
+		string(teetypes.TwitterApiJob): {
 			w: jobs.NewTwitterScraper(jc, s), // Uses the same implementation as standard Twitter scraper
 		},
-		jobs.TelemetryJobType: {
+		string(teetypes.TelemetryJob): {
 			w: jobs.NewTelemetryJob(jc, s),
 		},
-		jobs.TikTokTranscriptionType: {
+		string(teetypes.TiktokJob): {
 			w: jobs.NewTikTokTranscriber(jc, s),
 		},
 	}
-	logrus.Infof("Initialized job worker for: %s", jobs.WebScraperType)
-	logrus.Infof("Initialized job worker for: %s", jobs.TwitterScraperType)
-	logrus.Infof("Initialized job worker for: %s", jobs.TwitterCredentialScraperType)
-	logrus.Infof("Initialized job worker for: %s", jobs.TwitterApiScraperType)
-	logrus.Infof("Initialized job worker for: %s", jobs.TelemetryJobType)
-	logrus.Infof("Initialized job worker for: %s", jobs.TikTokTranscriptionType)
+	logrus.Infof("Initialized job worker for: %s", string(teetypes.WebJob))
+	logrus.Infof("Initialized job worker for: %s", string(teetypes.TwitterJob))
+	logrus.Infof("Initialized job worker for: %s", string(teetypes.TwitterCredentialJob))
+	logrus.Infof("Initialized job worker for: %s", string(teetypes.TwitterApiJob))
+	logrus.Infof("Initialized job worker for: %s", string(teetypes.TelemetryJob))
+	logrus.Infof("Initialized job worker for: %s", string(teetypes.TiktokJob))
 
 	logrus.Info("Job workers setup completed.")
 
@@ -121,20 +122,20 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 
 // CapabilityProvider is an interface for workers that can report their capabilities
 type CapabilityProvider interface {
-	GetStructuredCapabilities() []types.JobCapability
+	GetStructuredCapabilities() []teetypes.JobCapability
 }
 
 // GetWorkerCapabilities returns the structured capabilities for all registered workers
-func (js *JobServer) GetWorkerCapabilities() types.WorkerCapabilities {
+func (js *JobServer) GetWorkerCapabilities() teetypes.WorkerCapabilities {
 	// Use a map to deduplicate capabilities by job type
-	jobTypeCapMap := make(map[string]map[types.Capability]struct{})
+	jobTypeCapMap := make(map[string]map[teetypes.Capability]struct{})
 
 	for _, workerEntry := range js.jobWorkers {
 		if provider, ok := workerEntry.w.(CapabilityProvider); ok {
 			structuredCapabilities := provider.GetStructuredCapabilities()
 			for _, structuredCapability := range structuredCapabilities {
 				if jobTypeCapMap[structuredCapability.JobType] == nil {
-					jobTypeCapMap[structuredCapability.JobType] = make(map[types.Capability]struct{})
+					jobTypeCapMap[structuredCapability.JobType] = make(map[teetypes.Capability]struct{})
 				}
 				for _, capability := range structuredCapability.Capabilities {
 					jobTypeCapMap[structuredCapability.JobType][capability] = struct{}{}
@@ -144,13 +145,13 @@ func (js *JobServer) GetWorkerCapabilities() types.WorkerCapabilities {
 	}
 
 	// Convert map back to slice format
-	var allCapabilities types.WorkerCapabilities
+	var allCapabilities teetypes.WorkerCapabilities
 	for jobType, capabilitySet := range jobTypeCapMap {
-		var capabilities []types.Capability
+		var capabilities []teetypes.Capability
 		for capability := range capabilitySet {
 			capabilities = append(capabilities, capability)
 		}
-		allCapabilities = append(allCapabilities, types.JobCapability{
+		allCapabilities = append(allCapabilities, teetypes.JobCapability{
 			JobType:      jobType,
 			Capabilities: capabilities,
 		})
@@ -181,7 +182,7 @@ func (js *JobServer) AddJob(j types.Job) (string, error) {
 		return "", errors.New("this job is not for this worker")
 	}
 
-	if j.Type != jobs.TelemetryJobType && config.MinersWhiteList != "" {
+	if j.Type != string(teetypes.TelemetryJob) && config.MinersWhiteList != "" {
 		var miners []string
 
 		// In standalone mode, we just whitelist ourselves

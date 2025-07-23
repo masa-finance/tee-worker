@@ -9,9 +9,9 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 
+	teetypes "github.com/masa-finance/tee-types/types"
 	"github.com/masa-finance/tee-worker/api/types"
 	. "github.com/masa-finance/tee-worker/internal/api"
-	"github.com/masa-finance/tee-worker/internal/jobs"
 	"github.com/masa-finance/tee-worker/pkg/client"
 )
 
@@ -44,7 +44,7 @@ var _ = Describe("API", func() {
 			}
 
 			signature, err := c.CreateJobSignature(types.Job{
-				Type:      jobs.WebScraperType,
+				Type:      string(teetypes.WebJob),
 				Arguments: map[string]interface{}{},
 			})
 			if err != nil {
@@ -71,7 +71,7 @@ var _ = Describe("API", func() {
 	It("should submit an invalid job, and fail because of the malformed URL. no results containing google", func() {
 		// Step 1: Create the job request
 		job := types.Job{
-			Type: jobs.WebScraperType,
+			Type: string(teetypes.WebJob),
 			Arguments: map[string]interface{}{
 				"url": "google",
 			},
@@ -103,7 +103,7 @@ var _ = Describe("API", func() {
 	It("should submit a job and get the correct result", func() {
 		// Step 1: Create the job request
 		job := types.Job{
-			Type: jobs.WebScraperType,
+			Type: string(teetypes.WebJob),
 			Arguments: map[string]interface{}{
 				"url":   "https://google.com",
 				"depth": 1,

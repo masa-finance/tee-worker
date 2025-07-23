@@ -83,7 +83,7 @@ var _ = Describe("Twitter Scraper", func() {
 				"data_dir":         tempDir,
 			}, statsCollector)
 			res, err := scraper.ExecuteJob(types.Job{
-				Type: TwitterCredentialScraperType,
+				Type: string(teetypes.TwitterCredentialJob),
 				Arguments: map[string]interface{}{
 					"type":        "searchbyquery",
 					"query":       "NASA",
@@ -108,7 +108,7 @@ var _ = Describe("Twitter Scraper", func() {
 				"data_dir":         tempDir,
 			}, statsCollector)
 			res, err := scraper.ExecuteJob(types.Job{
-				Type: TwitterApiScraperType,
+				Type: string(teetypes.TwitterApiJob),
 				Arguments: map[string]interface{}{
 					"type":        "searchbyquery",
 					"query":       "NASA",
@@ -134,7 +134,7 @@ var _ = Describe("Twitter Scraper", func() {
 			}, statsCollector)
 			// Try to run credential-only job with only API key
 			res, err := scraper.ExecuteJob(types.Job{
-				Type: TwitterCredentialScraperType,
+				Type: string(teetypes.TwitterCredentialJob),
 				Arguments: map[string]interface{}{
 					"type":        "searchbyquery",
 					"query":       "NASA",
@@ -156,7 +156,7 @@ var _ = Describe("Twitter Scraper", func() {
 				"data_dir":         tempDir,
 			}, statsCollector)
 			res, err := scraper.ExecuteJob(types.Job{
-				Type: TwitterScraperType,
+				Type: string(teetypes.TwitterJob),
 				Arguments: map[string]interface{}{
 					"type":        "searchbyquery",
 					"query":       "NASA",
@@ -177,7 +177,7 @@ var _ = Describe("Twitter Scraper", func() {
 				"data_dir": tempDir,
 			}, statsCollector)
 			res, err := scraper.ExecuteJob(types.Job{
-				Type: TwitterApiScraperType,
+				Type: string(teetypes.TwitterApiJob),
 				Arguments: map[string]interface{}{
 					"type":        "searchbyquery",
 					"query":       "NASA",
@@ -224,7 +224,7 @@ var _ = Describe("Twitter Scraper", func() {
 
 	It("should scrape tweets with a search query", func() {
 		j := types.Job{
-			Type: TwitterScraperType,
+			Type: string(teetypes.TwitterJob),
 			Arguments: map[string]interface{}{
 				"type":        "searchbyquery",
 				"query":       "AI",
@@ -251,7 +251,7 @@ var _ = Describe("Twitter Scraper", func() {
 
 	It("should scrape a profile", func() {
 		j := types.Job{
-			Type: TwitterScraperType,
+			Type: string(teetypes.TwitterJob),
 			Arguments: map[string]interface{}{
 				"type":  "searchbyprofile",
 				"query": "NASA_Marshall",
@@ -278,7 +278,7 @@ var _ = Describe("Twitter Scraper", func() {
 
 	It("should get tweet by ID", func() {
 		res, err := twitterScraper.ExecuteJob(types.Job{
-			Type: TwitterScraperType,
+			Type: string(teetypes.TwitterJob),
 			Arguments: map[string]interface{}{
 				"type":  "getbyid",
 				"query": "1881258110712492142",
@@ -298,7 +298,7 @@ var _ = Describe("Twitter Scraper", func() {
 
 	It("should fetch tweet replies", func() {
 		j := types.Job{
-			Type: TwitterScraperType,
+			Type: string(teetypes.TwitterJob),
 			Arguments: map[string]interface{}{
 				"type":  "getreplies",
 				"query": "1234567890",
@@ -324,7 +324,7 @@ var _ = Describe("Twitter Scraper", func() {
 
 	It("should fetch tweet retweeters", func() {
 		j := types.Job{
-			Type: TwitterScraperType,
+			Type: string(teetypes.TwitterJob),
 			Arguments: map[string]interface{}{
 				"type":        "getretweeters",
 				"query":       "1234567890",
@@ -351,7 +351,7 @@ var _ = Describe("Twitter Scraper", func() {
 
 	It("should fetch user tweets", func() {
 		j := types.Job{
-			Type: TwitterScraperType,
+			Type: string(teetypes.TwitterJob),
 			Arguments: map[string]interface{}{
 				"type":        "gettweets",
 				"query":       "NASA",
@@ -378,7 +378,7 @@ var _ = Describe("Twitter Scraper", func() {
 
 	It("should fetch user media", func() {
 		res, err := twitterScraper.ExecuteJob(types.Job{
-			Type: TwitterScraperType,
+			Type: string(teetypes.TwitterJob),
 			Arguments: map[string]interface{}{
 				"type":        "getmedia",
 				"query":       "NASA",
@@ -398,7 +398,7 @@ var _ = Describe("Twitter Scraper", func() {
 
 	It("should fetch home tweets", func() {
 		j := types.Job{
-			Type: TwitterScraperType,
+			Type: string(teetypes.TwitterJob),
 			Arguments: map[string]interface{}{
 				"type":        "gethometweets",
 				"max_results": 5,
@@ -424,7 +424,7 @@ var _ = Describe("Twitter Scraper", func() {
 
 	It("should fetch for you tweets", func() {
 		j := types.Job{
-			Type: TwitterScraperType,
+			Type: string(teetypes.TwitterJob),
 			Arguments: map[string]interface{}{
 				"type":        "getforyoutweets",
 				"max_results": 5,
@@ -452,7 +452,7 @@ var _ = Describe("Twitter Scraper", func() {
 
 	It("should fetch profile by ID", func() {
 		j := types.Job{
-			Type: TwitterScraperType,
+			Type: string(teetypes.TwitterJob),
 			Arguments: map[string]interface{}{
 				"type":  "getprofilebyid",
 				"query": "44196397", //
@@ -477,7 +477,7 @@ var _ = Describe("Twitter Scraper", func() {
 
 	It("should fetch following", func() {
 		j := types.Job{
-			Type: TwitterScraperType,
+			Type: string(teetypes.TwitterJob),
 			Arguments: map[string]interface{}{
 				"type":        "getfollowing",
 				"query":       "NASA",
@@ -504,7 +504,7 @@ var _ = Describe("Twitter Scraper", func() {
 
 	It("should scrape followers from a profile", func() {
 		j := types.Job{
-			Type: TwitterScraperType,
+			Type: string(teetypes.TwitterJob),
 			Arguments: map[string]interface{}{
 				"type":  "getfollowers",
 				"query": "NASA",
@@ -530,7 +530,7 @@ var _ = Describe("Twitter Scraper", func() {
 
 	It("should get trends", func() {
 		j := types.Job{
-			Type: TwitterScraperType,
+			Type: string(teetypes.TwitterJob),
 			Arguments: map[string]interface{}{
 				"type": "gettrends",
 			},
@@ -552,7 +552,7 @@ var _ = Describe("Twitter Scraper", func() {
 	// note, needs to be constructed to fetch live spaces first... hard to test hardcoded ids
 	// It("should fetch space", func() {
 	// 	res, err := twitterScraper.ExecuteJob(types.Job{
-	// 		Type: TwitterScraperType,
+	// 		Type: string(teetypes.TwitterJob),
 	// 		Arguments: map[string]interface{}{
 	// 			"type":  "getspace",
 	// 			"query": "1YpKkZEWlBaxj",
@@ -571,7 +571,7 @@ var _ = Describe("Twitter Scraper", func() {
 	// note, returning "job result is empty" even when account has bookmarks
 	// It("should fetch bookmarks", func() {
 	// 	j := types.Job{
-	// 		Type: TwitterScraperType,
+	// 		Type: string(teetypes.TwitterJob),
 	// 		Arguments: map[string]interface{}{
 	// 			"type":        "getbookmarks",
 	// 			"max_results": 5,
@@ -597,7 +597,7 @@ var _ = Describe("Twitter Scraper", func() {
 	// note, needs full archive key in TWITTER_API_KEYS to run...
 	// It("should scrape tweets with full archive", func() {
 	// 	j := types.Job{
-	// 		Type: TwitterApiScraperType,
+	// 		Type: string(teetypes.TwitterApiJob),
 	// 		Arguments: map[string]interface{}{
 	// 			"type":        "searchbyfullarchive",
 	// 			"query":       "AI",
@@ -625,7 +625,7 @@ var _ = Describe("Twitter Scraper", func() {
 	// note, needs full archive key (elevated) in TWITTER_API_KEYS to run...
 	// It("should scrape tweets with a search by full archive", func() {
 	// 	j := types.Job{
-	// 		Type: TwitterCredentialScraperType,
+	// 		Type: string(teetypes.TwitterCredentialJob),
 	// 		Arguments: map[string]interface{}{
 	// 			"type":        "searchbyfullarchive",
 	// 			"query":       "#AI",
