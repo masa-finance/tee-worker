@@ -38,10 +38,8 @@
       {"name": "TIKTOK_API_USER_AGENT", "fromHost":true},
       {"name": "TIKTOK_DEFAULT_LANGUAGE", "fromHost":true},
       {"name": "TWITTER_ACCOUNTS", "fromHost":true},
-      {"name": "TWITTER_API_KEY", "fromHost":true},
       {"name": "TWITTER_API_KEYS", "fromHost":true},
       {"name": "TWITTER_SKIP_LOGIN_VERIFICATION", "fromHost":true},
-      {"name": "TWITTER_TEST_API_KEY", "fromHost":true},
       {"name": "WEBSCRAPER_BLACKLIST", "fromHost":true}
     ],
  "files": [
