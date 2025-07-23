@@ -5,11 +5,11 @@ services:
     # Uncomment to build from source
     build: .
     env_file:
-      - ./.env
+      - .env
     ports:
-       - "${PORT:-8080}:${PORT:-8080}"
+       - "8080:8080" # this is ignored when network_mode is host
     environment:
-      LISTEN_ADDRESS: ":${PORT:-8080}"
+      LISTEN_ADDRESS: "${LISTEN_ADDRESS:-:8080}"
       # comment if running with Intel SGX HW
       OE_SIMULATION: "1"
       # SGX library logging level: NONE/ FATAL / ERROR / WARNING / INFO / VERBOSE
