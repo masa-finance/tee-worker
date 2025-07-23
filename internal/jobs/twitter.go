@@ -207,22 +207,33 @@ func (ts *TwitterScraper) ScrapeFollowersForProfile(j types.Job, baseDir string,
 }
 
 func (ts *TwitterScraper) ScrapeTweetsProfile(j types.Job, baseDir string, username string) (twitterscraper.Profile, error) {
+	logrus.Infof("[ScrapeTweetsProfile] Starting profile scraping for username: %s", username)
 	scraper, account, _, err := ts.getAuthenticatedScraper(j, baseDir, TwitterScraperType)
 	if err != nil {
+		logrus.Errorf("[ScrapeTweetsProfile] Failed to get authenticated scraper: %v", err)
 		return twitterscraper.Profile{}, err
 	}
 	if scraper == nil {
+		logrus.Errorf("[ScrapeTweetsProfile] Scraper is nil after authentication")
 		return twitterscraper.Profile{}, fmt.Errorf("scraper not initialized for ScrapeTweetsProfile")
 	}
 
+	logrus.Infof("[ScrapeTweetsProfile] About to increment TwitterScrapes stat for WorkerID: %s", j.WorkerID)
 	ts.statsCollector.Add(j.WorkerID, stats.TwitterScrapes, 1)
+	logrus.Infof("[ScrapeTweetsProfile] TwitterScrapes incremented, now calling scraper.GetProfile")
+
 	profile, err := scraper.GetProfile(username)
 	if err != nil {
+		logrus.Errorf("[ScrapeTweetsProfile] scraper.GetProfile failed for username %s: %v", username, err)
 		_ = ts.handleError(j, err, account)
 		return twitterscraper.Profile{}, err
 	}
 
+	logrus.Infof("[ScrapeTweetsProfile] Profile retrieved successfully for username: %s, profile: %+v", username, profile)
+	logrus.Infof("[ScrapeTweetsProfile] About to increment TwitterProfiles stat for WorkerID: %s", j.WorkerID)
 	ts.statsCollector.Add(j.WorkerID, stats.TwitterProfiles, 1)
+	logrus.Infof("[ScrapeTweetsProfile] TwitterProfiles incremented successfully")
+
 	return profile, nil
 }
 
@@ -1220,6 +1231,7 @@ func (ts *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 		strings.ToLower(jobArgs.QueryType) == "searchfollowers" ||
 		strings.ToLower(jobArgs.QueryType) == "getretweeters" ||
 		strings.ToLower(jobArgs.QueryType) == "getprofilebyid" ||
+		strings.ToLower(jobArgs.QueryType) == "getbyid" ||
 		strings.ToLower(jobArgs.QueryType) == "getspace" ||
 		strings.ToLower(jobArgs.QueryType) == "gettrends" ||
 		strings.ToLower(jobArgs.QueryType) == "getfollowing" ||
