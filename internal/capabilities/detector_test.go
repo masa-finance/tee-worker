@@ -172,36 +172,36 @@ func TestDetectCapabilities_ScraperTypes(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			caps := DetectCapabilities(tt.jc, nil)
 
-			scraperNames := make([]string, len(caps))
+			jobNames := make([]string, len(caps))
 			for i, cap := range caps {
-				scraperNames[i] = cap.JobType
+				jobNames[i] = cap.JobType
 			}
 
 			// Check that all expected keys are present
 			for _, expectedKey := range tt.expectedKeys {
 				found := false
-				for _, scraperName := range scraperNames {
-					if scraperName == expectedKey {
+				for _, jobName := range jobNames {
+					if jobName == expectedKey {
 						found = true
 						break
 					}
 				}
 				if !found {
-					t.Errorf("Expected scraper %s not found in %v", expectedKey, scraperNames)
+					t.Errorf("Expected scraper %s not found in %v", expectedKey, jobNames)
 				}
 			}
 
 			// Check that no unexpected keys are present
-			for _, scraperName := range scraperNames {
+			for _, jobName := range jobNames {
 				found := false
 				for _, expectedKey := range tt.expectedKeys {
-					if scraperName == expectedKey {
+					if jobName == expectedKey {
 						found = true
 						break
 					}
 				}
 				if !found {
-					t.Errorf("Unexpected scraper %s found in %v", scraperName, scraperNames)
+					t.Errorf("Unexpected scraper %s found in %v", jobName, jobNames)
 				}
 			}
 		})
