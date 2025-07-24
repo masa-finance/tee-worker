@@ -134,7 +134,7 @@ func (js *JobServer) GetWorkerCapabilities() teetypes.WorkerCapabilities {
 		if provider, ok := workerEntry.w.(CapabilityProvider); ok {
 			structuredCapabilities := provider.GetStructuredCapabilities()
 			for _, structuredCapability := range structuredCapabilities {
-				if jobTypeCapMap[structuredCapability.JobType] == nil {
+				if _, exists := jobTypeCapMap[structuredCapability.JobType]; !exists {
 					jobTypeCapMap[structuredCapability.JobType] = make(map[teetypes.Capability]struct{})
 				}
 				for _, capability := range structuredCapability.Capabilities {
