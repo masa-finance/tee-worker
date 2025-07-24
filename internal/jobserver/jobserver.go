@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/maps"
 
 	"github.com/google/uuid"
 	teetypes "github.com/masa-finance/tee-types/types"
@@ -147,10 +148,7 @@ func (js *JobServer) GetWorkerCapabilities() teetypes.WorkerCapabilities {
 	// Convert map back to slice format
 	var allCapabilities teetypes.WorkerCapabilities
 	for jobType, capabilitySet := range jobTypeCapMap {
-		var capabilities []teetypes.Capability
-		for capability := range capabilitySet {
-			capabilities = append(capabilities, capability)
-		}
+		capabilities := maps.Keys(capabilitySet)
 		allCapabilities = append(allCapabilities, teetypes.JobCapability{
 			JobType:      jobType,
 			Capabilities: capabilities,
