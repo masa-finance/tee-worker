@@ -2,6 +2,7 @@ package api_test
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"time"
 
@@ -51,12 +52,12 @@ var _ = Describe("API", func() {
 				return err
 			}
 
-			// Check if the job signature is empty
+			// Check if the job signature is non-empty (indicates server is ready)
 			if signature == "" {
-				return nil
+				return fmt.Errorf("job signature is empty, server not ready")
 			}
 
-			return nil // or return signature if you need it
+			return nil // Success: signature is non-empty
 		}, 10*time.Second).Should(Succeed())
 
 		// Initialize the client
