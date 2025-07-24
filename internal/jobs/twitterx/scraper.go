@@ -548,8 +548,8 @@ func (s *TwitterXScraper) GetProfileByID(userID string) (*TwitterXProfileRespons
 func (s *TwitterXScraper) GetTweetByID(tweetID string) (*TwitterXTweetData, error) {
 	logrus.Infof("Looking up tweet with ID: %s", tweetID)
 
-	// Construct endpoint URL with tweet fields
-	endpoint := fmt.Sprintf("tweets/%s?tweet.fields=created_at,author_id,public_metrics,context_annotations,geo,lang,possibly_sensitive,source,withheld,attachments,entities,conversation_id,in_reply_to_user_id,referenced_tweets,reply_settings,edit_controls,edit_history_tweet_ids&user.fields=username", tweetID)
+	// Construct endpoint URL with tweet fields and expansions
+	endpoint := fmt.Sprintf("tweets/%s?tweet.fields=created_at,author_id,public_metrics,context_annotations,geo,lang,possibly_sensitive,source,withheld,attachments,entities,conversation_id,in_reply_to_user_id,referenced_tweets,reply_settings,edit_controls,edit_history_tweet_ids&user.fields=username&expansions=author_id", tweetID)
 
 	// Make the request
 	resp, err := s.twitterXClient.Get(endpoint)

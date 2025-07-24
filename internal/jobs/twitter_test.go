@@ -179,8 +179,8 @@ var _ = Describe("Twitter Scraper", func() {
 				Type: string(teetypes.TwitterJob),
 				Arguments: map[string]interface{}{
 					"type":        "searchbyquery",
-					"query":       "NASA",
-					"max_results": 1,
+					"query":       "nasa",
+					"max_results": 10,
 				},
 				Timeout: 10 * time.Second,
 			})
@@ -246,8 +246,8 @@ var _ = Describe("Twitter Scraper", func() {
 				Type: string(teetypes.TwitterJob),
 				Arguments: map[string]interface{}{
 					"type":        "searchbyquery",
-					"query":       "AI",
-					"max_results": 2,
+					"query":       "nasa",
+					"max_results": 10,
 				},
 				Timeout: 10 * time.Second,
 			}
@@ -269,8 +269,11 @@ var _ = Describe("Twitter Scraper", func() {
 		})
 
 		It("should scrape a profile", func() {
+			if len(twitterAccounts) == 0 {
+				Skip("TWITTER_ACCOUNTS is not set")
+			}
 			j := types.Job{
-				Type: string(teetypes.TwitterJob),
+				Type: string(teetypes.TwitterCredentialJob),
 				Arguments: map[string]interface{}{
 					"type":  "searchbyprofile",
 					"query": "NASA_Marshall",
@@ -316,8 +319,11 @@ var _ = Describe("Twitter Scraper", func() {
 		})
 
 		It("should fetch tweet replies", func() {
+			if len(twitterAccounts) == 0 {
+				Skip("TWITTER_ACCOUNTS is not set")
+			}
 			j := types.Job{
-				Type: string(teetypes.TwitterJob),
+				Type: string(teetypes.TwitterCredentialJob),
 				Arguments: map[string]interface{}{
 					"type":  "getreplies",
 					"query": "1234567890",
@@ -342,8 +348,11 @@ var _ = Describe("Twitter Scraper", func() {
 		})
 
 		It("should fetch tweet retweeters", func() {
+			if len(twitterAccounts) == 0 {
+				Skip("TWITTER_ACCOUNTS is not set")
+			}
 			j := types.Job{
-				Type: string(teetypes.TwitterJob),
+				Type: string(teetypes.TwitterCredentialJob),
 				Arguments: map[string]interface{}{
 					"type":        "getretweeters",
 					"query":       "1234567890",
@@ -369,8 +378,11 @@ var _ = Describe("Twitter Scraper", func() {
 		})
 
 		It("should fetch user tweets", func() {
+			if len(twitterAccounts) == 0 {
+				Skip("TWITTER_ACCOUNTS is not set")
+			}
 			j := types.Job{
-				Type: string(teetypes.TwitterJob),
+				Type: string(teetypes.TwitterCredentialJob),
 				Arguments: map[string]interface{}{
 					"type":        "gettweets",
 					"query":       "NASA",
@@ -396,8 +408,11 @@ var _ = Describe("Twitter Scraper", func() {
 		})
 
 		It("should fetch user media", func() {
+			if len(twitterAccounts) == 0 {
+				Skip("TWITTER_ACCOUNTS is not set")
+			}
 			res, err := twitterScraper.ExecuteJob(types.Job{
-				Type: string(teetypes.TwitterJob),
+				Type: string(teetypes.TwitterCredentialJob),
 				Arguments: map[string]interface{}{
 					"type":        "getmedia",
 					"query":       "NASA",
@@ -416,8 +431,11 @@ var _ = Describe("Twitter Scraper", func() {
 		})
 
 		It("should fetch home tweets", func() {
+			if len(twitterAccounts) == 0 {
+				Skip("TWITTER_ACCOUNTS is not set")
+			}
 			j := types.Job{
-				Type: string(teetypes.TwitterJob),
+				Type: string(teetypes.TwitterCredentialJob),
 				Arguments: map[string]interface{}{
 					"type":        "gethometweets",
 					"max_results": 5,
@@ -442,8 +460,11 @@ var _ = Describe("Twitter Scraper", func() {
 		})
 
 		It("should fetch for you tweets", func() {
+			if len(twitterAccounts) == 0 {
+				Skip("TWITTER_ACCOUNTS is not set")
+			}
 			j := types.Job{
-				Type: string(teetypes.TwitterJob),
+				Type: string(teetypes.TwitterCredentialJob),
 				Arguments: map[string]interface{}{
 					"type":        "getforyoutweets",
 					"max_results": 5,
@@ -470,8 +491,11 @@ var _ = Describe("Twitter Scraper", func() {
 		})
 
 		It("should fetch profile by ID", func() {
+			if len(twitterAccounts) == 0 {
+				Skip("TWITTER_ACCOUNTS is not set")
+			}
 			j := types.Job{
-				Type: string(teetypes.TwitterJob),
+				Type: string(teetypes.TwitterCredentialJob),
 				Arguments: map[string]interface{}{
 					"type":  "getprofilebyid",
 					"query": "44196397", //
@@ -495,8 +519,11 @@ var _ = Describe("Twitter Scraper", func() {
 		})
 
 		It("should fetch following", func() {
+			if len(twitterAccounts) == 0 {
+				Skip("TWITTER_ACCOUNTS is not set")
+			}
 			j := types.Job{
-				Type: string(teetypes.TwitterJob),
+				Type: string(teetypes.TwitterCredentialJob),
 				Arguments: map[string]interface{}{
 					"type":        "getfollowing",
 					"query":       "NASA",
@@ -522,8 +549,11 @@ var _ = Describe("Twitter Scraper", func() {
 		})
 
 		It("should scrape followers from a profile", func() {
+			if len(twitterAccounts) == 0 {
+				Skip("TWITTER_ACCOUNTS is not set")
+			}
 			j := types.Job{
-				Type: string(teetypes.TwitterJob),
+				Type: string(teetypes.TwitterCredentialJob),
 				Arguments: map[string]interface{}{
 					"type":  "getfollowers",
 					"query": "NASA",
@@ -548,8 +578,11 @@ var _ = Describe("Twitter Scraper", func() {
 		})
 
 		It("should get trends", func() {
+			if len(twitterAccounts) == 0 {
+				Skip("TWITTER_ACCOUNTS is not set")
+			}
 			j := types.Job{
-				Type: string(teetypes.TwitterJob),
+				Type: string(teetypes.TwitterCredentialJob),
 				Arguments: map[string]interface{}{
 					"type": "gettrends",
 				},
@@ -568,7 +601,7 @@ var _ = Describe("Twitter Scraper", func() {
 			fmt.Println(string(result))
 		})
 
-		FIt("should use API key for twitter-api with getbyid", func() {
+		It("should use API key for twitter-api with getbyid", func() {
 			if len(twitterApiKeys) == 0 {
 				Skip("TWITTER_API_KEYS is not set")
 			}
