@@ -6,13 +6,11 @@ ARG VERSION
 FROM ghcr.io/edgelesssys/ego-dev:v${egover} AS dependencies
 
 WORKDIR /app
-# Copy go.mod and go.sum from tee-worker directory
-COPY tee-worker/go.mod tee-worker/go.sum ./
-# Copy tee-types BEFORE go mod download (needed for replace directive)
-COPY tee-types/ ../tee-types/
+# Copy go.mod and go.sum
+COPY go.mod go.sum ./
 RUN go mod download
-# Copy the rest of tee-worker source
-COPY tee-worker/ .
+# Copy the rest of the source
+COPY . .
 
 # Build the Go binary in a separate stage utilizing Makefile
 FROM dependencies AS builder
