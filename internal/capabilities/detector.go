@@ -1,8 +1,11 @@
 package capabilities
 
 import (
+	"strings"
+
 	teetypes "github.com/masa-finance/tee-types/types"
 	"github.com/masa-finance/tee-worker/api/types"
+	"github.com/masa-finance/tee-worker/internal/jobs/twitter"
 )
 
 // JobServerInterface defines the methods we need from JobServer to avoid circular dependencies
@@ -43,10 +46,19 @@ func DetectCapabilities(jc types.JobConfiguration, jobServer JobServerInterface)
 	}
 
 	if apiKeysAvailable {
+		// Start with basic API capabilities
+		apiCaps := make([]teetypes.Capability, len(teetypes.TwitterAPICaps))
+		copy(apiCaps, teetypes.TwitterAPICaps)
+
+		// Check for elevated API keys and add searchbyfullarchive capability
+		if hasElevatedApiKey(hasApiKeys) {
+			apiCaps = append(apiCaps, teetypes.CapSearchByFullArchive)
+		}
+
 		capabilities = append(capabilities,
 			teetypes.JobCapability{
 				JobType:      string(teetypes.TwitterApiJob),
-				Capabilities: teetypes.TwitterAPICaps,
+				Capabilities: apiCaps,
 			},
 		)
 	}
@@ -58,7 +70,14 @@ func DetectCapabilities(jc types.JobConfiguration, jobServer JobServerInterface)
 		if accountsAvailable {
 			twitterJobCaps = teetypes.TwitterAllCaps
 		} else {
-			twitterJobCaps = teetypes.TwitterAPICaps
+			// Use API capabilities if we only have keys
+			twitterJobCaps = make([]teetypes.Capability, len(teetypes.TwitterAPICaps))
+			copy(twitterJobCaps, teetypes.TwitterAPICaps)
+
+			// Check for elevated API keys and add searchbyfullarchive capability
+			if hasElevatedApiKey(hasApiKeys) {
+				twitterJobCaps = append(twitterJobCaps, teetypes.CapSearchByFullArchive)
+			}
 		}
 
 		capabilities = append(capabilities,
@@ -70,4 +89,40 @@ func DetectCapabilities(jc types.JobConfiguration, jobServer JobServerInterface)
 	}
 
 	return capabilities
+}
+
+// hasElevatedApiKey checks if any of the provided API keys are elevated
+func hasElevatedApiKey(apiKeys []string) bool {
+	if len(apiKeys) == 0 {
+		return false
+	}
+
+	// Parse API keys and create account manager to detect types
+	parsedApiKeys := parseApiKeys(apiKeys)
+	accountManager := twitter.NewTwitterAccountManager(nil, parsedApiKeys)
+
+	// Detect all API key types
+	accountManager.DetectAllApiKeyTypes()
+
+	// Check if any key is elevated
+	for _, apiKey := range accountManager.GetApiKeys() {
+		if apiKey.Type == twitter.TwitterApiKeyTypeElevated {
+			return true
+		}
+	}
+
+	return false
+}
+
+// parseApiKeys converts string API keys to TwitterApiKey structs
+func parseApiKeys(apiKeys []string) []*twitter.TwitterApiKey {
+	result := make([]*twitter.TwitterApiKey, 0, len(apiKeys))
+	for _, key := range apiKeys {
+		if trimmed := strings.TrimSpace(key); trimmed != "" {
+			result = append(result, &twitter.TwitterApiKey{
+				Key: trimmed,
+			})
+		}
+	}
+	return result
 }
