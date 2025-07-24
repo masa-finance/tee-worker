@@ -219,7 +219,8 @@ var _ = Describe("Twitter Scraper", func() {
 	})
 
 	AfterEach(func() {
-		// Don't remove .masa directory as it's used by production
+		// note, keep files in .masa directory for testing
+		// os.RemoveAll(tempDir)
 	})
 
 	FIt("should scrape tweets with a search query", func() {
