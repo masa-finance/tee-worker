@@ -20,7 +20,7 @@ func (t TelemetryJob) GetStructuredCapabilities() []teetypes.JobCapability {
 	return []teetypes.JobCapability{
 		{
 			JobType:      string(teetypes.TelemetryJob),
-			Capabilities: []teetypes.Capability{"telemetry"},
+			Capabilities: teetypes.AlwaysAvailableTelemetryCaps,
 		},
 	}
 }

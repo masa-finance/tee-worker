@@ -909,21 +909,21 @@ func NewTwitterScraper(jc types.JobConfiguration, c *stats.StatsCollector) *Twit
 		accountManager: accountManager,
 		statsCollector: c,
 		capabilities: map[teetypes.Capability]bool{
-			"searchbyquery":       true,
-			"searchbyfullarchive": true,
-			"searchbyprofile":     true,
-			"getbyid":             true,
-			"getreplies":          true,
-			"getretweeters":       true,
-			"gettweets":           true,
-			"getmedia":            true,
-			"gethometweets":       true,
-			"getforyoutweets":     true,
-			"getprofilebyid":      true,
-			"gettrends":           true,
-			"getfollowing":        true,
-			"getfollowers":        true,
-			"getspace":            true,
+			teetypes.CapSearchByQuery:       true,
+			teetypes.CapSearchByFullArchive: true,
+			teetypes.CapSearchByProfile:     true,
+			teetypes.CapGetById:             true,
+			teetypes.CapGetReplies:          true,
+			teetypes.CapGetRetweeters:       true,
+			teetypes.CapGetTweets:           true,
+			teetypes.CapGetMedia:            true,
+			teetypes.CapGetHomeTweets:       true,
+			teetypes.CapGetForYouTweets:     true,
+			teetypes.CapGetProfileById:      true,
+			teetypes.CapGetTrends:           true,
+			teetypes.CapGetFollowing:        true,
+			teetypes.CapGetFollowers:        true,
+			teetypes.CapGetSpace:            true,
 		},
 	}
 }
@@ -951,13 +951,14 @@ func (ts *TwitterScraper) GetStructuredCapabilities() []teetypes.JobCapability {
 
 	// Check if we have API keys for API-based scraping
 	if len(ts.configuration.ApiKeys) > 0 {
-		apiCaps := []teetypes.Capability{"searchbyquery", "getbyid", "getprofilebyid"}
+		apiCaps := make([]teetypes.Capability, len(teetypes.TwitterAPICaps))
+		copy(apiCaps, teetypes.TwitterAPICaps)
 
 		// Check for elevated API capabilities
 		if ts.accountManager != nil {
 			for _, apiKey := range ts.accountManager.GetApiKeys() {
 				if apiKey.Type == twitter.TwitterApiKeyTypeElevated {
-					apiCaps = append(apiCaps, "searchbyfullarchive")
+					apiCaps = append(apiCaps, teetypes.CapSearchByFullArchive)
 					break
 				}
 			}
@@ -981,12 +982,13 @@ func (ts *TwitterScraper) GetStructuredCapabilities() []teetypes.JobCapability {
 			}
 		} else {
 			// Use API capabilities if we only have keys
-			generalCaps = []teetypes.Capability{"searchbyquery", "getbyid", "getprofilebyid"}
+			generalCaps = make([]teetypes.Capability, len(teetypes.TwitterAPICaps))
+			copy(generalCaps, teetypes.TwitterAPICaps)
 			// Check for elevated capabilities
 			if ts.accountManager != nil {
 				for _, apiKey := range ts.accountManager.GetApiKeys() {
 					if apiKey.Type == twitter.TwitterApiKeyTypeElevated {
-						generalCaps = append(generalCaps, "searchbyfullarchive")
+						generalCaps = append(generalCaps, teetypes.CapSearchByFullArchive)
 						break
 					}
 				}

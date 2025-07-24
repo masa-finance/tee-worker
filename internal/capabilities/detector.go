@@ -5,22 +5,6 @@ import (
 	"github.com/masa-finance/tee-worker/api/types"
 )
 
-// AlwaysAvailableCapabilities defines the scrapers that are always available regardless of configuration
-var AlwaysAvailableCapabilities = teetypes.WorkerCapabilities{
-	teetypes.JobCapability{
-		JobType:      string(teetypes.WebJob),
-		Capabilities: []teetypes.Capability{"web-scraper"},
-	},
-	teetypes.JobCapability{
-		JobType:      string(teetypes.TelemetryJob),
-		Capabilities: []teetypes.Capability{"telemetry"},
-	},
-	teetypes.JobCapability{
-		JobType:      string(teetypes.TiktokJob),
-		Capabilities: []teetypes.Capability{"tiktok-transcription"},
-	},
-}
-
 // JobServerInterface defines the methods we need from JobServer to avoid circular dependencies
 type JobServerInterface interface {
 	GetWorkerCapabilities() teetypes.WorkerCapabilities
@@ -39,41 +23,32 @@ func DetectCapabilities(jc types.JobConfiguration, jobServer JobServerInterface)
 	var capabilities teetypes.WorkerCapabilities
 
 	// Start with always available scrapers
-	capabilities = append(capabilities, AlwaysAvailableCapabilities...)
+	capabilities = append(capabilities, teetypes.AlwaysAvailableCapabilities...)
 
 	// Twitter capabilities based on configuration
 	if accounts, ok := jc["twitter_accounts"].([]string); ok && len(accounts) > 0 {
-		allTwitterCaps := []teetypes.Capability{
-			"searchbyquery", "searchbyfullarchive", "searchbyprofile",
-			"getbyid", "getreplies", "getretweeters", "gettweets", "getmedia",
-			"gethometweets", "getforyoutweets", "getprofilebyid",
-			"gettrends", "getfollowing", "getfollowers", "getspace",
-		}
-
 		capabilities = append(capabilities,
 			teetypes.JobCapability{
 				JobType:      string(teetypes.TwitterCredentialJob),
-				Capabilities: allTwitterCaps,
+				Capabilities: teetypes.TwitterAllCaps,
 			},
 			teetypes.JobCapability{
 				JobType:      string(teetypes.TwitterJob),
-				Capabilities: allTwitterCaps,
+				Capabilities: teetypes.TwitterAllCaps,
 			},
 		)
 	}
 
 	// Twitter API capabilities based on configuration
 	if apiKeys, ok := jc["twitter_api_keys"].([]string); ok && len(apiKeys) > 0 {
-		apiCaps := []teetypes.Capability{"searchbyquery", "getbyid", "getprofilebyid"}
-
 		capabilities = append(capabilities,
 			teetypes.JobCapability{
 				JobType:      string(teetypes.TwitterApiJob),
-				Capabilities: apiCaps,
+				Capabilities: teetypes.TwitterAPICaps,
 			},
 			teetypes.JobCapability{
 				JobType:      string(teetypes.TwitterJob),
-				Capabilities: apiCaps,
+				Capabilities: teetypes.TwitterAPICaps,
 			},
 		)
 	}

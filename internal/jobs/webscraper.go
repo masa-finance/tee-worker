@@ -41,7 +41,7 @@ func (ws *WebScraper) GetStructuredCapabilities() []teetypes.JobCapability {
 	return []teetypes.JobCapability{
 		{
 			JobType:      string(teetypes.WebJob),
-			Capabilities: []teetypes.Capability{"web-scraper"},
+			Capabilities: teetypes.AlwaysAvailableWebCaps,
 		},
 	}
 }

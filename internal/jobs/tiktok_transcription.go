@@ -41,7 +41,7 @@ func (t *TikTokTranscriber) GetStructuredCapabilities() []teetypes.JobCapability
 	return []teetypes.JobCapability{
 		{
 			JobType:      string(teetypes.TiktokJob),
-			Capabilities: []teetypes.Capability{"tiktok-transcription"},
+			Capabilities: teetypes.AlwaysAvailableTiktokCaps,
 		},
 	}
 }
