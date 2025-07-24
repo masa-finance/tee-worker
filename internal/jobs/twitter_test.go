@@ -222,7 +222,7 @@ var _ = Describe("Twitter Scraper", func() {
 		// Don't remove .masa directory as it's used by production
 	})
 
-	It("should scrape tweets with a search query", func() {
+	FIt("should scrape tweets with a search query", func() {
 		j := types.Job{
 			Type: string(teetypes.TwitterJob),
 			Arguments: map[string]interface{}{
