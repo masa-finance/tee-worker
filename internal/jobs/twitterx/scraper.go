@@ -102,6 +102,174 @@ type UserLookupResponse struct {
 		Title   string `json:"title"`
 	} `json:"errors,omitempty"`
 }
+
+// TwitterXProfileResponse represents the complete user profile response from TwitterX API
+type TwitterXProfileResponse struct {
+	Data   TwitterXProfileData `json:"data"`
+	Errors []struct {
+		Message string `json:"message"`
+		Code    int    `json:"code"`
+		Title   string `json:"title"`
+	} `json:"errors,omitempty"`
+}
+
+// TwitterXProfileData represents the user profile data from TwitterX API
+type TwitterXProfileData struct {
+	ID               string                `json:"id"`
+	Name             string                `json:"name"`
+	Username         string                `json:"username"`
+	Description      string                `json:"description"`
+	CreatedAt        string                `json:"created_at"`
+	ProfileBannerURL string                `json:"profile_banner_url"`
+	ProfileImageURL  string                `json:"profile_image_url"`
+	Protected        bool                  `json:"protected"`
+	Verified         bool                  `json:"verified"`
+	Location         string                `json:"location,omitempty"`
+	URL              string                `json:"url,omitempty"`
+	PublicMetrics    TwitterXPublicMetrics `json:"public_metrics"`
+}
+
+// TwitterXPublicMetrics represents the public metrics from TwitterX API
+type TwitterXPublicMetrics struct {
+	FollowersCount int `json:"followers_count"`
+	FollowingCount int `json:"following_count"`
+	LikeCount      int `json:"like_count"`
+	ListedCount    int `json:"listed_count"`
+	MediaCount     int `json:"media_count"`
+	TweetCount     int `json:"tweet_count"`
+}
+
+// TwitterXTweetResponse represents the complete tweet response from TwitterX API
+type TwitterXTweetResponse struct {
+	Data     TwitterXTweetData `json:"data"`
+	Includes struct {
+		Users []struct {
+			ID       string `json:"id"`
+			Username string `json:"username"`
+		} `json:"users"`
+		Media []struct {
+			MediaKey string `json:"media_key"`
+			Type     string `json:"type"`
+			URL      string `json:"url,omitempty"`
+		} `json:"media,omitempty"`
+	} `json:"includes,omitempty"`
+	Errors []struct {
+		Message string `json:"message"`
+		Code    int    `json:"code"`
+		Title   string `json:"title"`
+	} `json:"errors,omitempty"`
+}
+
+// TwitterXTweetData represents the tweet data from TwitterX API
+type TwitterXTweetData struct {
+	ID                  string                      `json:"id"`
+	AuthorID            string                      `json:"author_id"`
+	Username            string                      `json:"username,omitempty"` // Populated from includes
+	Text                string                      `json:"text"`
+	CreatedAt           string                      `json:"created_at"`
+	ConversationID      string                      `json:"conversation_id"`
+	InReplyToUserID     string                      `json:"in_reply_to_user_id,omitempty"`
+	Lang                string                      `json:"lang"`
+	PossiblySensitive   bool                        `json:"possibly_sensitive"`
+	ReplySettings       string                      `json:"reply_settings"`
+	PublicMetrics       TwitterXTweetMetrics        `json:"public_metrics"`
+	EditHistoryTweetIds []string                    `json:"edit_history_tweet_ids"`
+	EditControls        TwitterXEditControls        `json:"edit_controls"`
+	Entities            TwitterXEntities            `json:"entities,omitempty"`
+	Attachments         TwitterXAttachments         `json:"attachments,omitempty"`
+	ReferencedTweets    []TwitterXReferencedTweet   `json:"referenced_tweets,omitempty"`
+	ContextAnnotations  []TwitterXContextAnnotation `json:"context_annotations,omitempty"`
+}
+
+// TwitterXTweetMetrics represents the public metrics for a tweet
+type TwitterXTweetMetrics struct {
+	RetweetCount    int `json:"retweet_count"`
+	ReplyCount      int `json:"reply_count"`
+	LikeCount       int `json:"like_count"`
+	QuoteCount      int `json:"quote_count"`
+	BookmarkCount   int `json:"bookmark_count"`
+	ImpressionCount int `json:"impression_count"`
+}
+
+// TwitterXEditControls represents the edit controls for a tweet
+type TwitterXEditControls struct {
+	EditsRemaining int    `json:"edits_remaining"`
+	IsEditEligible bool   `json:"is_edit_eligible"`
+	EditableUntil  string `json:"editable_until"`
+}
+
+// TwitterXEntities represents the entities in a tweet
+type TwitterXEntities struct {
+	URLs        []TwitterXURL        `json:"urls,omitempty"`
+	Hashtags    []TwitterXHashtag    `json:"hashtags,omitempty"`
+	Mentions    []TwitterXMention    `json:"mentions,omitempty"`
+	Annotations []TwitterXAnnotation `json:"annotations,omitempty"`
+}
+
+// TwitterXURL represents a URL entity in a tweet
+type TwitterXURL struct {
+	Start       int    `json:"start"`
+	End         int    `json:"end"`
+	URL         string `json:"url"`
+	ExpandedURL string `json:"expanded_url"`
+	DisplayURL  string `json:"display_url"`
+	MediaKey    string `json:"media_key,omitempty"`
+}
+
+// TwitterXHashtag represents a hashtag entity
+type TwitterXHashtag struct {
+	Start int    `json:"start"`
+	End   int    `json:"end"`
+	Tag   string `json:"tag"`
+}
+
+// TwitterXMention represents a mention entity
+type TwitterXMention struct {
+	Start    int    `json:"start"`
+	End      int    `json:"end"`
+	Username string `json:"username"`
+	ID       string `json:"id"`
+}
+
+// TwitterXAnnotation represents an annotation entity
+type TwitterXAnnotation struct {
+	Start          int     `json:"start"`
+	End            int     `json:"end"`
+	Probability    float64 `json:"probability"`
+	Type           string  `json:"type"`
+	NormalizedText string  `json:"normalized_text"`
+}
+
+// TwitterXAttachments represents attachments in a tweet
+type TwitterXAttachments struct {
+	MediaKeys []string `json:"media_keys,omitempty"`
+	PollIds   []string `json:"poll_ids,omitempty"`
+}
+
+// TwitterXReferencedTweet represents a referenced tweet (retweet, quote, reply)
+type TwitterXReferencedTweet struct {
+	Type string `json:"type"`
+	ID   string `json:"id"`
+}
+
+// TwitterXContextAnnotation represents a context annotation
+type TwitterXContextAnnotation struct {
+	Domain TwitterXContextDomain `json:"domain"`
+	Entity TwitterXContextEntity `json:"entity"`
+}
+
+// TwitterXContextDomain represents a context annotation domain
+type TwitterXContextDomain struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
+
+// TwitterXContextEntity represents a context annotation entity
+type TwitterXContextEntity struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
 type TwitterXSearchQueryResult struct {
 	Data   []TwitterXData `json:"data"`
 	Meta   TwitterMeta    `json:"meta"`
@@ -322,5 +490,124 @@ func (s *TwitterXScraper) lookupUserByID(userID string) (string, error) {
 		return "", fmt.Errorf("user not found")
 	default:
 		return "", fmt.Errorf("API user lookup failed with status: %d", resp.StatusCode)
+	}
+}
+
+// GetProfileByID fetches complete user profile information by user ID
+func (s *TwitterXScraper) GetProfileByID(userID string) (*TwitterXProfileResponse, error) {
+	logrus.Infof("Looking up profile for user with ID: %s", userID)
+
+	// Construct endpoint URL with user fields
+	endpoint := fmt.Sprintf("users/%s?user.fields=id,name,username,description,location,url,verified,protected,created_at,profile_image_url,profile_banner_url,public_metrics", userID)
+
+	// Make the request
+	resp, err := s.twitterXClient.Get(endpoint)
+	if err != nil {
+		logrus.Errorf("Error looking up profile: %v", err)
+		return nil, fmt.Errorf("error looking up profile: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Read response body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		logrus.Errorf("Error reading response body: %v", err)
+		return nil, fmt.Errorf("error reading response body: %w", err)
+	}
+
+	// Check response status first
+	switch resp.StatusCode {
+	case http.StatusOK:
+		// Parse into structured type
+		var profileResp TwitterXProfileResponse
+		if err := json.Unmarshal(body, &profileResp); err != nil {
+			logrus.Errorf("Error parsing response: %v", err)
+			return nil, fmt.Errorf("error parsing response: %w", err)
+		}
+
+		// Check for API errors
+		if len(profileResp.Errors) > 0 {
+			logrus.Errorf("API error: %s (code: %d)", profileResp.Errors[0].Message, profileResp.Errors[0].Code)
+			return nil, fmt.Errorf("API error: %s", profileResp.Errors[0].Message)
+		}
+
+		logrus.Infof("Successfully retrieved profile for user %s (@%s)", profileResp.Data.Name, profileResp.Data.Username)
+		return &profileResp, nil
+	case http.StatusUnauthorized:
+		return nil, fmt.Errorf("invalid API key")
+	case http.StatusTooManyRequests:
+		return nil, fmt.Errorf("rate limit exceeded")
+	case http.StatusNotFound:
+		return nil, fmt.Errorf("user not found")
+	default:
+		return nil, fmt.Errorf("API profile lookup failed with status: %d, body: %s", resp.StatusCode, string(body))
+	}
+}
+
+// GetTweetByID fetches a single tweet by ID using the TwitterX API
+func (s *TwitterXScraper) GetTweetByID(tweetID string) (*TwitterXTweetData, error) {
+	logrus.Infof("Looking up tweet with ID: %s", tweetID)
+
+	// Construct endpoint URL with tweet fields
+	endpoint := fmt.Sprintf("tweets/%s?tweet.fields=created_at,author_id,public_metrics,context_annotations,geo,lang,possibly_sensitive,source,withheld,attachments,entities,conversation_id,in_reply_to_user_id,referenced_tweets,reply_settings,edit_controls,edit_history_tweet_ids&user.fields=username", tweetID)
+
+	// Make the request
+	resp, err := s.twitterXClient.Get(endpoint)
+	if err != nil {
+		logrus.Errorf("Error looking up tweet: %v", err)
+		return nil, fmt.Errorf("error looking up tweet: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Read response body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		logrus.Errorf("Error reading response body: %v", err)
+		return nil, fmt.Errorf("error reading response body: %w", err)
+	}
+
+	// Check response status first
+	switch resp.StatusCode {
+	case http.StatusOK:
+		// Log the raw response for debugging
+		logrus.Infof("Raw tweet API response: %s", string(body))
+
+		// Parse into a single tweet response structure
+		var tweetResp TwitterXTweetResponse
+
+		if err := json.Unmarshal(body, &tweetResp); err != nil {
+			logrus.Errorf("Error parsing response: %v", err)
+			return nil, fmt.Errorf("error parsing response: %w", err)
+		}
+
+		// Log the parsed tweet data structure
+		logrus.Infof("Parsed tweet data: %+v", tweetResp.Data)
+
+		// Check for API errors
+		if len(tweetResp.Errors) > 0 {
+			logrus.Errorf("API error: %s (code: %d)", tweetResp.Errors[0].Message, tweetResp.Errors[0].Code)
+			return nil, fmt.Errorf("API error: %s", tweetResp.Errors[0].Message)
+		}
+
+		// Set username from includes if available
+		if len(tweetResp.Includes.Users) > 0 {
+			for _, user := range tweetResp.Includes.Users {
+				if user.ID == tweetResp.Data.AuthorID {
+					tweetResp.Data.Username = user.Username
+					break
+				}
+			}
+		}
+
+		logrus.Infof("Successfully retrieved tweet %s by @%s", tweetResp.Data.ID, tweetResp.Data.Username)
+		return &tweetResp.Data, nil
+	case http.StatusUnauthorized:
+		return nil, fmt.Errorf("invalid API key")
+	case http.StatusTooManyRequests:
+		return nil, fmt.Errorf("rate limit exceeded")
+	case http.StatusNotFound:
+		return nil, fmt.Errorf("tweet not found")
+	default:
+		return nil, fmt.Errorf("API tweet lookup failed with status: %d, body: %s", resp.StatusCode, string(body))
 	}
 }

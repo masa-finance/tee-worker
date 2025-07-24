@@ -17,6 +17,7 @@ import (
 	"github.com/masa-finance/tee-worker/api/types"
 	. "github.com/masa-finance/tee-worker/internal/jobs"
 	"github.com/masa-finance/tee-worker/internal/jobs/stats"
+	"github.com/masa-finance/tee-worker/internal/jobs/twitterx"
 )
 
 // parseTwitterAccounts parses TWITTER_ACCOUNTS environment variable like production does
@@ -567,33 +568,49 @@ var _ = Describe("Twitter Scraper", func() {
 			fmt.Println(string(result))
 		})
 
-		// FIt("should use API key for twitter-api-scraper with getbyid", func() {
-		// 	if len(twitterApiKeys) == 0 {
-		// 		Skip("TWITTER_API_KEYS is not set")
-		// 	}
-		// 	scraper := NewTwitterScraper(types.JobConfiguration{
-		// 		"twitter_api_keys": twitterApiKeys,
-		// 		"data_dir":         tempDir,
-		// 	}, statsCollector)
-		// 	res, err := scraper.ExecuteJob(types.Job{
-		// 		Type: string(teetypes.TwitterApiJob),
-		// 		Arguments: map[string]interface{}{
-		// 			"type":  "getbyid",
-		// 			"query": "1881258110712492142",
-		// 		},
-		// 		Timeout: 10 * time.Second,
-		// 	})
-		// 	Expect(err).NotTo(HaveOccurred())
-		// 	Expect(res.Error).To(BeEmpty())
-		// 	var tweet *teetypes.TweetResult
-		// 	err = res.Unmarshal(&tweet)
-		// 	Expect(err).NotTo(HaveOccurred())
-		// 	Expect(tweet).NotTo(BeNil())
-		// 	Expect(tweet.TweetID).To(Equal("1881258110712492142"))
-		// 	Expect(tweet.Text).NotTo(BeEmpty())
-		// })
+		FIt("should use API key for twitter-api with getbyid", func() {
+			if len(twitterApiKeys) == 0 {
+				Skip("TWITTER_API_KEYS is not set")
+			}
+			scraper := NewTwitterScraper(types.JobConfiguration{
+				"twitter_api_keys": twitterApiKeys,
+				"data_dir":         tempDir,
+			}, statsCollector)
+			res, err := scraper.ExecuteJob(types.Job{
+				Type: string(teetypes.TwitterApiJob),
+				Arguments: map[string]interface{}{
+					"type":  "getbyid",
+					"query": "1881258110712492142",
+				},
+				Timeout: 10 * time.Second,
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(res.Error).To(BeEmpty())
 
-		FIt("should use API key for twitter-api-scraper with getprofilebyid", func() {
+			// Use the proper TweetResult type (the API converts TwitterXTweetData to TweetResult)
+			var tweet *teetypes.TweetResult
+			err = res.Unmarshal(&tweet)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(tweet).NotTo(BeNil())
+
+			// Now we have structured access to all tweet data
+			fmt.Printf("Tweet: %s (ID: %s)\n", tweet.Text, tweet.TweetID)
+			fmt.Printf("Author: %s (ID: %s)\n", tweet.Username, tweet.AuthorID)
+			fmt.Printf("Metrics: %d likes, %d retweets, %d replies\n",
+				tweet.PublicMetrics.LikeCount,
+				tweet.PublicMetrics.RetweetCount,
+				tweet.PublicMetrics.ReplyCount)
+			fmt.Printf("Created: %s, Language: %s\n", tweet.CreatedAt.Format(time.RFC3339), tweet.Lang)
+
+			// Verify the expected data
+			Expect(tweet.TweetID).To(Equal("1881258110712492142"))
+			Expect(tweet.Text).NotTo(BeEmpty())
+			Expect(tweet.AuthorID).To(Equal("1659764713616441344"))
+			Expect(tweet.PublicMetrics.LikeCount).To(BeNumerically(">", 10000)) // Over 10k likes
+			Expect(tweet.CreatedAt).NotTo(BeZero())
+		})
+
+		It("should use API key for twitter-api with getprofilebyid", func() {
 			if len(twitterApiKeys) == 0 {
 				Skip("TWITTER_API_KEYS is not set")
 			}
@@ -611,11 +628,23 @@ var _ = Describe("Twitter Scraper", func() {
 			})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(res.Error).To(BeEmpty())
-			var profile *twitterscraper.Profile
+
+			// Import the twitterx package for structured types
+			var profile *twitterx.TwitterXProfileResponse
 			err = res.Unmarshal(&profile)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(profile).NotTo(BeNil())
-			Expect(profile.Username).To(Equal("elonmusk"))
+
+			// Now we have structured access to all profile data
+			fmt.Printf("Profile: %s (@%s)\n", profile.Data.Name, profile.Data.Username)
+			fmt.Printf("Followers: %d, Following: %d\n", profile.Data.PublicMetrics.FollowersCount, profile.Data.PublicMetrics.FollowingCount)
+			fmt.Printf("Created: %s, Verified: %t\n", profile.Data.CreatedAt, profile.Data.Verified)
+
+			// Verify the expected data
+			Expect(profile.Data.Username).To(Equal("elonmusk"))
+			Expect(profile.Data.Name).To(Equal("Elon Musk"))
+			Expect(profile.Data.ID).To(Equal("44196397"))
+			Expect(profile.Data.PublicMetrics.FollowersCount).To(BeNumerically(">", 200000000)) // Over 200M followers
 		})
 
 		// note, needs to be constructed to fetch live spaces first... hard to test hardcoded ids

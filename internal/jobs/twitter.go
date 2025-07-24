@@ -771,6 +771,77 @@ func (ts *TwitterScraper) GetProfileByID(j types.Job, baseDir, userID string) (*
 	return &profile, nil
 }
 
+// GetProfileByIDWithApiKey fetches user profile using Twitter API key
+func (ts *TwitterScraper) GetProfileByIDWithApiKey(j types.Job, userID string, apiKey *twitter.TwitterApiKey) (*twitterx.TwitterXProfileResponse, error) {
+	ts.statsCollector.Add(j.WorkerID, stats.TwitterScrapes, 1)
+
+	apiClient := client.NewTwitterXClient(apiKey.Key)
+	twitterXScraper := twitterx.NewTwitterXScraper(apiClient)
+
+	profile, err := twitterXScraper.GetProfileByID(userID)
+	if err != nil {
+		if ts.handleError(j, err, nil) {
+			return nil, err
+		}
+		return nil, err
+	}
+
+	ts.statsCollector.Add(j.WorkerID, stats.TwitterProfiles, 1)
+	return profile, nil
+}
+
+// GetTweetByIDWithApiKey fetches a tweet using Twitter API key
+func (ts *TwitterScraper) GetTweetByIDWithApiKey(j types.Job, tweetID string, apiKey *twitter.TwitterApiKey) (*teetypes.TweetResult, error) {
+	ts.statsCollector.Add(j.WorkerID, stats.TwitterScrapes, 1)
+
+	apiClient := client.NewTwitterXClient(apiKey.Key)
+	twitterXScraper := twitterx.NewTwitterXScraper(apiClient)
+
+	tweetData, err := twitterXScraper.GetTweetByID(tweetID)
+	if err != nil {
+		if ts.handleError(j, err, nil) {
+			return nil, err
+		}
+		return nil, err
+	}
+
+	// Convert TwitterXTweetData to TweetResult
+	tweetIDInt, convErr := strconv.ParseInt(tweetData.ID, 10, 64)
+	if convErr != nil {
+		logrus.Errorf("Failed to convert tweet ID '%s' to int64: %v", tweetData.ID, convErr)
+		return nil, fmt.Errorf("failed to parse tweet ID '%s': %w", tweetData.ID, convErr)
+	}
+
+	// Parse the created_at time string
+	createdAt, timeErr := time.Parse(time.RFC3339, tweetData.CreatedAt)
+	if timeErr != nil {
+		logrus.Warnf("Failed to parse created_at time '%s': %v", tweetData.CreatedAt, timeErr)
+		createdAt = time.Now() // fallback to current time
+	}
+
+	tweetResult := &teetypes.TweetResult{
+		ID:             tweetIDInt,
+		TweetID:        tweetData.ID,
+		AuthorID:       tweetData.AuthorID,
+		Text:           tweetData.Text,
+		ConversationID: tweetData.ConversationID,
+		UserID:         tweetData.AuthorID,
+		CreatedAt:      createdAt,
+		Username:       tweetData.Username,
+		Lang:           tweetData.Lang,
+		PublicMetrics: teetypes.PublicMetrics{
+			RetweetCount:  tweetData.PublicMetrics.RetweetCount,
+			ReplyCount:    tweetData.PublicMetrics.ReplyCount,
+			LikeCount:     tweetData.PublicMetrics.LikeCount,
+			QuoteCount:    tweetData.PublicMetrics.QuoteCount,
+			BookmarkCount: tweetData.PublicMetrics.BookmarkCount,
+		},
+	}
+
+	ts.statsCollector.Add(j.WorkerID, stats.TwitterTweets, 1)
+	return tweetResult, nil
+}
+
 func (ts *TwitterScraper) SearchProfile(j types.Job, query string, count int) ([]*twitterscraper.ProfileResult, error) {
 	scraper, _, _, err := ts.getAuthenticatedScraper(j, ts.configuration.DataDir, string(teetypes.TwitterJob))
 	if err != nil {
@@ -1045,6 +1116,26 @@ func (s *ApiKeyScrapeStrategy) Execute(j types.Job, ts *TwitterScraper, jobArgs 
 	case "searchbyfullarchive":
 		tweets, err := ts.queryTweetsWithApiKey(j, twitterx.TweetsAll, ts.configuration.DataDir, jobArgs.Query, jobArgs.MaxResults)
 		return processResponse(tweets, "", err)
+	case "getprofilebyid":
+		_, _, apiKey, err := ts.getAuthenticatedScraper(j, ts.configuration.DataDir, string(teetypes.TwitterApiJob))
+		if err != nil {
+			return types.JobResult{Error: err.Error()}, err
+		}
+		if apiKey == nil {
+			return types.JobResult{Error: "no API key available"}, fmt.Errorf("no API key available")
+		}
+		profile, err := ts.GetProfileByIDWithApiKey(j, jobArgs.Query, apiKey)
+		return processResponse(profile, "", err)
+	case "getbyid":
+		_, _, apiKey, err := ts.getAuthenticatedScraper(j, ts.configuration.DataDir, string(teetypes.TwitterApiJob))
+		if err != nil {
+			return types.JobResult{Error: err.Error()}, err
+		}
+		if apiKey == nil {
+			return types.JobResult{Error: "no API key available"}, fmt.Errorf("no API key available")
+		}
+		tweet, err := ts.GetTweetByIDWithApiKey(j, jobArgs.Query, apiKey)
+		return processResponse(tweet, "", err)
 	default:
 		return defaultStrategyFallback(j, ts, jobArgs)
 	}
