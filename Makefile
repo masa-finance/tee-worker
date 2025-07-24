@@ -34,6 +34,8 @@ run-simulate: docker-build
 	@docker run --net host -e STANDALONE=true -e OE_SIMULATION=1 --rm -v $(PWD)/.masa:/home/masa -ti $(IMAGE)
 
 run-sgx: docker-build
+	@mkdir -p .masa
+	@[ ! -f .masa/.env ] && echo "STANDALONE=true" > .masa/.env || true
 	@docker run --device /dev/sgx_enclave --device /dev/sgx_provision --net host --rm -v $(PWD)/.masa:/home/masa -ti $(IMAGE)
 
 ## TEE bits
