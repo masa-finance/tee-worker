@@ -107,13 +107,13 @@ func TestDetectCapabilities(t *testing.T) {
 					"gethometweets", "getforyoutweets", "getprofilebyid",
 					"gettrends", "getfollowing", "getfollowers", "getspace",
 				}},
+				{JobType: string(teetypes.TwitterApiJob), Capabilities: []teetypes.Capability{"searchbyquery", "getbyid", "getprofilebyid"}},
 				{JobType: string(teetypes.TwitterJob), Capabilities: []teetypes.Capability{
 					"searchbyquery", "searchbyfullarchive", "searchbyprofile",
 					"getbyid", "getreplies", "getretweeters", "gettweets", "getmedia",
 					"gethometweets", "getforyoutweets", "getprofilebyid",
 					"gettrends", "getfollowing", "getfollowers", "getspace",
 				}},
-				{JobType: string(teetypes.TwitterApiJob), Capabilities: []teetypes.Capability{"searchbyquery", "getbyid", "getprofilebyid"}},
 			},
 		},
 	}

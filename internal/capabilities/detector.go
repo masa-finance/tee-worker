@@ -25,30 +25,46 @@ func DetectCapabilities(jc types.JobConfiguration, jobServer JobServerInterface)
 	// Start with always available scrapers
 	capabilities = append(capabilities, teetypes.AlwaysAvailableCapabilities...)
 
-	// Twitter capabilities based on configuration
-	if accounts, ok := jc["twitter_accounts"].([]string); ok && len(accounts) > 0 {
+	// Check what Twitter authentication methods are available
+	hasAccounts, _ := jc["twitter_accounts"].([]string)
+	hasApiKeys, _ := jc["twitter_api_keys"].([]string)
+
+	accountsAvailable := len(hasAccounts) > 0
+	apiKeysAvailable := len(hasApiKeys) > 0
+
+	// Add Twitter-specific capabilities based on available authentication
+	if accountsAvailable {
 		capabilities = append(capabilities,
 			teetypes.JobCapability{
 				JobType:      string(teetypes.TwitterCredentialJob),
 				Capabilities: teetypes.TwitterAllCaps,
 			},
-			teetypes.JobCapability{
-				JobType:      string(teetypes.TwitterJob),
-				Capabilities: teetypes.TwitterAllCaps,
-			},
 		)
 	}
 
-	// Twitter API capabilities based on configuration
-	if apiKeys, ok := jc["twitter_api_keys"].([]string); ok && len(apiKeys) > 0 {
+	if apiKeysAvailable {
 		capabilities = append(capabilities,
 			teetypes.JobCapability{
 				JobType:      string(teetypes.TwitterApiJob),
 				Capabilities: teetypes.TwitterAPICaps,
 			},
+		)
+	}
+
+	// Add general TwitterJob capability if any Twitter auth is available
+	if accountsAvailable || apiKeysAvailable {
+		var twitterJobCaps []teetypes.Capability
+		// Use the most comprehensive capabilities available
+		if accountsAvailable {
+			twitterJobCaps = teetypes.TwitterAllCaps
+		} else {
+			twitterJobCaps = teetypes.TwitterAPICaps
+		}
+
+		capabilities = append(capabilities,
 			teetypes.JobCapability{
 				JobType:      string(teetypes.TwitterJob),
-				Capabilities: teetypes.TwitterAPICaps,
+				Capabilities: twitterJobCaps,
 			},
 		)
 	}
