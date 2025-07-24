@@ -29,6 +29,8 @@ bundle:
 	@ego bundle ./bin/masa-tee-worker
 
 run-simulate: docker-build
+	@mkdir -p .masa
+	@[ ! -f .masa/.env ] && echo "STANDALONE=true" > .masa/.env || true
 	@docker run --net host -e STANDALONE=true -e OE_SIMULATION=1 --rm -v $(PWD)/.masa:/home/masa -ti $(IMAGE)
 
 run-sgx: docker-build

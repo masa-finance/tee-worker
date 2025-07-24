@@ -549,6 +549,10 @@ var _ = Describe("Twitter Scraper", func() {
 		fmt.Println(string(result))
 	})
 
+	// TODO add additional API key tests for sub type capabilities...
+
+	// TODO verify why cookie based auth all the sudden is getting DenyLoginSubtask?
+
 	// note, needs to be constructed to fetch live spaces first... hard to test hardcoded ids
 	// It("should fetch space", func() {
 	// 	res, err := twitterScraper.ExecuteJob(types.Job{
