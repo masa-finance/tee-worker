@@ -92,12 +92,20 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 			w: jobs.NewTikTokTranscriber(jc, s),
 		},
 	}
-	logrus.Infof("Initialized job worker for: %s", string(teetypes.WebJob))
-	logrus.Infof("Initialized job worker for: %s", string(teetypes.TwitterJob))
-	logrus.Infof("Initialized job worker for: %s", string(teetypes.TwitterCredentialJob))
-	logrus.Infof("Initialized job worker for: %s", string(teetypes.TwitterApiJob))
-	logrus.Infof("Initialized job worker for: %s", string(teetypes.TelemetryJob))
-	logrus.Infof("Initialized job worker for: %s", string(teetypes.TiktokJob))
+	// Validate that all workers were initialized successfully
+	for jobType, workerEntry := range jobworkers {
+		if workerEntry.w == nil {
+			logrus.Errorf("Failed to initialize worker for job type: %s. This worker will not be available.", jobType)
+			// Remove the nil worker from the map to prevent runtime issues
+			delete(jobworkers, jobType)
+		} else {
+			logrus.Infof("Successfully initialized job worker for: %s", jobType)
+		}
+	}
+
+	if len(jobworkers) == 0 {
+		logrus.Error("No job workers were successfully initialized!")
+	}
 
 	logrus.Info("Job workers setup completed.")
 

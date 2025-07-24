@@ -210,12 +210,17 @@ var _ = Describe("Twitter Scraper", func() {
 			Skip("TWITTER_ACCOUNTS and TWITTER_API_KEYS not set... not possible to scrape!")
 		}
 
-		statsCollector = stats.StartCollector(128, types.JobConfiguration{})
-
-		twitterScraper = NewTwitterScraper(types.JobConfiguration{
+		// Configure the stats collector with the same configuration that TwitterScraper needs
+		// This ensures capability detection works correctly
+		testConfig := types.JobConfiguration{
 			"twitter_accounts": twitterAccounts,
+			"twitter_api_keys": twitterApiKeys,
 			"data_dir":         tempDir,
-		}, statsCollector)
+		}
+
+		statsCollector = stats.StartCollector(128, testConfig)
+
+		twitterScraper = NewTwitterScraper(testConfig, statsCollector)
 	})
 
 	AfterEach(func() {
