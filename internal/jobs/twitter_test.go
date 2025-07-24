@@ -61,7 +61,10 @@ var _ = Describe("Twitter Scraper", func() {
 			logrus.SetLevel(logrus.DebugLevel)
 			os.Setenv("LOG_LEVEL", "debug")
 
-			tempDir = ".masa"
+			tempDir = os.Getenv("DATA_DIR")
+			if tempDir == "" {
+				tempDir = ".masa"
+			}
 			err = os.MkdirAll(tempDir, 0755)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -199,7 +202,10 @@ var _ = Describe("Twitter Scraper", func() {
 		logrus.SetLevel(logrus.DebugLevel)
 		os.Setenv("LOG_LEVEL", "debug")
 
-		tempDir = ".masa"
+		tempDir = os.Getenv("DATA_DIR")
+		if tempDir == "" {
+			tempDir = ".masa"
+		}
 		err = os.MkdirAll(tempDir, 0755)
 		Expect(err).NotTo(HaveOccurred())
 
