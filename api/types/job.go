@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	teetypes "github.com/masa-finance/tee-types/types"
 	"github.com/masa-finance/tee-worker/pkg/tee"
 	"golang.org/x/exp/rand"
 )
@@ -21,13 +22,13 @@ func (ja JobArguments) Unmarshal(i interface{}) error {
 }
 
 type Job struct {
-	Type         string        `json:"type"`
-	Arguments    JobArguments  `json:"arguments"`
-	UUID         string        `json:"-"`
-	Nonce        string        `json:"quote"`
-	WorkerID     string        `json:"worker_id"`
-	TargetWorker string        `json:"target_worker"`
-	Timeout      time.Duration `json:"timeout"`
+	Type         teetypes.JobType `json:"type"`
+	Arguments    JobArguments     `json:"arguments"`
+	UUID         string           `json:"-"`
+	Nonce        string           `json:"quote"`
+	WorkerID     string           `json:"worker_id"`
+	TargetWorker string           `json:"target_worker"`
+	Timeout      time.Duration    `json:"timeout"`
 }
 
 var letterRunes = []rune("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()_+")

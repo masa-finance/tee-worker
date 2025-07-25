@@ -45,7 +45,7 @@ var _ = Describe("API", func() {
 			}
 
 			signature, err := c.CreateJobSignature(types.Job{
-				Type:      string(teetypes.WebJob),
+				Type:      teetypes.WebJob,
 				Arguments: map[string]interface{}{},
 			})
 			if err != nil {
@@ -72,7 +72,7 @@ var _ = Describe("API", func() {
 	It("should submit an invalid job, and fail because of the malformed URL. no results containing google", func() {
 		// Step 1: Create the job request
 		job := types.Job{
-			Type: string(teetypes.WebJob),
+			Type: teetypes.WebJob,
 			Arguments: map[string]interface{}{
 				"url": "google",
 			},
@@ -104,7 +104,7 @@ var _ = Describe("API", func() {
 	It("should submit a job and get the correct result", func() {
 		// Step 1: Create the job request
 		job := types.Job{
-			Type: string(teetypes.WebJob),
+			Type: teetypes.WebJob,
 			Arguments: map[string]interface{}{
 				"url":   "https://google.com",
 				"depth": 1,

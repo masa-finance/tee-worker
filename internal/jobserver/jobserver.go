@@ -188,7 +188,7 @@ func (js *JobServer) AddJob(j types.Job) (string, error) {
 		return "", errors.New("this job is not for this worker")
 	}
 
-	if j.Type != string(teetypes.TelemetryJob) && config.MinersWhiteList != "" {
+	if j.Type != teetypes.TelemetryJob && config.MinersWhiteList != "" {
 		var miners []string
 
 		// In standalone mode, we just whitelist ourselves

@@ -30,7 +30,7 @@ type worker interface {
 
 func (js *JobServer) doWork(j types.Job) error {
 	// TODO: Add the job to the cache with the status set to Running
-	w, exists := js.jobWorkers[j.Type]
+	w, exists := js.jobWorkers[string(j.Type)]
 
 	if !exists {
 		js.results.Set(j.UUID, types.JobResult{
