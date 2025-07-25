@@ -40,7 +40,7 @@ type TikTokTranscriber struct {
 func (t *TikTokTranscriber) GetStructuredCapabilities() []teetypes.JobCapability {
 	return []teetypes.JobCapability{
 		{
-			JobType:      string(teetypes.TiktokJob),
+			JobType:      teetypes.TiktokJob,
 			Capabilities: teetypes.AlwaysAvailableTiktokCaps,
 		},
 	}

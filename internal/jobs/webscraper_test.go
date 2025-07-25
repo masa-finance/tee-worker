@@ -23,7 +23,7 @@ var _ = Describe("Webscraper", func() {
 		webScraper := NewWebScraper(types.JobConfiguration{}, statsCollector)
 
 		j := types.Job{
-			Type: string(teetypes.WebJob),
+			Type: teetypes.WebJob,
 			Arguments: map[string]interface{}{
 				"url": "https://www.google.com",
 			},
@@ -51,7 +51,7 @@ var _ = Describe("Webscraper", func() {
 		webScraper := NewWebScraper(types.JobConfiguration{}, statsCollector)
 
 		j := types.Job{
-			Type: string(teetypes.WebJob),
+			Type: teetypes.WebJob,
 			Arguments: map[string]interface{}{
 				"url": "google",
 			},
@@ -83,7 +83,7 @@ var _ = Describe("Webscraper", func() {
 		}, statsCollector)
 
 		j := types.Job{
-			Type: string(teetypes.WebJob),
+			Type: teetypes.WebJob,
 			Arguments: map[string]interface{}{
 				"url": "google",
 			},

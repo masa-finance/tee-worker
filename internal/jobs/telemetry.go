@@ -19,7 +19,7 @@ func NewTelemetryJob(jc types.JobConfiguration, c *stats.StatsCollector) Telemet
 func (t TelemetryJob) GetStructuredCapabilities() []teetypes.JobCapability {
 	return []teetypes.JobCapability{
 		{
-			JobType:      string(teetypes.TelemetryJob),
+			JobType:      teetypes.TelemetryJob,
 			Capabilities: teetypes.AlwaysAvailableTelemetryCaps,
 		},
 	}

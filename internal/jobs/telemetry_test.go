@@ -39,7 +39,7 @@ var _ = Describe("Telemetry Job", func() {
 
 			// Execute the telemetry job
 			job := types.Job{
-				Type:     string(teetypes.TelemetryJob),
+				Type:     teetypes.TelemetryJob,
 				WorkerID: "telemetry-test",
 			}
 
@@ -85,7 +85,7 @@ var _ = Describe("Telemetry Job", func() {
 			telemetryJobNoStats := NewTelemetryJob(types.JobConfiguration{}, nil)
 
 			job := types.Job{
-				Type:     string(teetypes.TelemetryJob),
+				Type:     teetypes.TelemetryJob,
 				WorkerID: "telemetry-test-no-stats",
 			}
 

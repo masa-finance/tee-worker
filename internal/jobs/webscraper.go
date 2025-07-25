@@ -40,7 +40,7 @@ func NewWebScraper(jc types.JobConfiguration, statsCollector *stats.StatsCollect
 func (ws *WebScraper) GetStructuredCapabilities() []teetypes.JobCapability {
 	return []teetypes.JobCapability{
 		{
-			JobType:      string(teetypes.WebJob),
+			JobType:      teetypes.WebJob,
 			Capabilities: teetypes.AlwaysAvailableWebCaps,
 		},
 	}

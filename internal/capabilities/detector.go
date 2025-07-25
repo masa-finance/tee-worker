@@ -39,7 +39,7 @@ func DetectCapabilities(jc types.JobConfiguration, jobServer JobServerInterface)
 	if accountsAvailable {
 		capabilities = append(capabilities,
 			teetypes.JobCapability{
-				JobType:      string(teetypes.TwitterCredentialJob),
+				JobType:      teetypes.TwitterCredentialJob,
 				Capabilities: teetypes.TwitterAllCaps,
 			},
 		)
@@ -57,7 +57,7 @@ func DetectCapabilities(jc types.JobConfiguration, jobServer JobServerInterface)
 
 		capabilities = append(capabilities,
 			teetypes.JobCapability{
-				JobType:      string(teetypes.TwitterApiJob),
+				JobType:      teetypes.TwitterApiJob,
 				Capabilities: apiCaps,
 			},
 		)
@@ -82,7 +82,7 @@ func DetectCapabilities(jc types.JobConfiguration, jobServer JobServerInterface)
 
 		capabilities = append(capabilities,
 			teetypes.JobCapability{
-				JobType:      string(teetypes.TwitterJob),
+				JobType:      teetypes.TwitterJob,
 				Capabilities: twitterJobCaps,
 			},
 		)
