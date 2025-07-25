@@ -49,13 +49,8 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 	}
 
 	// Retrieve and set buffer size for stats collector
-	bufSize, ok := jc["stats_buf_size"].(uint)
-	if !ok {
-		logrus.Info("stats_buf_size not provided or invalid in JobConfiguration. Defaulting to 128.")
-		bufSize = 128
-	} else {
-		logrus.Infof("Using stats_buf_size: %d.", bufSize)
-	}
+	bufSize := jc.GetUint("stats_buf_size", 128)
+	logrus.Infof("Using stats_buf_size: %d.", bufSize)
 
 	// Start stats collector
 	logrus.Info("Starting stats collector...")
@@ -63,7 +58,8 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 	logrus.Info("Stats collector started successfully.")
 
 	// Set worker ID in stats collector if available
-	if workerID, ok := jc["worker_id"].(string); ok && workerID != "" {
+	workerID := jc.GetString("worker_id", "")
+	if workerID != "" {
 		logrus.Infof("Setting worker ID to '%s' in stats collector.", workerID)
 		s.SetWorkerID(workerID)
 	} else {

@@ -29,8 +29,8 @@ func DetectCapabilities(jc types.JobConfiguration, jobServer JobServerInterface)
 	capabilities = append(capabilities, teetypes.AlwaysAvailableCapabilities...)
 
 	// Check what Twitter authentication methods are available
-	hasAccounts, _ := jc["twitter_accounts"].([]string)
-	hasApiKeys, _ := jc["twitter_api_keys"].([]string)
+	hasAccounts := jc.GetStringSlice("twitter_accounts", nil)
+	hasApiKeys := jc.GetStringSlice("twitter_api_keys", nil)
 
 	accountsAvailable := len(hasAccounts) > 0
 	apiKeysAvailable := len(hasApiKeys) > 0

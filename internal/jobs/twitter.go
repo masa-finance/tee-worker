@@ -1014,7 +1014,7 @@ func (ts *TwitterScraper) GetStructuredCapabilities() []teetypes.JobCapability {
 		}
 		if len(credCaps) > 0 {
 			capabilities = append(capabilities, teetypes.JobCapability{
-				JobType:      string(teetypes.TwitterCredentialJob),
+				JobType:      teetypes.TwitterCredentialJob,
 				Capabilities: credCaps,
 			})
 		}
@@ -1036,7 +1036,7 @@ func (ts *TwitterScraper) GetStructuredCapabilities() []teetypes.JobCapability {
 		}
 
 		capabilities = append(capabilities, teetypes.JobCapability{
-			JobType:      string(teetypes.TwitterApiJob),
+			JobType:      teetypes.TwitterApiJob,
 			Capabilities: apiCaps,
 		})
 	}
@@ -1067,7 +1067,7 @@ func (ts *TwitterScraper) GetStructuredCapabilities() []teetypes.JobCapability {
 		}
 
 		capabilities = append(capabilities, teetypes.JobCapability{
-			JobType:      string(teetypes.TwitterJob),
+			JobType:      teetypes.TwitterJob,
 			Capabilities: generalCaps,
 		})
 	}
@@ -1298,7 +1298,7 @@ func (ts *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 		return types.JobResult{Error: "error unmarshalling job arguments"}, err
 	}
 
-	strategy := getScrapeStrategy(j.Type)
+	strategy := getScrapeStrategy(string(j.Type))
 	jobResult, err := strategy.Execute(j, ts, jobArgs)
 	if err != nil {
 		logrus.Errorf("Error executing job ID %s, type %s: %v", j.UUID, j.Type, err)

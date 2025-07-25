@@ -152,7 +152,58 @@ func (jc JobConfiguration) GetDuration(key string, defSecs int) time.Duration {
 
 func (jc JobConfiguration) GetString(key string, def string) string {
 	if v, ok := jc[key]; ok {
-		return v.(string)
+		if val, ok := v.(string); ok {
+			return val
+		}
+	}
+	return def
+}
+
+// GetStringSlice safely extracts a string slice from JobConfiguration, with a default fallback
+func (jc JobConfiguration) GetStringSlice(key string, def []string) []string {
+	if v, ok := jc[key]; ok {
+		if val, ok := v.([]string); ok {
+			return val
+		}
+	}
+	return def
+}
+
+// GetBool safely extracts a bool from JobConfiguration, with a default fallback
+func (jc JobConfiguration) GetBool(key string, def bool) bool {
+	if v, ok := jc[key]; ok {
+		if val, ok := v.(bool); ok {
+			return val
+		}
+	}
+	return def
+}
+
+// GetUint safely extracts a uint from JobConfiguration, with a default fallback
+func (jc JobConfiguration) GetUint(key string, def uint) uint {
+	if v, ok := jc[key]; ok {
+		switch val := v.(type) {
+		case uint:
+			return val
+		case uint64:
+			return uint(val)
+		case int:
+			if val >= 0 {
+				return uint(val)
+			}
+		case int64:
+			if val >= 0 {
+				return uint(val)
+			}
+		case float64:
+			if val >= 0 {
+				return uint(val)
+			}
+		case float32:
+			if val >= 0 {
+				return uint(val)
+			}
+		}
 	}
 	return def
 }
