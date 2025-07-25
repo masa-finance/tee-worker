@@ -88,7 +88,7 @@ var _ = Describe("Twitter Scraper", func() {
 	})
 
 	AfterEach(func() {
-		// note, keep files in .masa directory for testing
+		// Keep files in .masa directory for testing purposes
 		// os.RemoveAll(tempDir)
 	})
 
@@ -498,7 +498,7 @@ var _ = Describe("Twitter Scraper", func() {
 				Type: teetypes.TwitterCredentialJob,
 				Arguments: map[string]interface{}{
 					"type":  "getprofilebyid",
-					"query": "44196397", //
+					"query": "44196397", // Elon Musk's Twitter ID
 				},
 				Timeout: 10 * time.Second,
 			}
@@ -573,7 +573,8 @@ var _ = Describe("Twitter Scraper", func() {
 			// Wait briefly for asynchronous stats processing to complete
 			time.Sleep(100 * time.Millisecond)
 
-			// Expect(statsCollector.Stats.Stats[j.WorkerID][stats.TwitterScrapes]).To(BeNumerically("==", 1)) // note, cannot predetermine amount of scrapes are needed to get followers
+			// Cannot predetermine the amount of scrapes needed to get followers
+			// Expect(statsCollector.Stats.Stats[j.WorkerID][stats.TwitterScrapes]).To(BeNumerically("==", 1))
 			Expect(statsCollector.Stats.Stats[j.WorkerID][stats.TwitterProfiles]).To(BeNumerically("==", uint(len(results))))
 		})
 
@@ -680,105 +681,109 @@ var _ = Describe("Twitter Scraper", func() {
 			Expect(profile.Data.PublicMetrics.FollowersCount).To(BeNumerically(">", 200000000)) // Over 200M followers
 		})
 
-		// note, needs to be constructed to fetch live spaces first... hard to test hardcoded ids
-		// It("should fetch space", func() {
-		// 	res, err := twitterScraper.ExecuteJob(types.Job{
-		// 		Type: teetypes.TwitterJob,
-		// 		Arguments: map[string]interface{}{
-		// 			"type":  "getspace",
-		// 			"query": "1YpKkZEWlBaxj",
-		// 		},
-		// 		Timeout: 10 * time.Second,
-		// 	})
-		// 	Expect(err).NotTo(HaveOccurred())
-		// 	Expect(res.Error).To(BeEmpty())
+		It("should fetch space", func() {
+			Skip("Needs to be constructed to fetch live spaces first - hard to test with hardcoded IDs")
 
-		// 	var space *twitterscraper.Space
-		// 	err = res.Unmarshal(&space)
-		// 	Expect(err).NotTo(HaveOccurred())
-		// 	Expect(space.ID).ToNot(BeEmpty())
-		// })
+			res, err := twitterScraper.ExecuteJob(types.Job{
+				Type: teetypes.TwitterJob,
+				Arguments: map[string]interface{}{
+					"type":  "getspace",
+					"query": "1YpKkZEWlBaxj",
+				},
+				Timeout: 10 * time.Second,
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(res.Error).To(BeEmpty())
 
-		// note, returning "job result is empty" even when account has bookmarks
-		// It("should fetch bookmarks", func() {
-		// 	j := types.Job{
-		// 		Type: teetypes.TwitterJob,
-		// 		Arguments: map[string]interface{}{
-		// 			"type":        "getbookmarks",
-		// 			"max_results": 5,
-		// 		},
-		// 		Timeout: 10 * time.Second,
-		// 	}
-		// 	res, err := twitterScraper.ExecuteJob(j)
-		// 	Expect(err).NotTo(HaveOccurred())
-		// 	Expect(res.Error).To(BeEmpty())
+			var space *twitterscraper.Space
+			err = res.Unmarshal(&space)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(space.ID).ToNot(BeEmpty())
+		})
 
-		// 	var bookmarks []*teetypes.TweetResult
-		// 	err = res.Unmarshal(&bookmarks)
-		// 	Expect(err).NotTo(HaveOccurred())
-		// 	Expect(res.Error).To(BeEmpty())
+		It("should fetch bookmarks", func() {
+			Skip("Returns 'job result is empty' even when account has bookmarks")
 
-		// 	// Wait briefly for asynchronous stats processing to complete
-		// 	time.Sleep(100 * time.Millisecond)
+			j := types.Job{
+				Type: teetypes.TwitterJob,
+				Arguments: map[string]interface{}{
+					"type":        "getbookmarks",
+					"max_results": 5,
+				},
+				Timeout: 10 * time.Second,
+			}
+			res, err := twitterScraper.ExecuteJob(j)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(res.Error).To(BeEmpty())
 
-		// 	Expect(statsCollector.Stats.Stats[j.WorkerID][stats.TwitterScrapes]).To(BeNumerically("==", 1))
-		// 	Expect(statsCollector.Stats.Stats[j.WorkerID][stats.TwitterTweets]).To(BeNumerically("==", uint(len(bookmarks))))
-		// })
+			var bookmarks []*teetypes.TweetResult
+			err = res.Unmarshal(&bookmarks)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(res.Error).To(BeEmpty())
 
-		// note, needs full archive key in TWITTER_API_KEYS to run...
-		// It("should scrape tweets with full archive", func() {
-		// 	j := types.Job{
-		// 		Type: teetypes.TwitterApiJob,
-		// 		Arguments: map[string]interface{}{
-		// 			"type":        "searchbyfullarchive",
-		// 			"query":       "AI",
-		// 			"max_results": 2,
-		// 		},
-		// 		Timeout: 10 * time.Second,
-		// 	}
-		// 	res, err := twitterScraper.ExecuteJob(j)
-		// 	Expect(err).NotTo(HaveOccurred())
-		// 	Expect(res.Error).To(BeEmpty())
+			// Wait briefly for asynchronous stats processing to complete
+			time.Sleep(100 * time.Millisecond)
 
-		// 	var results []*teetypes.TweetResult
-		// 	err = res.Unmarshal(&results)
-		// 	Expect(err).NotTo(HaveOccurred())
-		// 	Expect(results).ToNot(BeEmpty())
+			Expect(statsCollector.Stats.Stats[j.WorkerID][stats.TwitterScrapes]).To(BeNumerically("==", 1))
+			Expect(statsCollector.Stats.Stats[j.WorkerID][stats.TwitterTweets]).To(BeNumerically("==", uint(len(bookmarks))))
+		})
 
-		// 	// Wait briefly for asynchronous stats processing to complete
-		// 	time.Sleep(100 * time.Millisecond)
+		It("should scrape tweets with full archive", func() {
+			Skip("Needs full archive key in TWITTER_API_KEYS to run")
 
-		// 	Expect(results[0].Text).ToNot(BeEmpty())
-		// 	Expect(statsCollector.Stats.Stats[j.WorkerID][stats.TwitterScrapes]).To(BeNumerically("==", 1))
-		// 	Expect(statsCollector.Stats.Stats[j.WorkerID][stats.TwitterTweets]).To(BeNumerically("==", uint(len(results))))
-		// })
+			j := types.Job{
+				Type: teetypes.TwitterApiJob,
+				Arguments: map[string]interface{}{
+					"type":        "searchbyfullarchive",
+					"query":       "AI",
+					"max_results": 2,
+				},
+				Timeout: 10 * time.Second,
+			}
+			res, err := twitterScraper.ExecuteJob(j)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(res.Error).To(BeEmpty())
 
-		// note, needs full archive key (elevated) in TWITTER_API_KEYS to run...
-		// It("should scrape tweets with a search by full archive", func() {
-		// 	j := types.Job{
-		// 		Type: teetypes.TwitterCredentialJob,
-		// 		Arguments: map[string]interface{}{
-		// 			"type":        "searchbyfullarchive",
-		// 			"query":       "#AI",
-		// 			"max_results": 2,
-		// 		},
-		// 		Timeout: 10 * time.Second,
-		// 	}
-		// 	res, err := twitterScraper.ExecuteJob(j)
-		// 	Expect(err).NotTo(HaveOccurred())
-		// 	Expect(res.Error).To(BeEmpty())
+			var results []*teetypes.TweetResult
+			err = res.Unmarshal(&results)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(results).ToNot(BeEmpty())
 
-		// 	var results []*teetypes.TweetResult
-		// 	err = res.Unmarshal(&results)
-		// 	Expect(err).NotTo(HaveOccurred())
-		// 	Expect(results).ToNot(BeEmpty())
+			// Wait briefly for asynchronous stats processing to complete
+			time.Sleep(100 * time.Millisecond)
 
-		// 	// Wait briefly for asynchronous stats processing to complete
-		// 	time.Sleep(100 * time.Millisecond)
+			Expect(results[0].Text).ToNot(BeEmpty())
+			Expect(statsCollector.Stats.Stats[j.WorkerID][stats.TwitterScrapes]).To(BeNumerically("==", 1))
+			Expect(statsCollector.Stats.Stats[j.WorkerID][stats.TwitterTweets]).To(BeNumerically("==", uint(len(results))))
+		})
 
-		// 	Expect(results[0].Text).ToNot(BeEmpty())
-		// 	Expect(statsCollector.Stats.Stats[j.WorkerID][stats.TwitterScrapes]).To(BeNumerically("==", 1))
-		// 	Expect(statsCollector.Stats.Stats[j.WorkerID][stats.TwitterTweets]).To(BeNumerically("==", uint(len(results))))
-		// })
+		It("should scrape tweets with a search by full archive", func() {
+			Skip("Needs full archive key (elevated) in TWITTER_API_KEYS to run")
+
+			j := types.Job{
+				Type: teetypes.TwitterCredentialJob,
+				Arguments: map[string]interface{}{
+					"type":        "searchbyfullarchive",
+					"query":       "#AI",
+					"max_results": 2,
+				},
+				Timeout: 10 * time.Second,
+			}
+			res, err := twitterScraper.ExecuteJob(j)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(res.Error).To(BeEmpty())
+
+			var results []*teetypes.TweetResult
+			err = res.Unmarshal(&results)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(results).ToNot(BeEmpty())
+
+			// Wait briefly for asynchronous stats processing to complete
+			time.Sleep(100 * time.Millisecond)
+
+			Expect(results[0].Text).ToNot(BeEmpty())
+			Expect(statsCollector.Stats.Stats[j.WorkerID][stats.TwitterScrapes]).To(BeNumerically("==", 1))
+			Expect(statsCollector.Stats.Stats[j.WorkerID][stats.TwitterTweets]).To(BeNumerically("==", uint(len(results))))
+		})
 	})
 })
