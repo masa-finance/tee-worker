@@ -24,7 +24,7 @@ import (
 func parseTwitterAccounts() []string {
 	accountsEnv := os.Getenv("TWITTER_ACCOUNTS")
 	if accountsEnv == "" {
-		return nil
+		return []string{}
 	}
 
 	accounts := strings.Split(accountsEnv, ",")
@@ -38,7 +38,7 @@ func parseTwitterAccounts() []string {
 func parseTwitterApiKeys() []string {
 	apiKeysEnv := os.Getenv("TWITTER_API_KEYS")
 	if apiKeysEnv == "" {
-		return nil
+		return []string{}
 	}
 
 	apiKeys := strings.Split(apiKeysEnv, ",")
