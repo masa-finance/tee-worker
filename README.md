@@ -93,8 +93,10 @@ The worker automatically detects and exposes capabilities based on available con
    - **Sub-capabilities**: Dynamic based on available authentication (same as credential or API depending on what's configured)
    - **Requirements**: Either `TWITTER_ACCOUNTS` or `TWITTER_API_KEYS`
 
+**Stats Service (Always Available):**
+
 6. **`telemetry`** - Worker monitoring and stats
-   - **Sub-capabilities**: `["telemetry"]` 
+   - **Sub-capabilities**: `["telemetry"]`
    - **Requirements**: None (always available)
 
 ## API
