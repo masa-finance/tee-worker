@@ -1,6 +1,7 @@
 package capabilities
 
 import (
+	"slices"
 	"strings"
 
 	teetypes "github.com/masa-finance/tee-types/types"
@@ -106,13 +107,9 @@ func hasElevatedApiKey(apiKeys []string) bool {
 	accountManager.DetectAllApiKeyTypes()
 
 	// Check if any key is elevated
-	for _, apiKey := range accountManager.GetApiKeys() {
-		if apiKey.Type == twitter.TwitterApiKeyTypeElevated {
-			return true
-		}
-	}
-
-	return false
+	return slices.ContainsFunc(accountManager.GetApiKeys(), func(apiKey *twitter.TwitterApiKey) bool {
+		return apiKey.Type == twitter.TwitterApiKeyTypeElevated
+	})
 }
 
 // parseApiKeys converts string API keys to TwitterApiKey structs
