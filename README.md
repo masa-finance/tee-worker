@@ -75,27 +75,27 @@ The worker automatically detects and exposes capabilities based on available con
    - **Sub-capabilities**: `["web-scraper"]`
    - **Requirements**: None (always available)
 
-2. **`telemetry`** - Worker monitoring and stats
-   - **Sub-capabilities**: `["telemetry"]` 
-   - **Requirements**: None (always available)
-
-3. **`tiktok`** - TikTok video processing
+2. **`tiktok`** - TikTok video processing
    - **Sub-capabilities**: `["tiktok-transcription"]`
    - **Requirements**: None (always available)
 
 **Twitter Services (Configuration-Dependent):**
 
-4. **`twitter-credential`** - Twitter scraping with credentials
+3. **`twitter-credential`** - Twitter scraping with credentials
    - **Sub-capabilities**: `["searchbyquery", "searchbyfullarchive", "searchbyprofile", "getbyid", "getreplies", "getretweeters", "gettweets", "getmedia", "gethometweets", "getforyoutweets", "getprofilebyid", "gettrends", "getfollowing", "getfollowers", "getspace"]`
    - **Requirements**: `TWITTER_ACCOUNTS` environment variable
 
-5. **`twitter-api`** - Twitter scraping with API keys
+4. **`twitter-api`** - Twitter scraping with API keys
    - **Sub-capabilities**: `["searchbyquery", "getbyid", "getprofilebyid"]` (basic), plus `["searchbyfullarchive"]` for elevated API keys
    - **Requirements**: `TWITTER_API_KEYS` environment variable
 
-6. **`twitter`** - General Twitter scraping (uses best available auth)
+5. **`twitter`** - General Twitter scraping (uses best available auth)
    - **Sub-capabilities**: Dynamic based on available authentication (same as credential or API depending on what's configured)
    - **Requirements**: Either `TWITTER_ACCOUNTS` or `TWITTER_API_KEYS`
+
+6. **`telemetry`** - Worker monitoring and stats
+   - **Sub-capabilities**: `["telemetry"]` 
+   - **Requirements**: None (always available)
 
 ## API
 
