@@ -159,18 +159,15 @@ func TestDetectCapabilities_ScraperTypes(t *testing.T) {
 				jobNames[i] = cap.JobType.String()
 			}
 
-			// Check that all expected keys are present
-			for _, expectedKey := range tt.expectedKeys {
-				if !slices.Contains(jobNames, expectedKey) {
-					t.Errorf("Expected scraper %s not found in %v", expectedKey, jobNames)
-				}
-			}
+			// Sort both slices for comparison
+			slices.Sort(jobNames)
+			expectedSorted := make([]string, len(tt.expectedKeys))
+			copy(expectedSorted, tt.expectedKeys)
+			slices.Sort(expectedSorted)
 
-			// Check that no unexpected keys are present
-			for _, jobName := range jobNames {
-				if !slices.Contains(tt.expectedKeys, jobName) {
-					t.Errorf("Unexpected scraper %s found in %v", jobName, jobNames)
-				}
+			// Compare the sorted slices
+			if !reflect.DeepEqual(jobNames, expectedSorted) {
+				t.Errorf("Expected capabilities %v, got %v", expectedSorted, jobNames)
 			}
 		})
 	}
