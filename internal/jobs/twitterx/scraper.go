@@ -2,6 +2,7 @@ package twitterx
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -17,6 +18,13 @@ import (
 const (
 	TweetsSearchRecent = "tweets/search/recent"
 	TweetsAll          = "tweets/search/all"
+)
+
+var (
+	ErrInvalidAPIKey     = errors.New("invalid API key")
+	ErrRateLimitExceeded = errors.New("rate limit exceeded")
+	ErrUserNotFound      = errors.New("user not found")
+	ErrTweetNotFound     = errors.New("tweet not found")
 )
 
 type TwitterXScraper struct {
@@ -483,11 +491,11 @@ func (s *TwitterXScraper) lookupUserByID(userID string) (string, error) {
 	case http.StatusOK:
 		return userResp.Data.Username, nil
 	case http.StatusUnauthorized:
-		return "", fmt.Errorf("invalid API key")
+		return "", ErrInvalidAPIKey
 	case http.StatusTooManyRequests:
-		return "", fmt.Errorf("rate limit exceeded")
+		return "", ErrRateLimitExceeded
 	case http.StatusNotFound:
-		return "", fmt.Errorf("user not found")
+		return "", ErrUserNotFound
 	default:
 		return "", fmt.Errorf("API user lookup failed with status: %d", resp.StatusCode)
 	}
@@ -534,11 +542,11 @@ func (s *TwitterXScraper) GetProfileByID(userID string) (*TwitterXProfileRespons
 		logrus.Infof("Successfully retrieved profile for user %s (@%s)", profileResp.Data.Name, profileResp.Data.Username)
 		return &profileResp, nil
 	case http.StatusUnauthorized:
-		return nil, fmt.Errorf("invalid API key")
+		return nil, ErrInvalidAPIKey
 	case http.StatusTooManyRequests:
-		return nil, fmt.Errorf("rate limit exceeded")
+		return nil, ErrRateLimitExceeded
 	case http.StatusNotFound:
-		return nil, fmt.Errorf("user not found")
+		return nil, ErrUserNotFound
 	default:
 		return nil, fmt.Errorf("API profile lookup failed with status: %d, body: %s", resp.StatusCode, string(body))
 	}
@@ -602,11 +610,11 @@ func (s *TwitterXScraper) GetTweetByID(tweetID string) (*TwitterXTweetData, erro
 		logrus.Infof("Successfully retrieved tweet %s by @%s", tweetResp.Data.ID, tweetResp.Data.Username)
 		return &tweetResp.Data, nil
 	case http.StatusUnauthorized:
-		return nil, fmt.Errorf("invalid API key")
+		return nil, ErrInvalidAPIKey
 	case http.StatusTooManyRequests:
-		return nil, fmt.Errorf("rate limit exceeded")
+		return nil, ErrRateLimitExceeded
 	case http.StatusNotFound:
-		return nil, fmt.Errorf("tweet not found")
+		return nil, ErrTweetNotFound
 	default:
 		return nil, fmt.Errorf("API tweet lookup failed with status: %d, body: %s", resp.StatusCode, string(body))
 	}
