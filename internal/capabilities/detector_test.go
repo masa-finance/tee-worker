@@ -2,6 +2,7 @@ package capabilities
 
 import (
 	"reflect"
+	"slices"
 	"testing"
 
 	teetypes "github.com/masa-finance/tee-types/types"
@@ -160,28 +161,14 @@ func TestDetectCapabilities_ScraperTypes(t *testing.T) {
 
 			// Check that all expected keys are present
 			for _, expectedKey := range tt.expectedKeys {
-				found := false
-				for _, jobName := range jobNames {
-					if jobName == expectedKey {
-						found = true
-						break
-					}
-				}
-				if !found {
+				if !slices.Contains(jobNames, expectedKey) {
 					t.Errorf("Expected scraper %s not found in %v", expectedKey, jobNames)
 				}
 			}
 
 			// Check that no unexpected keys are present
 			for _, jobName := range jobNames {
-				found := false
-				for _, expectedKey := range tt.expectedKeys {
-					if jobName == expectedKey {
-						found = true
-						break
-					}
-				}
-				if !found {
+				if !slices.Contains(tt.expectedKeys, jobName) {
 					t.Errorf("Unexpected scraper %s found in %v", jobName, jobNames)
 				}
 			}
