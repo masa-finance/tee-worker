@@ -23,7 +23,8 @@ func DetectCapabilities(jc types.JobConfiguration, jobServer JobServerInterface)
 
 	// Fallback to basic detection if no JobServer is available
 	// This maintains backward compatibility and is used during initialization
-	var capabilities teetypes.WorkerCapabilities
+	// Pre-allocate capacity for 3 always-available + up to 3 Twitter capabilities
+	capabilities := make(teetypes.WorkerCapabilities, 0, 6)
 
 	// Start with always available scrapers
 	capabilities = append(capabilities, teetypes.AlwaysAvailableCapabilities...)
