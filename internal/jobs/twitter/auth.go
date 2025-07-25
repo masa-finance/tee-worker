@@ -2,6 +2,7 @@ package twitter
 
 import (
 	"fmt"
+
 	"github.com/sirupsen/logrus"
 )
 
@@ -36,6 +37,8 @@ func NewScraper(config AuthConfig) *Scraper {
 			logrus.Debugf("Already logged in as %s.", config.Account.Username)
 			return scraper
 		}
+	} else {
+		logrus.Warnf("Failed to load cookies for user %s: %v", config.Account.Username, err)
 	}
 
 	RandomSleep()

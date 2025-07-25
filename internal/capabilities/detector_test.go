@@ -5,15 +5,16 @@ import (
 	"slices"
 	"testing"
 
+	teetypes "github.com/masa-finance/tee-types/types"
 	"github.com/masa-finance/tee-worker/api/types"
 )
 
 // MockJobServer implements JobServerInterface for testing
 type MockJobServer struct {
-	capabilities map[string][]types.Capability
+	capabilities teetypes.WorkerCapabilities
 }
 
-func (m *MockJobServer) GetWorkerCapabilities() map[string][]types.Capability {
+func (m *MockJobServer) GetWorkerCapabilities() teetypes.WorkerCapabilities {
 	return m.capabilities
 }
 
@@ -22,36 +23,34 @@ func TestDetectCapabilities(t *testing.T) {
 		name      string
 		jc        types.JobConfiguration
 		jobServer JobServerInterface
-		expected  []types.Capability
+		expected  teetypes.WorkerCapabilities
 	}{
 		{
 			name: "With JobServer - gets capabilities from workers",
 			jc:   types.JobConfiguration{},
 			jobServer: &MockJobServer{
-				capabilities: map[string][]types.Capability{
-					"web-scraper":          {"web-scraper"},
-					"telemetry":            {"telemetry"},
-					"tiktok-transcription": {"tiktok-transcription"},
-					"twitter-scraper":      {"searchbyquery", "getbyid", "getprofilebyid"},
+				capabilities: teetypes.WorkerCapabilities{
+					{JobType: teetypes.WebJob, Capabilities: []teetypes.Capability{teetypes.CapWebScraper}},
+					{JobType: teetypes.TelemetryJob, Capabilities: []teetypes.Capability{teetypes.CapTelemetry}},
+					{JobType: teetypes.TiktokJob, Capabilities: []teetypes.Capability{teetypes.CapTiktokTranscription}},
+					{JobType: teetypes.TwitterJob, Capabilities: []teetypes.Capability{teetypes.CapSearchByQuery, teetypes.CapGetById, teetypes.CapGetProfileById}},
 				},
 			},
-			expected: []types.Capability{
-				"web-scraper",
-				"telemetry",
-				"tiktok-transcription",
-				"searchbyquery",
-				"getbyid",
-				"getprofilebyid",
+			expected: teetypes.WorkerCapabilities{
+				{JobType: teetypes.WebJob, Capabilities: []teetypes.Capability{teetypes.CapWebScraper}},
+				{JobType: teetypes.TelemetryJob, Capabilities: []teetypes.Capability{teetypes.CapTelemetry}},
+				{JobType: teetypes.TiktokJob, Capabilities: []teetypes.Capability{teetypes.CapTiktokTranscription}},
+				{JobType: teetypes.TwitterJob, Capabilities: []teetypes.Capability{teetypes.CapSearchByQuery, teetypes.CapGetById, teetypes.CapGetProfileById}},
 			},
 		},
 		{
 			name:      "Without JobServer - basic capabilities only",
 			jc:        types.JobConfiguration{},
 			jobServer: nil,
-			expected: []types.Capability{
-				"web-scraper",
-				"telemetry",
-				"tiktok-transcription",
+			expected: teetypes.WorkerCapabilities{
+				{JobType: teetypes.WebJob, Capabilities: []teetypes.Capability{teetypes.CapWebScraper}},
+				{JobType: teetypes.TelemetryJob, Capabilities: []teetypes.Capability{teetypes.CapTelemetry}},
+				{JobType: teetypes.TiktokJob, Capabilities: []teetypes.Capability{teetypes.CapTiktokTranscription}},
 			},
 		},
 		{
@@ -60,13 +59,12 @@ func TestDetectCapabilities(t *testing.T) {
 				"twitter_accounts": []string{"user1:pass1"},
 			},
 			jobServer: nil,
-			expected: []types.Capability{
-				"web-scraper",
-				"telemetry",
-				"tiktok-transcription",
-				"searchbyquery",
-				"getbyid",
-				"getprofilebyid",
+			expected: teetypes.WorkerCapabilities{
+				{JobType: teetypes.WebJob, Capabilities: []teetypes.Capability{teetypes.CapWebScraper}},
+				{JobType: teetypes.TelemetryJob, Capabilities: []teetypes.Capability{teetypes.CapTelemetry}},
+				{JobType: teetypes.TiktokJob, Capabilities: []teetypes.Capability{teetypes.CapTiktokTranscription}},
+				{JobType: teetypes.TwitterCredentialJob, Capabilities: teetypes.TwitterAllCaps},
+				{JobType: teetypes.TwitterJob, Capabilities: teetypes.TwitterAllCaps},
 			},
 		},
 		{
@@ -75,13 +73,28 @@ func TestDetectCapabilities(t *testing.T) {
 				"twitter_api_keys": []string{"key1"},
 			},
 			jobServer: nil,
-			expected: []types.Capability{
-				"web-scraper",
-				"telemetry",
-				"tiktok-transcription",
-				"searchbyquery",
-				"getbyid",
-				"getprofilebyid",
+			expected: teetypes.WorkerCapabilities{
+				{JobType: teetypes.WebJob, Capabilities: []teetypes.Capability{teetypes.CapWebScraper}},
+				{JobType: teetypes.TelemetryJob, Capabilities: []teetypes.Capability{teetypes.CapTelemetry}},
+				{JobType: teetypes.TiktokJob, Capabilities: []teetypes.Capability{teetypes.CapTiktokTranscription}},
+				{JobType: teetypes.TwitterApiJob, Capabilities: teetypes.TwitterAPICaps},
+				{JobType: teetypes.TwitterJob, Capabilities: teetypes.TwitterAPICaps},
+			},
+		},
+		{
+			name: "Without JobServer - with both accounts and API keys",
+			jc: types.JobConfiguration{
+				"twitter_accounts": []string{"user1:pass1"},
+				"twitter_api_keys": []string{"key1"},
+			},
+			jobServer: nil,
+			expected: teetypes.WorkerCapabilities{
+				{JobType: teetypes.WebJob, Capabilities: []teetypes.Capability{teetypes.CapWebScraper}},
+				{JobType: teetypes.TelemetryJob, Capabilities: []teetypes.Capability{teetypes.CapTelemetry}},
+				{JobType: teetypes.TiktokJob, Capabilities: []teetypes.Capability{teetypes.CapTiktokTranscription}},
+				{JobType: teetypes.TwitterCredentialJob, Capabilities: teetypes.TwitterAllCaps},
+				{JobType: teetypes.TwitterApiJob, Capabilities: teetypes.TwitterAPICaps},
+				{JobType: teetypes.TwitterJob, Capabilities: teetypes.TwitterAllCaps},
 			},
 		},
 	}
@@ -90,10 +103,6 @@ func TestDetectCapabilities(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got := DetectCapabilities(tt.jc, tt.jobServer)
 
-			// Sort both slices for comparison
-			slices.Sort(got)
-			slices.Sort(tt.expected)
-
 			if !reflect.DeepEqual(got, tt.expected) {
 				t.Errorf("DetectCapabilities() = %v, want %v", got, tt.expected)
 			}
@@ -101,55 +110,64 @@ func TestDetectCapabilities(t *testing.T) {
 	}
 }
 
-func TestMergeCapabilities(t *testing.T) {
+// Helper function to find a job capability by name
+func findJobCapability(capabilities teetypes.WorkerCapabilities, jobName string) *teetypes.JobCapability {
+	for _, cap := range capabilities {
+		if cap.JobType.String() == jobName {
+			return &cap
+		}
+	}
+	return nil
+}
+
+func TestDetectCapabilities_ScraperTypes(t *testing.T) {
 	tests := []struct {
-		name     string
-		manual   string
-		detected []types.Capability
-		expected []types.Capability
+		name         string
+		jc           types.JobConfiguration
+		expectedKeys []string // scraper names we expect
 	}{
 		{
-			name:     "Empty manual, some detected",
-			manual:   "",
-			detected: []types.Capability{"web-scraper", "telemetry"},
-			expected: []types.Capability{"web-scraper", "telemetry"},
+			name: "With accounts only",
+			jc: types.JobConfiguration{
+				"twitter_accounts": []string{"user:pass"},
+			},
+			expectedKeys: []string{teetypes.WebJob.String(), teetypes.TelemetryJob.String(), teetypes.TiktokJob.String(), teetypes.TwitterCredentialJob.String(), teetypes.TwitterJob.String()},
 		},
 		{
-			name:     "Manual 'all' with detected",
-			manual:   "all",
-			detected: []types.Capability{"web-scraper", "telemetry", "searchbyquery"},
-			expected: []types.Capability{"all", "web-scraper", "telemetry", "searchbyquery"},
+			name: "With API keys only",
+			jc: types.JobConfiguration{
+				"twitter_api_keys": []string{"key123"},
+			},
+			expectedKeys: []string{teetypes.WebJob.String(), teetypes.TelemetryJob.String(), teetypes.TiktokJob.String(), teetypes.TwitterApiJob.String(), teetypes.TwitterJob.String()},
 		},
 		{
-			name:     "Manual specific capabilities with detected",
-			manual:   "searchbyquery,getbyid",
-			detected: []types.Capability{"web-scraper", "telemetry", "searchbyprofile"},
-			expected: []types.Capability{"searchbyquery", "getbyid", "web-scraper", "telemetry", "searchbyprofile"},
-		},
-		{
-			name:     "Overlapping manual and detected",
-			manual:   "web-scraper,custom-cap",
-			detected: []types.Capability{"web-scraper", "telemetry"},
-			expected: []types.Capability{"web-scraper", "custom-cap", "telemetry"},
-		},
-		{
-			name:     "Manual with spaces",
-			manual:   "cap1, cap2 , cap3",
-			detected: []types.Capability{"cap4"},
-			expected: []types.Capability{"cap1", "cap2", "cap3", "cap4"},
+			name: "With both accounts and keys",
+			jc: types.JobConfiguration{
+				"twitter_accounts": []string{"user:pass"},
+				"twitter_api_keys": []string{"key123"},
+			},
+			expectedKeys: []string{teetypes.WebJob.String(), teetypes.TelemetryJob.String(), teetypes.TiktokJob.String(), teetypes.TwitterCredentialJob.String(), teetypes.TwitterJob.String(), teetypes.TwitterApiJob.String()},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := MergeCapabilities(tt.manual, tt.detected)
+			caps := DetectCapabilities(tt.jc, nil)
 
-			// Sort for consistent comparison since map iteration is random
-			slices.Sort(got)
-			slices.Sort(tt.expected)
+			jobNames := make([]string, len(caps))
+			for i, cap := range caps {
+				jobNames[i] = cap.JobType.String()
+			}
 
-			if !reflect.DeepEqual(got, tt.expected) {
-				t.Errorf("MergeCapabilities() = %v, want %v", got, tt.expected)
+			// Sort both slices for comparison
+			slices.Sort(jobNames)
+			expectedSorted := make([]string, len(tt.expectedKeys))
+			copy(expectedSorted, tt.expectedKeys)
+			slices.Sort(expectedSorted)
+
+			// Compare the sorted slices
+			if !reflect.DeepEqual(jobNames, expectedSorted) {
+				t.Errorf("Expected capabilities %v, got %v", expectedSorted, jobNames)
 			}
 		})
 	}

@@ -8,8 +8,10 @@ import (
 	"sync"
 
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/maps"
 
 	"github.com/google/uuid"
+	teetypes "github.com/masa-finance/tee-types/types"
 	"github.com/masa-finance/tee-worker/api/types"
 	"github.com/masa-finance/tee-worker/internal/config"
 	"github.com/masa-finance/tee-worker/internal/jobs"
@@ -47,13 +49,8 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 	}
 
 	// Retrieve and set buffer size for stats collector
-	bufSize, ok := jc["stats_buf_size"].(uint)
-	if !ok {
-		logrus.Info("stats_buf_size not provided or invalid in JobConfiguration. Defaulting to 128.")
-		bufSize = 128
-	} else {
-		logrus.Infof("Using stats_buf_size: %d.", bufSize)
-	}
+	bufSize := jc.GetUint("stats_buf_size", 128)
+	logrus.Infof("Using stats_buf_size: %d.", bufSize)
 
 	// Start stats collector
 	logrus.Info("Starting stats collector...")
@@ -61,7 +58,8 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 	logrus.Info("Stats collector started successfully.")
 
 	// Set worker ID in stats collector if available
-	if workerID, ok := jc["worker_id"].(string); ok && workerID != "" {
+	workerID := jc.GetString("worker_id", "")
+	if workerID != "" {
 		logrus.Infof("Setting worker ID to '%s' in stats collector.", workerID)
 		s.SetWorkerID(workerID)
 	} else {
@@ -71,31 +69,39 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 	// Initialize job workers
 	logrus.Info("Setting up job workers...")
 	jobworkers := map[string]*jobWorkerEntry{
-		jobs.WebScraperType: {
+		string(teetypes.WebJob): {
 			w: jobs.NewWebScraper(jc, s),
 		},
-		jobs.TwitterScraperType: {
+		string(teetypes.TwitterJob): {
 			w: jobs.NewTwitterScraper(jc, s),
 		},
-		jobs.TwitterCredentialScraperType: {
+		string(teetypes.TwitterCredentialJob): {
 			w: jobs.NewTwitterScraper(jc, s), // Uses the same implementation as standard Twitter scraper
 		},
-		jobs.TwitterApiScraperType: {
+		string(teetypes.TwitterApiJob): {
 			w: jobs.NewTwitterScraper(jc, s), // Uses the same implementation as standard Twitter scraper
 		},
-		jobs.TelemetryJobType: {
+		string(teetypes.TelemetryJob): {
 			w: jobs.NewTelemetryJob(jc, s),
 		},
-		jobs.TikTokTranscriptionType: {
+		string(teetypes.TiktokJob): {
 			w: jobs.NewTikTokTranscriber(jc, s),
 		},
 	}
-	logrus.Infof("Initialized job worker for: %s", jobs.WebScraperType)
-	logrus.Infof("Initialized job worker for: %s", jobs.TwitterScraperType)
-	logrus.Infof("Initialized job worker for: %s", jobs.TwitterCredentialScraperType)
-	logrus.Infof("Initialized job worker for: %s", jobs.TwitterApiScraperType)
-	logrus.Infof("Initialized job worker for: %s", jobs.TelemetryJobType)
-	logrus.Infof("Initialized job worker for: %s", jobs.TikTokTranscriptionType)
+	// Validate that all workers were initialized successfully
+	for jobType, workerEntry := range jobworkers {
+		if workerEntry.w == nil {
+			logrus.Errorf("Failed to initialize worker for job type: %s. This worker will not be available.", jobType)
+			// Remove the nil worker from the map to prevent runtime issues
+			delete(jobworkers, jobType)
+		} else {
+			logrus.Infof("Successfully initialized job worker for: %s", jobType)
+		}
+	}
+
+	if len(jobworkers) == 0 {
+		logrus.Error("No job workers were successfully initialized!")
+	}
 
 	logrus.Info("Job workers setup completed.")
 
@@ -121,20 +127,40 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 
 // CapabilityProvider is an interface for workers that can report their capabilities
 type CapabilityProvider interface {
-	GetCapabilities() []types.Capability
+	GetStructuredCapabilities() []teetypes.JobCapability
 }
 
-// GetWorkerCapabilities returns the capabilities for all registered workers
-func (js *JobServer) GetWorkerCapabilities() map[string][]types.Capability {
-	capabilities := make(map[string][]types.Capability)
+// GetWorkerCapabilities returns the structured capabilities for all registered workers
+func (js *JobServer) GetWorkerCapabilities() teetypes.WorkerCapabilities {
+	// Use a map to deduplicate capabilities by job type
+	jobTypeCapMap := make(map[string]map[teetypes.Capability]struct{})
 
-	for workerType, workerEntry := range js.jobWorkers {
+	for _, workerEntry := range js.jobWorkers {
 		if provider, ok := workerEntry.w.(CapabilityProvider); ok {
-			capabilities[workerType] = provider.GetCapabilities()
+			structuredCapabilities := provider.GetStructuredCapabilities()
+			for _, structuredCapability := range structuredCapabilities {
+				jobTypeStr := string(structuredCapability.JobType)
+				if _, exists := jobTypeCapMap[jobTypeStr]; !exists {
+					jobTypeCapMap[jobTypeStr] = make(map[teetypes.Capability]struct{})
+				}
+				for _, capability := range structuredCapability.Capabilities {
+					jobTypeCapMap[jobTypeStr][capability] = struct{}{}
+				}
+			}
 		}
 	}
 
-	return capabilities
+	// Convert map back to slice format
+	var allCapabilities teetypes.WorkerCapabilities
+	for jobType, capabilitySet := range jobTypeCapMap {
+		capabilities := maps.Keys(capabilitySet)
+		allCapabilities = append(allCapabilities, teetypes.JobCapability{
+			JobType:      teetypes.JobType(jobType),
+			Capabilities: capabilities,
+		})
+	}
+
+	return allCapabilities
 }
 
 func (js *JobServer) Run(ctx context.Context) {
@@ -159,7 +185,7 @@ func (js *JobServer) AddJob(j types.Job) (string, error) {
 		return "", errors.New("this job is not for this worker")
 	}
 
-	if j.Type != jobs.TelemetryJobType && config.MinersWhiteList != "" {
+	if j.Type != teetypes.TelemetryJob && config.MinersWhiteList != "" {
 		var miners []string
 
 		// In standalone mode, we just whitelist ourselves

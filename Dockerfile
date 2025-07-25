@@ -6,8 +6,10 @@ ARG VERSION
 FROM ghcr.io/edgelesssys/ego-dev:v${egover} AS dependencies
 
 WORKDIR /app
+# Copy go.mod and go.sum
 COPY go.mod go.sum ./
 RUN go mod download
+# Copy the rest of the source
 COPY . .
 
 # Build the Go binary in a separate stage utilizing Makefile

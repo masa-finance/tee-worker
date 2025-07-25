@@ -3,11 +3,15 @@ services:
     network_mode: "host"
     # image: masaengineering/tee-worker:main
     # Uncomment to build from source
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
     ports:
-       - "8080:8080"
+       - "8080:8080" # this is ignored when network_mode is host
     environment:
-      LISTEN_ADDRESS: ":8080"
+      LISTEN_ADDRESS: "${LISTEN_ADDRESS:-:8080}"
       # comment if running with Intel SGX HW
       OE_SIMULATION: "1"
       # SGX library logging level: NONE/ FATAL / ERROR / WARNING / INFO / VERBOSE

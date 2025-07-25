@@ -61,113 +61,319 @@ The tee-worker requires various environment variables for operation. These shoul
 - `LISTEN_ADDRESS`: The address the service listens on (default: `:8080`).
 - `RESULT_CACHE_MAX_SIZE`: Maximum number of job results to keep in the result cache (default: `1000`).
 - `RESULT_CACHE_MAX_AGE_SECONDS`: Maximum age (in seconds) to keep a result in the cache (default: `600`).
-- `CAPABILITIES`: Comma-separated list of capabilities to enable for the worker. This is a security feature to limit the actions the worker can perform. If not set, the worker will automatically determine the capabilities (auto-detection) based on the provided credentials and available features. When set, manual capabilities are combined with auto-detected capabilities in telemetry reports, ensuring complete visibility of the worker's actual capabilities.
 - `JOB_TIMEOUT_SECONDS`: Maximum duration of a job when multiple calls are needed to get the number of results requested (default: `300`).
 
-### Capabilities
+## Capabilities
 
-The `CAPABILITIES` environment variable defines the actions the worker can perform. This is a security feature to limit the actions the worker can perform.
+The worker automatically detects and exposes capabilities based on available configuration. Each capability is organized under a **Job Type** with specific **sub-capabilities**.
 
-**Capability Detection and Reporting:**
+### Available Job Types and Capabilities
 
-1. **Auto-detection**: If `CAPABILITIES` is not set, the worker automatically detects available capabilities based on:
-   - Twitter credentials (username:password pairs) - enables credential-based features
-   - Twitter API keys - enables API-based features
-   - Available services (web scraper, TikTok transcription, telemetry)
+**Core Services (Always Available):**
 
-2. **Manual Configuration**: When `CAPABILITIES` is set, it specifies additional capabilities beyond auto-detected ones.
+1. **`web`** - Web scraping services
+   - **Sub-capabilities**: `["web-scraper"]`
+   - **Requirements**: None (always available)
 
-3. **Combined Reporting**: The telemetry report includes both manually configured and auto-detected capabilities, providing complete visibility of the worker's actual capabilities. For example:
-   - If `CAPABILITIES="all"` and Twitter credentials are configured, telemetry will report: `["all", "searchbyquery", "getbyid", ...]`
-   - This ensures transparency in resource allocation and worker evaluation within the MASA ecosystem.
+2. **`tiktok`** - TikTok video processing
+   - **Sub-capabilities**: `["tiktok-transcription"]`
+   - **Requirements**: None (always available)
 
-**Supported Capabilities:**
+**Twitter Services (Configuration-Dependent):**
 
-- `*`: All capabilities (default).
-- `all`: All capabilities. Same as `*`.
-- `searchbyquery`: Search by query. 
-- `searchbyfullarchive`: Search by full archive. Only available for API keys with full archive access.
-- `searchbyprofile`: Search by profile. 
-- `searchfollowers`: Search followers.
-- `getbyid`: Get by ID.
-- `getreplies`: Get replies.
-- `getretweeters`: Get retweeters.
-- `gettweets`: Get tweets.
-- `getmedia`: Get media.
-- `gethometweets`: Get home tweets.
-- `getforyoutweets`: Get "For You" tweets.
-- `getbookmarks`: Get bookmarks.
-- `getprofilebyid`: Get profile by ID.
-- `gettrends`: Get trends.
-- `getfollowing`: Get following.
-- `getfollowers`: Get followers.
-- `getspace`: Get space.
-- `getspaces`: Get spaces.
+3. **`twitter-credential`** - Twitter scraping with credentials
+   - **Sub-capabilities**: `["searchbyquery", "searchbyfullarchive", "searchbyprofile", "getbyid", "getreplies", "getretweeters", "gettweets", "getmedia", "gethometweets", "getforyoutweets", "getprofilebyid", "gettrends", "getfollowing", "getfollowers", "getspace"]`
+   - **Requirements**: `TWITTER_ACCOUNTS` environment variable
 
-See `.env.example` for more details.
+4. **`twitter-api`** - Twitter scraping with API keys
+   - **Sub-capabilities**: `["searchbyquery", "getbyid", "getprofilebyid"]` (basic), plus `["searchbyfullarchive"]` for elevated API keys
+   - **Requirements**: `TWITTER_API_KEYS` environment variable
 
-**Example:**
-```env
-WEBSCRAPER_BLACKLIST="google.com,google.be"
-TWITTER_ACCOUNTS="foo:bar,foo:baz"
-TWITTER_API_KEYS="apikey1,apikey2"
-TWITTER_SKIP_LOGIN_VERIFICATION="true"
-LISTEN_ADDRESS=":8080"
-RESULT_CACHE_MAX_SIZE=1000
-RESULT_CACHE_MAX_AGE_SECONDS=600
-CAPABILITIES="searchbyfullarchive,searchbyquery,searchbyprofile,searchfollowers,getbyid,getreplies,getretweeters,gettweets,getmedia,gethometweets,getforyoutweets,getbookmarks,getprofilebyid,gettrends,getfollowing,getfollowers,getspace,getspaces"
-```
+5. **`twitter`** - General Twitter scraping (uses best available auth)
+   - **Sub-capabilities**: Dynamic based on available authentication (same as credential or API depending on what's configured)
+   - **Requirements**: Either `TWITTER_ACCOUNTS` or `TWITTER_API_KEYS`
 
-See `.env.example` for more details.
+**Stats Service (Always Available):**
 
-## Container images
-
-All tagged images are available here: https://hub.docker.com/r/masaengineering/tee-worker/tags
-
-- Images with `latest` tag are the latest releases
-- Every branch has a corresponding image with the branch name (e.g. `main`)
-
-### Docker compose
-
-There are two example docker compose file to run the container with the appropriate environment variables. They are similar but `docker-compose.yml` is meant as an example for using in production, while `docker-compose.dev.yml` is meant for testing.
-
-```bash
-docker-compose up
-```
-
-### Testing Mode
-
-For testing outside a TEE environment:
-
-```go
-// Enable standalone mode
-tee.SealStandaloneMode = true
-
-// Create a new key ring and add a key for standalone mode (32 bytes for AES-256)
-keyRing := tee.NewKeyRing()
-keyRing.Add("0123456789abcdef0123456789abcdef")
-
-// Set as the current key ring
-tee.CurrentKeyRing = keyRing
-```
-
-### Important Notes
-
-1. All encryption keys must be exactly 32 bytes long for AES-256 encryption
-   - The system validates that keys are exactly 32 bytes (256 bits) when added through the `SetKey` function
-   - An error will be returned if the key length is invalid
-   - Example valid key: `"0123456789abcdef0123456789abcdef"` (32 bytes)
-2. The sealing mechanism uses the TEE's product key in production mode
-3. Key rings help manage multiple encryption keys and support key rotation
-4. Salt-based key derivation adds an extra layer of security by deriving unique keys for different contexts
-5. **Security Enhancement**: The keyring is now limited to a maximum of 2 keys per worker
-   - This restriction prevents job recycling and potential replay attacks
-   - Workers with more than 2 keys will be automatically pruned to the 2 most recent keys
-   - The system enforces this limit when adding new keys and during startup validation
+6. **`telemetry`** - Worker monitoring and stats
+   - **Sub-capabilities**: `["telemetry"]`
+   - **Requirements**: None (always available)
 
 ## API
 
 The tee-worker exposes a simple HTTP API to submit jobs, retrieve results, and decrypt the results.
+
+### Complete Request Flow
+
+Here's the complete 4-step process for any job type:
+
+```bash
+# 1. Generate job signature
+SIG=$(curl -s localhost:8080/job/generate \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${API_KEY}" \
+  -d '{
+    "type": "web-scraper",
+    "arguments": {
+      "url": "https://example.com",
+      "depth": 1
+    }
+  }')
+
+# 2. Submit the job
+uuid=$(curl -s localhost:8080/job/add \
+  -H "Content-Type: application/json" \
+  -d '{ "encrypted_job": "'$SIG'" }' \
+  | jq -r .uid)
+
+# 3. Check job status (poll until complete)
+result=$(curl -s localhost:8080/job/status/$uuid)
+
+# 4. Decrypt job results
+curl -s localhost:8080/job/result \
+  -H "Content-Type: application/json" \
+  -d '{
+    "encrypted_result": "'$result'",
+    "encrypted_request": "'$SIG'"
+  }'
+```
+
+### Job Types and Parameters
+
+All job types follow the same API flow above. Here are the available job types and their specific parameters:
+
+#### `web-scraper`
+Scrapes content from web pages.
+
+**Parameters:**
+- `url` (string, required): The URL to scrape
+- `depth` (int, optional): How deep to go (defaults to 1 if unset or < 0)
+
+```json
+{
+  "type": "web-scraper",
+  "arguments": {
+    "url": "https://www.google.com",
+    "depth": 1
+  }
+}
+```
+
+#### `telemetry`
+Returns worker statistics and capabilities. No parameters required.
+
+```json
+{
+  "type": "telemetry",
+  "arguments": {}
+}
+```
+
+#### `tiktok-transcription`
+Transcribes TikTok videos to text.
+
+**Parameters:**
+- `video_url` (string, required): The TikTok video URL to transcribe
+- `language` (string, optional): Language for transcription (e.g., "eng-US"). Auto-detects if not specified.
+
+**Returns:**
+- `transcription_text`: The extracted text from the video
+- `detected_language`: The language detected/used for transcription
+- `video_title`: The title of the TikTok video
+- `original_url`: The original video URL
+- `thumbnail_url`: URL to the video thumbnail (if available)
+
+```json
+{
+  "type": "tiktok-transcription",
+  "arguments": {
+    "video_url": "https://www.tiktok.com/@coachty23/video/7502100651397172526",
+    "language": "eng-US"
+  }
+}
+```
+
+#### Twitter Job Types
+
+Twitter scraping is available through three job types:
+- `twitter-scraper`: Uses best available auth method (credential or API)
+- `twitter-credential-scraper`: Forces credential-based scraping (requires `TWITTER_ACCOUNTS`)
+- `twitter-api-scraper`: Forces API-based scraping (requires `TWITTER_API_KEYS`)
+
+**Common Parameters:**
+- `type` (string, required): The operation type (see sub-capabilities below)
+- `query` (string): The query to execute (meaning depends on operation type)
+- `max_results` (int, optional): Number of results to return
+- `next_cursor` (string, optional): Pagination cursor (supported by some operations)
+
+##### Tweet Search Operations
+
+**`searchbyquery`** - Search tweets using Twitter query syntax
+```json
+{
+  "type": "twitter-scraper",
+  "arguments": {
+    "type": "searchbyquery",
+    "query": "climate change",
+    "max_results": 10
+  }
+}
+```
+
+**`searchbyfullarchive`** - Search full tweet archive (requires elevated API key for API-based scraping)
+```json
+{
+  "type": "twitter-api-scraper",
+  "arguments": {
+    "type": "searchbyfullarchive",
+    "query": "NASA",
+    "max_results": 100
+  }
+}
+```
+
+**`getbyid`** - Get specific tweet by ID
+```json
+{
+  "type": "twitter-scraper",
+  "arguments": {
+    "type": "getbyid",
+    "query": "1881258110712492142"
+  }
+}
+```
+
+**`getreplies`** - Get replies to a specific tweet
+```json
+{
+  "type": "twitter-credential-scraper",
+  "arguments": {
+    "type": "getreplies",
+    "query": "1234567890",
+    "max_results": 20
+  }
+}
+```
+
+**`getretweeters`** - Get users who retweeted a specific tweet
+```json
+{
+  "type": "twitter-credential-scraper",
+  "arguments": {
+    "type": "getretweeters",
+    "query": "1234567890",
+    "max_results": 50
+  }
+}
+```
+
+##### User Timeline Operations
+
+**`gettweets`** - Get tweets from a user's timeline
+```json
+{
+  "type": "twitter-credential-scraper",
+  "arguments": {
+    "type": "gettweets",
+    "query": "NASA",
+    "max_results": 50
+  }
+}
+```
+
+**`getmedia`** - Get media (photos/videos) from a user
+```json
+{
+  "type": "twitter-credential-scraper",
+  "arguments": {
+    "type": "getmedia",
+    "query": "NASA",
+    "max_results": 20
+  }
+}
+```
+
+**`gethometweets`** - Get authenticated user's home timeline (credential-based only)
+```json
+{
+  "type": "twitter-credential-scraper",
+  "arguments": {
+    "type": "gethometweets",
+    "max_results": 30
+  }
+}
+```
+
+**`getforyoutweets`** - Get "For You" timeline (credential-based only)
+```json
+{
+  "type": "twitter-credential-scraper",
+  "arguments": {
+    "type": "getforyoutweets",
+    "max_results": 25
+  }
+}
+```
+
+##### Profile Operations
+
+**`searchbyprofile`** - Get user profile information
+```json
+{
+  "type": "twitter-credential-scraper",
+  "arguments": {
+    "type": "searchbyprofile",
+    "query": "NASA_Marshall"
+  }
+}
+```
+
+**`getprofilebyid`** - Get user profile by user ID
+```json
+{
+  "type": "twitter-scraper",
+  "arguments": {
+    "type": "getprofilebyid",
+    "query": "44196397"
+  }
+}
+```
+
+**`getfollowers`** - Get followers of a profile
+```json
+{
+  "type": "twitter-credential-scraper",
+  "arguments": {
+    "type": "getfollowers",
+    "query": "NASA",
+    "max_results": 100
+  }
+}
+```
+
+**`getfollowing`** - Get users that a profile is following
+```json
+{
+  "type": "twitter-credential-scraper",
+  "arguments": {
+    "type": "getfollowing",
+    "query": "NASA",
+    "max_results": 100
+  }
+}
+```
+
+##### Other Operations
+
+**`gettrends`** - Get trending topics (no query required)
+```json
+{
+  "type": "twitter-credential-scraper",
+  "arguments": {
+    "type": "gettrends"
+  }
+}
+```
 
 ### Health Check Endpoints
 
@@ -238,154 +444,6 @@ Response when unhealthy:
 
 Note: Health check endpoints do not require API key authentication.
 
-### Available Scraper Types
-- `web-scraper`: Scrapes content from web pages
-- `twitter-scraper`: General Twitter content scraping
-- `twitter-credential-scraper`: Authenticated Twitter scraping
-- `twitter-api-scraper`: Uses Twitter API for data collection
-
-### Example 1: Web Scraper
-
-```bash
-# 1. Generate job signature for web scraping
-SIG=$(curl localhost:8080/job/generate \
-  -H "Content-Type: application/json" \
-  -d '{
-    "type": "web-scraper", 
-    "arguments": { 
-      "url": "https://example.com" 
-    }
-  }')
-
-# 2. Submit the job
-uuid=$(curl localhost:8080/job/add \
-  -H "Content-Type: application/json" \
-  -d '{ "encrypted_job": "'$SIG'" }' \
-  | jq -r .uid)
-
-# 3. Check job status
-result=$(curl localhost:8080/job/status/$uuid)
-
-# 4. Decrypt job results
-curl localhost:8080/job/result \
-  -H "Content-Type: application/json" \
-  -d '{
-    "encrypted_result": "'$result'", 
-    "encrypted_request": "'$SIG'" 
-  }'
-```
-
-### Example 2: Twitter API Scraping
-
-#### Available twitter scraping types
-- `twitter-scraper`: General Twitter scraping
-- `twitter-credential-scraper`: Authenticated Twitter scraping
-- `twitter-api-scraper`: Uses Twitter API for data collection
-
-Note that the job argument types are the same as capabilities. The worker will check if the job type is allowed for the current worker.
-
-```bash
-# 1. Generate job signature for Twitter scraping
-SIG=$(curl -s "localhost:8080/job/generate" \
-  -H "Authorization: Bearer ${AUTH_TOKEN}" \
-  -X POST \
-  -H "Content-Type: application/json" \
-  -d '{
-    "type": "twitter-api-scraper",
-    "arguments": {
-      "type": "searchbyfullarchive",
-      "query": "climate change",
-      "max_results": 100
-    }
-  }')
-
-# 2. Submit the job
-uuid=$(curl localhost:8080/job/add \
-  -H "Content-Type: application/json" \
-  -d '{ "encrypted_job": "'$SIG'" }' \
-  | jq -r .uid)
-
-# 3. Check job status
-result=$(curl localhost:8080/job/status/$uuid)
-
-# 4. Decrypt job results
-curl localhost:8080/job/result \
-  -H "Content-Type: application/json" \
-  -d '{
-    "encrypted_result": "'$result'", 
-    "encrypted_request": "'$SIG'" 
-  }'
-```
-
-### Example 3: Twitter Credential Scraping
-
-```bash
-# 1. Generate job signature for Twitter credential scraping
-SIG=$(curl -s "localhost:8080/job/generate" \
-  -H "Authorization: Bearer ${AUTH_TOKEN}" \
-  -X POST \
-  -H "Content-Type: application/json" \
-  -d '{
-    "type": "twitter-credential-scraper",
-    "arguments": {
-      "type": "searchbyquery",
-      "query": "climate change",
-      "max_results": 10
-    }
-  }')
-
-# 2. Submit the job
-uuid=$(curl localhost:8080/job/add \
-  -H "Content-Type: application/json" \
-  -d '{ "encrypted_job": "'$SIG'" }' \
-  | jq -r .uid)
-
-# 3. Check job status
-result=$(curl localhost:8080/job/status/$uuid)
-
-# 4. Decrypt job results
-curl localhost:8080/job/result \
-  -H "Content-Type: application/json" \
-  -d '{
-    "encrypted_result": "'$result'", 
-    "encrypted_request": "'$SIG'" 
-  }'
-```
-
-### Example 4: TikTok Transcription
-
-```bash
-# 1. Generate job signature for TikTok transcription
-SIG=$(curl -s "localhost:8080/job/generate" \
-  -H "Authorization: Bearer ${AUTH_TOKEN}" \
-  -X POST \
-  -H "Content-Type: application/json" \
-  -d '{
-    "type": "tiktok-transcription",
-    "arguments": {
-      "video_url": "https://www.tiktok.com/@example/video/1234567890",
-      "language": "eng-US"
-    }
-  }')
-
-# 2. Submit the job
-uuid=$(curl localhost:8080/job/add \
-  -H "Content-Type: application/json" \
-  -d '{ "encrypted_job": "'$SIG'" }' \
-  | jq -r .uid)
-
-# 3. Check job status
-result=$(curl localhost:8080/job/status/$uuid)
-
-# 4. Decrypt job results
-curl localhost:8080/job/result \
-  -H "Content-Type: application/json" \
-  -d '{
-    "encrypted_result": "'$result'", 
-    "encrypted_request": "'$SIG'" 
-  }'
-```
-
 ### Golang client
 
 It is available a simple golang client to interact with the API:
@@ -428,117 +486,6 @@ func main() {
     decryptedResult, err := clientInstance.Decrypt(jobSignature, encryptedResult)
 }
 ```
-
-### Job types
-
-The tee-worker currently supports 4 job types:
-
-**TODO:** Add descriptions of the return values.
-
-#### `web-scraper`
-
-Scrapes a URL down to some depth.
-
-**Arguments**
-
-* `url` (string): The URL to scrape.
-* `depth` (int): How deep to go (if unset or less than 0, will be set to 1).
-
-#### `twitter-scraper`
-
-Performs different types of Twitter searches.
-
-**Arguments**
-
-* `type` (string): Type of query (see below).
-* `query` (string): The query to execute. Its meaning depends on the type of query (see below)
-* `max_results` (int): How many results to return.
-* `next_cursor` (int): Cursor returned from the previous query, for pagination (for those job types that support it).
-
-**Job types**
-
-Some job types now support cursor-based pagination. For these jobs:
-
-- The get variants ignore the next_cursor parameter and retrieve the first `max_results` records quickly
-- To paginate, first use an empty next_cursor to get initial results, then use the returned next_cursor in subsequent calls.
-
-**Jobs that return tweets or lists of tweets**
-
-* `searchbyquery` - Executes a query and returns the tweets that match. The `query` parameter is a query using the [Twitter API query syntax](https://developer.x.com/en/docs/x-api/v1/tweets/search/guides/standard-operators)
-* `getbyid` - Returns a tweet given its ID. The `query` parameter is the tweet ID.
-* `getreplies` - Returns a list of all the replies to a given tweet. The `query` parameter is the tweet ID.
-* `gettweets`  - Returns all the tweets for a given profile. The `query` parameter is the profile to search.
-* `gethometweets`  - Returns all the tweets from a profile's home timeline. The `query` parameter is the profile to search.
-* `getforyoutweets` - Returns all the tweets from a profile's "For You" timeline. The `query` parameter is the profile to search.
-* `getbookmarks`  - Returns all of a profile's bookmarked tweets. The `query` parameter is the profile to search.
-
-**Jobs that return profiles or lists of profiles**
-
-* `getprofilebyid` / `searchbyprofile` - Returns a given user profile. The `query` parameter is the profile to search for.
-* `getfollowers` / `searchfollowers`  - Returns a list of profiles of the followers of a given profile. The `query` parameter is the profile to search.
-* `getfollowing` - Returns all of the profiles a profile is following. The `query` parameter is the profile to search.
-* `getretweeters` - Returns a list of profiles that have retweeted a given tweet. The `query` parameter is the tweet ID.
-
-**Jobs that return other types of data**
-
-* `getmedia` - Returns info about all the photos and videos for a given user. The `query` parameter is the profile to search.
-* `gettrends`- Returns a list of all the trending topics. The `query` parameter is ignored.
-* `getspace`- Returns info regarding a Twitter Space given its ID. The `query` parameter is the space ID.
-
-#### `twitter-credential-scraper`
-- **Description:**
-  - Like `twitter-scraper`, but **forces the use of Twitter credentials** (username/password) for scraping. Twitter API keys will not be used for these jobs.
-- **Arguments:**
-  - Same as `twitter-scraper`.
-- **Returns:**
-  - Same as `twitter-scraper`.
-
-#### `twitter-api-scraper`
-- **Description:**
-  - Like `twitter-scraper`, but **forces the use of Twitter API keys** for scraping. Twitter credentials will not be used for these jobs.
-- **Arguments:**
-  - Same as `twitter-scraper`.
-- **Returns:**
-  - Same as `twitter-scraper`.
-
-#### `tiktok-transcription`
-
-Transcribes TikTok videos and extracts text from them.
-
-**Arguments**
-
-* `video_url` (string): The TikTok video URL to transcribe.
-* `language` (string, optional): The desired language for transcription (e.g., "eng-US"). If not specified, uses the configured default or auto-detects.
-
-**Returns**
-
-* `transcription_text` (string): The extracted text from the video
-* `detected_language` (string): The language detected/used for transcription
-* `video_title` (string): The title of the TikTok video
-* `original_url` (string): The original video URL
-* `thumbnail_url` (string): URL to the video thumbnail (if available)
-
-#### `telemetry`
-
-This job type has no parameters, and returns the current state of the worker. It returns an object with the following fields. All timestamps are given in local time, in seconds since the Unix epoch (1/1/1970 00:00:00 UTC). The counts represent the interval between the `boot_time` and the `current_time`. All the fields in the `stats` object are optional (if they are missing it means that its value is 0).
-
-Note that the stats are reset whenever the node is rebooted (therefore we need the `boot_time` to properly account for the stats)
-
-These are the fields in the response:
-
-* `boot_time` - Timestamp when the process started up.
-* `last_operation_time` - Timestamp when the last operation happened.
-* `current_time` - Current timestamp of the host.
-* `stats.twitter_scrapes` - Total number of Twitter scrapes.
-* `stats.twitter_returned_tweets` - Number of tweets returned to clients (this does not consider other types of data such as profiles or trending topics).
-* `stats.twitter_returned_profiles` - Number of profiles returned to clients.
-* `stats.twitter_returned_other` - Number of other records returned to clients (e.g. media, spaces or trending topics).
-* `stats.twitter_errors` - Number of errors while scraping tweets (excluding authentication and rate-limiting).
-* `stats.twitter_ratelimit_errors` - Number of Twitter rate-limiting errors.
-* `stats.twitter_auth_errors` - Number of Twitter authentication errors.
-* `stats.web_success` - Number of successful web scrapes.
-* `stats.web_errors` - Number of web scrapes that resulted in an error.
-* `stats.web_invalid` - Number of invalid web scrape requests (at the moment, blacklisted domains).
 
 ## Profiling
 

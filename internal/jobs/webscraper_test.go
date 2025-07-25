@@ -6,6 +6,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	teetypes "github.com/masa-finance/tee-types/types"
 	"github.com/masa-finance/tee-worker/api/types"
 	. "github.com/masa-finance/tee-worker/internal/jobs"
 	"github.com/masa-finance/tee-worker/internal/jobs/stats"
@@ -22,7 +23,7 @@ var _ = Describe("Webscraper", func() {
 		webScraper := NewWebScraper(types.JobConfiguration{}, statsCollector)
 
 		j := types.Job{
-			Type: WebScraperType,
+			Type: teetypes.WebJob,
 			Arguments: map[string]interface{}{
 				"url": "https://www.google.com",
 			},
@@ -50,7 +51,7 @@ var _ = Describe("Webscraper", func() {
 		webScraper := NewWebScraper(types.JobConfiguration{}, statsCollector)
 
 		j := types.Job{
-			Type: WebScraperType,
+			Type: teetypes.WebJob,
 			Arguments: map[string]interface{}{
 				"url": "google",
 			},
@@ -82,7 +83,7 @@ var _ = Describe("Webscraper", func() {
 		}, statsCollector)
 
 		j := types.Job{
-			Type: WebScraperType,
+			Type: teetypes.WebJob,
 			Arguments: map[string]interface{}{
 				"url": "google",
 			},

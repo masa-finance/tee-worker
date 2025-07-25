@@ -1,87 +1,126 @@
 package capabilities
 
 import (
-	"golang.org/x/exp/slices"
+	"slices"
 	"strings"
 
+	teetypes "github.com/masa-finance/tee-types/types"
 	"github.com/masa-finance/tee-worker/api/types"
+	"github.com/masa-finance/tee-worker/internal/jobs/twitter"
 )
 
 // JobServerInterface defines the methods we need from JobServer to avoid circular dependencies
 type JobServerInterface interface {
-	GetWorkerCapabilities() map[string][]types.Capability
+	GetWorkerCapabilities() teetypes.WorkerCapabilities
 }
 
 // DetectCapabilities automatically detects available capabilities based on configuration
 // If jobServer is provided, it will use the actual worker capabilities
-func DetectCapabilities(jc types.JobConfiguration, jobServer JobServerInterface) []types.Capability {
-	var detected []types.Capability
-
+func DetectCapabilities(jc types.JobConfiguration, jobServer JobServerInterface) teetypes.WorkerCapabilities {
 	// If we have a JobServer, get capabilities directly from the workers
 	if jobServer != nil {
-		workerCaps := jobServer.GetWorkerCapabilities()
-		for _, caps := range workerCaps {
-			detected = append(detected, caps...)
-		}
-		return detected
+		return jobServer.GetWorkerCapabilities()
 	}
 
 	// Fallback to basic detection if no JobServer is available
 	// This maintains backward compatibility and is used during initialization
+	// Pre-allocate capacity for 3 always-available + up to 3 Twitter capabilities
+	capabilities := make(teetypes.WorkerCapabilities, 0, 6)
 
-	// Always available capabilities
-	detected = append(detected, "web-scraper", "telemetry", "tiktok-transcription")
+	// Start with always available scrapers
+	capabilities = append(capabilities, teetypes.AlwaysAvailableCapabilities...)
 
-	// Check for Twitter capabilities based on credentials
-	if accounts, ok := jc["twitter_accounts"].([]string); ok && len(accounts) > 0 {
-		// Basic Twitter capabilities when accounts are available
-		detected = append(detected, "searchbyquery", "getbyid", "getprofilebyid")
+	// Check what Twitter authentication methods are available
+	hasAccounts := jc.GetStringSlice("twitter_accounts", nil)
+	hasApiKeys := jc.GetStringSlice("twitter_api_keys", nil)
+
+	accountsAvailable := len(hasAccounts) > 0
+	apiKeysAvailable := len(hasApiKeys) > 0
+
+	// Add Twitter-specific capabilities based on available authentication
+	if accountsAvailable {
+		capabilities = append(capabilities,
+			teetypes.JobCapability{
+				JobType:      teetypes.TwitterCredentialJob,
+				Capabilities: teetypes.TwitterAllCaps,
+			},
+		)
 	}
 
-	if apiKeys, ok := jc["twitter_api_keys"].([]string); ok && len(apiKeys) > 0 {
-		// Basic API capabilities
-		if !slices.Contains(detected, "searchbyquery") {
-			detected = append(detected, "searchbyquery", "getbyid", "getprofilebyid")
+	if apiKeysAvailable {
+		// Start with basic API capabilities
+		apiCaps := make([]teetypes.Capability, len(teetypes.TwitterAPICaps))
+		copy(apiCaps, teetypes.TwitterAPICaps)
+
+		// Check for elevated API keys and add searchbyfullarchive capability
+		if hasElevatedApiKey(hasApiKeys) {
+			apiCaps = append(apiCaps, teetypes.CapSearchByFullArchive)
 		}
+
+		capabilities = append(capabilities,
+			teetypes.JobCapability{
+				JobType:      teetypes.TwitterApiJob,
+				Capabilities: apiCaps,
+			},
+		)
 	}
 
-	return detected
+	// Add general TwitterJob capability if any Twitter auth is available
+	if accountsAvailable || apiKeysAvailable {
+		var twitterJobCaps []teetypes.Capability
+		// Use the most comprehensive capabilities available
+		if accountsAvailable {
+			twitterJobCaps = teetypes.TwitterAllCaps
+		} else {
+			// Use API capabilities if we only have keys
+			twitterJobCaps = make([]teetypes.Capability, len(teetypes.TwitterAPICaps))
+			copy(twitterJobCaps, teetypes.TwitterAPICaps)
+
+			// Check for elevated API keys and add searchbyfullarchive capability
+			if hasElevatedApiKey(hasApiKeys) {
+				twitterJobCaps = append(twitterJobCaps, teetypes.CapSearchByFullArchive)
+			}
+		}
+
+		capabilities = append(capabilities,
+			teetypes.JobCapability{
+				JobType:      teetypes.TwitterJob,
+				Capabilities: twitterJobCaps,
+			},
+		)
+	}
+
+	return capabilities
 }
 
-// MergeCapabilities combines manual and auto-detected capabilities
-func MergeCapabilities(manual string, detected []types.Capability) []types.Capability {
-	// Parse manual capabilities
-	var manualCaps []types.Capability
-	if manual != "" {
-		caps := strings.Split(manual, ",")
-		// Trim whitespace
-		for _, cap := range caps {
-			manualCaps = append(manualCaps, types.Capability(strings.TrimSpace(cap)))
+// hasElevatedApiKey checks if any of the provided API keys are elevated
+func hasElevatedApiKey(apiKeys []string) bool {
+	if len(apiKeys) == 0 {
+		return false
+	}
+
+	// Parse API keys and create account manager to detect types
+	parsedApiKeys := parseApiKeys(apiKeys)
+	accountManager := twitter.NewTwitterAccountManager(nil, parsedApiKeys)
+
+	// Detect all API key types
+	accountManager.DetectAllApiKeyTypes()
+
+	// Check if any key is elevated
+	return slices.ContainsFunc(accountManager.GetApiKeys(), func(apiKey *twitter.TwitterApiKey) bool {
+		return apiKey.Type == twitter.TwitterApiKeyTypeElevated
+	})
+}
+
+// parseApiKeys converts string API keys to TwitterApiKey structs
+func parseApiKeys(apiKeys []string) []*twitter.TwitterApiKey {
+	result := make([]*twitter.TwitterApiKey, 0, len(apiKeys))
+	for _, key := range apiKeys {
+		if trimmed := strings.TrimSpace(key); trimmed != "" {
+			result = append(result, &twitter.TwitterApiKey{
+				Key: trimmed,
+			})
 		}
 	}
-
-	// Use a map to deduplicate
-	capMap := make(map[types.Capability]struct{})
-
-	// Add manual capabilities first (they take precedence)
-	for _, capability := range manualCaps {
-		if capability != "" {
-			capMap[capability] = struct{}{}
-		}
-	}
-
-	// Add auto-detected capabilities
-	for _, capability := range detected {
-		if capability != "" {
-			capMap[capability] = struct{}{}
-		}
-	}
-
-	// Convert back to slice
-	var result []types.Capability
-	for capability := range capMap {
-		result = append(result, capability)
-	}
-
 	return result
 }

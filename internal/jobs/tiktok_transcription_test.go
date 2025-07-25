@@ -48,7 +48,7 @@ var _ = Describe("TikTokTranscriber", func() {
 			}
 
 			job := types.Job{
-				Type:      TikTokTranscriptionType,
+				Type:      teetypes.TiktokJob,
 				Arguments: jobArguments,
 				WorkerID:  "tiktok-test-worker-happy",
 				UUID:      "test-uuid-happy",
@@ -117,7 +117,7 @@ var _ = Describe("TikTokTranscriber", func() {
 			}
 
 			job := types.Job{
-				Type:      TikTokTranscriptionType,
+				Type:      teetypes.TiktokJob,
 				Arguments: jobArguments,
 				WorkerID:  "tiktok-test-worker-invalid",
 				UUID:      "test-uuid-invalid",

@@ -2,6 +2,7 @@ package api_test
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"time"
 
@@ -9,9 +10,9 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 
+	teetypes "github.com/masa-finance/tee-types/types"
 	"github.com/masa-finance/tee-worker/api/types"
 	. "github.com/masa-finance/tee-worker/internal/api"
-	"github.com/masa-finance/tee-worker/internal/jobs"
 	"github.com/masa-finance/tee-worker/pkg/client"
 )
 
@@ -44,19 +45,19 @@ var _ = Describe("API", func() {
 			}
 
 			signature, err := c.CreateJobSignature(types.Job{
-				Type:      jobs.WebScraperType,
+				Type:      teetypes.WebJob,
 				Arguments: map[string]interface{}{},
 			})
 			if err != nil {
 				return err
 			}
 
-			// Check if the job signature is empty
+			// Check if the job signature is non-empty (indicates server is ready)
 			if signature == "" {
-				return nil
+				return fmt.Errorf("job signature is empty, server not ready")
 			}
 
-			return nil // or return signature if you need it
+			return nil // Success: signature is non-empty
 		}, 10*time.Second).Should(Succeed())
 
 		// Initialize the client
@@ -71,7 +72,7 @@ var _ = Describe("API", func() {
 	It("should submit an invalid job, and fail because of the malformed URL. no results containing google", func() {
 		// Step 1: Create the job request
 		job := types.Job{
-			Type: jobs.WebScraperType,
+			Type: teetypes.WebJob,
 			Arguments: map[string]interface{}{
 				"url": "google",
 			},
@@ -103,7 +104,7 @@ var _ = Describe("API", func() {
 	It("should submit a job and get the correct result", func() {
 		// Step 1: Create the job request
 		job := types.Job{
-			Type: jobs.WebScraperType,
+			Type: teetypes.WebJob,
 			Arguments: map[string]interface{}{
 				"url":   "https://google.com",
 				"depth": 1,

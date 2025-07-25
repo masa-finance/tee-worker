@@ -76,7 +76,7 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 
 	// Initialize empty key ring
 	tee.CurrentKeyRing = tee.NewKeyRing()
-	
+
 	// Validate keyring to ensure it doesn't exceed the maximum allowed keys
 	if tee.CurrentKeyRing != nil {
 		tee.CurrentKeyRing.ValidateAndPrune()
@@ -89,7 +89,7 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 	e.GET("/readyz", Readyz(jobServer, healthMetrics))
 
 	// Set up profiling if allowed
-	if ok, p := config["profiling_enabled"].(bool); ok && p {
+	if config.GetBool("profiling_enabled", false) {
 		_ = enableProfiling(e, standalone)
 	}
 
