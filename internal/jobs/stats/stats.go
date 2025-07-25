@@ -65,11 +65,10 @@ func StartCollector(bufSize uint, jc types.JobConfiguration) *StatsCollector {
 	logrus.Info("Starting stats collector")
 
 	s := Stats{
-		BootTimeUnix:         time.Now().Unix(),
-		Stats:                make(map[string]map[StatType]uint),
-		WorkerVersion:        versioning.TEEWorkerVersion,
-		ApplicationVersion:   versioning.ApplicationVersion,
-		ReportedCapabilities: teetypes.WorkerCapabilities{},
+		BootTimeUnix:       time.Now().Unix(),
+		Stats:              make(map[string]map[StatType]uint),
+		WorkerVersion:      versioning.TEEWorkerVersion,
+		ApplicationVersion: versioning.ApplicationVersion,
 	}
 
 	// Initial capability detection without JobServer (basic capabilities only)
