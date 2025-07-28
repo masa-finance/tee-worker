@@ -82,17 +82,18 @@ func TestDetectCapabilities(t *testing.T) {
 			},
 		},
 		{
-			name: "With elevated Twitter API keys - adds full archive capability",
+			name: "With mock elevated Twitter API keys - only basic capabilities detected",
 			jc: types.JobConfiguration{
 				"twitter_api_keys": []string{"Bearer abcd1234-ELEVATED"},
 			},
 			jobServer: nil,
 			expected: teetypes.WorkerCapabilities{
-				teetypes.WebJob:        {teetypes.CapWebScraper},
-				teetypes.TelemetryJob:  {teetypes.CapTelemetry},
-				teetypes.TiktokJob:     {teetypes.CapTiktokTranscription},
-				teetypes.TwitterApiJob: append(teetypes.TwitterAPICaps, teetypes.CapSearchByFullArchive),
-				teetypes.TwitterJob:    append(teetypes.TwitterAPICaps, teetypes.CapSearchByFullArchive),
+				teetypes.WebJob:       {teetypes.CapWebScraper},
+				teetypes.TelemetryJob: {teetypes.CapTelemetry},
+				teetypes.TiktokJob:    {teetypes.CapTiktokTranscription},
+				// Note: Mock elevated keys will be detected as basic since we can't make real API calls in tests
+				teetypes.TwitterApiJob: teetypes.TwitterAPICaps,
+				teetypes.TwitterJob:    teetypes.TwitterAPICaps,
 			},
 		},
 	}

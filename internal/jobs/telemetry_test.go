@@ -103,8 +103,7 @@ var _ = Describe("Telemetry Job", func() {
 
 			Expect(capabilities).NotTo(BeEmpty())
 			Expect(capabilities).To(HaveLen(1))
-			Expect(capabilities[0].JobType).To(Equal(teetypes.TelemetryJob))
-			Expect(capabilities[0].Capabilities).To(ContainElement(teetypes.CapTelemetry))
+			Expect(capabilities[teetypes.TelemetryJob]).To(ContainElement(teetypes.CapTelemetry))
 
 			logrus.WithField("capabilities", capabilities).Info("Telemetry job capabilities verified")
 		})
