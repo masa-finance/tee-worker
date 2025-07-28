@@ -817,31 +817,6 @@ func (ts *TwitterScraper) GetTweetByIDWithApiKey(j types.Job, tweetID string, ap
 	return tweetResult, nil
 }
 
-// note, there is no capability matching this yet
-func (ts *TwitterScraper) SearchProfile(j types.Job, query string, count int) ([]*twitterscraper.ProfileResult, error) {
-	scraper, _, _, err := ts.getAuthenticatedScraper(j, ts.configuration.DataDir, string(teetypes.TwitterJob))
-	if err != nil {
-		return nil, err
-	}
-	if scraper == nil {
-		return nil, fmt.Errorf("scraper not initialized for SearchProfile")
-	}
-
-	ts.statsCollector.Add(j.WorkerID, stats.TwitterScrapes, 1)
-	var profiles []*twitterscraper.ProfileResult
-	ctx, cancel := context.WithTimeout(context.Background(), j.Timeout)
-	defer cancel()
-
-	for profile := range scraper.SearchProfiles(ctx, query, count) {
-		profiles = append(profiles, profile)
-		if len(profiles) >= count && count > 0 {
-			break
-		}
-	}
-	ts.statsCollector.Add(j.WorkerID, stats.TwitterProfiles, uint(len(profiles)))
-	return profiles, nil
-}
-
 func (ts *TwitterScraper) GetTrends(j types.Job, baseDir string) ([]string, error) {
 	scraper, account, _, err := ts.getAuthenticatedScraper(j, baseDir, string(teetypes.TwitterJob))
 	if err != nil {
