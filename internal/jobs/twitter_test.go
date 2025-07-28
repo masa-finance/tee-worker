@@ -105,7 +105,7 @@ var _ = Describe("Twitter Scraper", func() {
 			res, err := scraper.ExecuteJob(types.Job{
 				Type: teetypes.TwitterCredentialJob,
 				Arguments: map[string]interface{}{
-					"type":        "searchbyquery",
+					"type":        teetypes.CapSearchByQuery,
 					"query":       "NASA",
 					"max_results": 1,
 				},
@@ -130,7 +130,7 @@ var _ = Describe("Twitter Scraper", func() {
 			res, err := scraper.ExecuteJob(types.Job{
 				Type: teetypes.TwitterApiJob,
 				Arguments: map[string]interface{}{
-					"type":        "searchbyquery",
+					"type":        teetypes.CapSearchByQuery,
 					"query":       "NASA",
 					"max_results": 1,
 				},
@@ -156,7 +156,7 @@ var _ = Describe("Twitter Scraper", func() {
 			res, err := scraper.ExecuteJob(types.Job{
 				Type: teetypes.TwitterCredentialJob,
 				Arguments: map[string]interface{}{
-					"type":        "searchbyquery",
+					"type":        teetypes.CapSearchByQuery,
 					"query":       "NASA",
 					"max_results": 1,
 				},
@@ -178,7 +178,7 @@ var _ = Describe("Twitter Scraper", func() {
 			res, err := scraper.ExecuteJob(types.Job{
 				Type: teetypes.TwitterJob,
 				Arguments: map[string]interface{}{
-					"type":        "searchbyquery",
+					"type":        teetypes.CapSearchByQuery,
 					"query":       "nasa",
 					"max_results": 10,
 				},
@@ -199,7 +199,7 @@ var _ = Describe("Twitter Scraper", func() {
 			res, err := scraper.ExecuteJob(types.Job{
 				Type: teetypes.TwitterApiJob,
 				Arguments: map[string]interface{}{
-					"type":        "searchbyquery",
+					"type":        teetypes.CapSearchByQuery,
 					"query":       "NASA",
 					"max_results": 1,
 				},
@@ -220,7 +220,7 @@ var _ = Describe("Twitter Scraper", func() {
 			res, err := scraper.ExecuteJob(types.Job{
 				Type: teetypes.TwitterApiJob,
 				Arguments: map[string]interface{}{
-					"type":        "searchbyfullarchive",
+					"type":        teetypes.CapSearchByFullArchive,
 					"query":       "NASA",
 					"max_results": 1,
 				},
@@ -245,7 +245,7 @@ var _ = Describe("Twitter Scraper", func() {
 			j := types.Job{
 				Type: teetypes.TwitterJob,
 				Arguments: map[string]interface{}{
-					"type":        "searchbyquery",
+					"type":        teetypes.CapSearchByQuery,
 					"query":       "nasa",
 					"max_results": 10,
 				},
@@ -275,7 +275,7 @@ var _ = Describe("Twitter Scraper", func() {
 			j := types.Job{
 				Type: teetypes.TwitterCredentialJob,
 				Arguments: map[string]interface{}{
-					"type":  "searchbyprofile",
+					"type":  teetypes.CapSearchByProfile,
 					"query": "NASA_Marshall",
 				},
 				Timeout: 10 * time.Second,
@@ -302,7 +302,7 @@ var _ = Describe("Twitter Scraper", func() {
 			res, err := twitterScraper.ExecuteJob(types.Job{
 				Type: teetypes.TwitterJob,
 				Arguments: map[string]interface{}{
-					"type":  "getbyid",
+					"type":  teetypes.CapGetById,
 					"query": "1881258110712492142",
 				},
 				Timeout: 10 * time.Second,
@@ -325,7 +325,7 @@ var _ = Describe("Twitter Scraper", func() {
 			j := types.Job{
 				Type: teetypes.TwitterCredentialJob,
 				Arguments: map[string]interface{}{
-					"type":  "getreplies",
+					"type":  teetypes.CapGetReplies,
 					"query": "1234567890",
 				},
 				Timeout: 10 * time.Second,
@@ -354,7 +354,7 @@ var _ = Describe("Twitter Scraper", func() {
 			j := types.Job{
 				Type: teetypes.TwitterCredentialJob,
 				Arguments: map[string]interface{}{
-					"type":        "getretweeters",
+					"type":        teetypes.CapGetRetweeters,
 					"query":       "1234567890",
 					"max_results": 5,
 				},
@@ -384,7 +384,7 @@ var _ = Describe("Twitter Scraper", func() {
 			j := types.Job{
 				Type: teetypes.TwitterCredentialJob,
 				Arguments: map[string]interface{}{
-					"type":        "gettweets",
+					"type":        teetypes.CapGetTweets,
 					"query":       "NASA",
 					"max_results": 5,
 				},
@@ -414,7 +414,7 @@ var _ = Describe("Twitter Scraper", func() {
 			res, err := twitterScraper.ExecuteJob(types.Job{
 				Type: teetypes.TwitterCredentialJob,
 				Arguments: map[string]interface{}{
-					"type":        "getmedia",
+					"type":        teetypes.CapGetMedia,
 					"query":       "NASA",
 					"max_results": 5,
 				},
@@ -437,7 +437,7 @@ var _ = Describe("Twitter Scraper", func() {
 			j := types.Job{
 				Type: teetypes.TwitterCredentialJob,
 				Arguments: map[string]interface{}{
-					"type":        "gethometweets",
+					"type":        teetypes.CapGetHomeTweets,
 					"max_results": 5,
 				},
 				Timeout: 10 * time.Second,
@@ -466,7 +466,7 @@ var _ = Describe("Twitter Scraper", func() {
 			j := types.Job{
 				Type: teetypes.TwitterCredentialJob,
 				Arguments: map[string]interface{}{
-					"type":        "getforyoutweets",
+					"type":        teetypes.CapGetForYouTweets,
 					"max_results": 5,
 				},
 				Timeout: 10 * time.Second,
@@ -497,7 +497,7 @@ var _ = Describe("Twitter Scraper", func() {
 			j := types.Job{
 				Type: teetypes.TwitterCredentialJob,
 				Arguments: map[string]interface{}{
-					"type":  "getprofilebyid",
+					"type":  teetypes.CapGetProfileById,
 					"query": "44196397", // Elon Musk's Twitter ID
 				},
 				Timeout: 10 * time.Second,
@@ -525,7 +525,7 @@ var _ = Describe("Twitter Scraper", func() {
 			j := types.Job{
 				Type: teetypes.TwitterCredentialJob,
 				Arguments: map[string]interface{}{
-					"type":        "getfollowing",
+					"type":        teetypes.CapGetFollowing,
 					"query":       "NASA",
 					"max_results": 5,
 				},
@@ -555,7 +555,7 @@ var _ = Describe("Twitter Scraper", func() {
 			j := types.Job{
 				Type: teetypes.TwitterCredentialJob,
 				Arguments: map[string]interface{}{
-					"type":  "getfollowers",
+					"type":  teetypes.CapGetFollowers,
 					"query": "NASA",
 				},
 				Timeout: 10 * time.Second,
@@ -585,7 +585,7 @@ var _ = Describe("Twitter Scraper", func() {
 			j := types.Job{
 				Type: teetypes.TwitterCredentialJob,
 				Arguments: map[string]interface{}{
-					"type": "gettrends",
+					"type": teetypes.CapGetTrends,
 				},
 				Timeout: 10 * time.Second,
 			}
@@ -613,7 +613,7 @@ var _ = Describe("Twitter Scraper", func() {
 			res, err := scraper.ExecuteJob(types.Job{
 				Type: teetypes.TwitterApiJob,
 				Arguments: map[string]interface{}{
-					"type":  "getbyid",
+					"type":  teetypes.CapGetById,
 					"query": "1881258110712492142",
 				},
 				Timeout: 10 * time.Second,
@@ -655,7 +655,7 @@ var _ = Describe("Twitter Scraper", func() {
 			res, err := scraper.ExecuteJob(types.Job{
 				Type: teetypes.TwitterApiJob,
 				Arguments: map[string]interface{}{
-					"type":  "getprofilebyid",
+					"type":  teetypes.CapGetProfileById,
 					"query": "44196397", // Elon Musk's Twitter ID
 				},
 				Timeout: 10 * time.Second,
@@ -687,7 +687,7 @@ var _ = Describe("Twitter Scraper", func() {
 			res, err := twitterScraper.ExecuteJob(types.Job{
 				Type: teetypes.TwitterJob,
 				Arguments: map[string]interface{}{
-					"type":  "getspace",
+					"type":  teetypes.CapGetSpace,
 					"query": "1YpKkZEWlBaxj",
 				},
 				Timeout: 10 * time.Second,
@@ -707,7 +707,7 @@ var _ = Describe("Twitter Scraper", func() {
 			j := types.Job{
 				Type: teetypes.TwitterJob,
 				Arguments: map[string]interface{}{
-					"type":        "getbookmarks",
+					"type":        "getbookmarks", // not yet in teetypes until it's supported
 					"max_results": 5,
 				},
 				Timeout: 10 * time.Second,
@@ -734,7 +734,7 @@ var _ = Describe("Twitter Scraper", func() {
 			j := types.Job{
 				Type: teetypes.TwitterApiJob,
 				Arguments: map[string]interface{}{
-					"type":        "searchbyfullarchive",
+					"type":        teetypes.CapSearchByFullArchive,
 					"query":       "AI",
 					"max_results": 2,
 				},
@@ -763,7 +763,7 @@ var _ = Describe("Twitter Scraper", func() {
 			j := types.Job{
 				Type: teetypes.TwitterCredentialJob,
 				Arguments: map[string]interface{}{
-					"type":        "searchbyfullarchive",
+					"type":        teetypes.CapSearchByFullArchive,
 					"query":       "#AI",
 					"max_results": 2,
 				},
