@@ -37,12 +37,9 @@ type TikTokTranscriber struct {
 }
 
 // GetStructuredCapabilities returns the structured capabilities supported by the TikTok transcriber
-func (t *TikTokTranscriber) GetStructuredCapabilities() []teetypes.JobCapability {
-	return []teetypes.JobCapability{
-		{
-			JobType:      teetypes.TiktokJob,
-			Capabilities: teetypes.AlwaysAvailableTiktokCaps,
-		},
+func (t *TikTokTranscriber) GetStructuredCapabilities() teetypes.WorkerCapabilities {
+	return teetypes.WorkerCapabilities{
+		teetypes.TiktokJob: teetypes.AlwaysAvailableTiktokCaps,
 	}
 }
 

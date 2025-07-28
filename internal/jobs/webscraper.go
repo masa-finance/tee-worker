@@ -37,12 +37,9 @@ func NewWebScraper(jc types.JobConfiguration, statsCollector *stats.StatsCollect
 }
 
 // GetStructuredCapabilities returns the structured capabilities supported by the web scraper
-func (ws *WebScraper) GetStructuredCapabilities() []teetypes.JobCapability {
-	return []teetypes.JobCapability{
-		{
-			JobType:      teetypes.WebJob,
-			Capabilities: teetypes.AlwaysAvailableWebCaps,
-		},
+func (ws *WebScraper) GetStructuredCapabilities() teetypes.WorkerCapabilities {
+	return teetypes.WorkerCapabilities{
+		teetypes.WebJob: teetypes.AlwaysAvailableWebCaps,
 	}
 }
 
