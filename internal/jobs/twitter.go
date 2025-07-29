@@ -1070,11 +1070,11 @@ type TwitterScrapeStrategy interface {
 	Execute(j types.Job, ts *TwitterScraper, jobArgs *args.TwitterSearchArguments) (types.JobResult, error)
 }
 
-func getScrapeStrategy(jobType string) TwitterScrapeStrategy {
+func getScrapeStrategy(jobType teetypes.JobType) TwitterScrapeStrategy {
 	switch jobType {
-	case string(teetypes.TwitterCredentialJob):
+	case teetypes.TwitterCredentialJob:
 		return &CredentialScrapeStrategy{}
-	case string(teetypes.TwitterApiJob):
+	case teetypes.TwitterApiJob:
 		return &ApiKeyScrapeStrategy{}
 	default:
 		return &DefaultScrapeStrategy{}
@@ -1289,7 +1289,7 @@ func (ts *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 		return types.JobResult{Error: "error unmarshalling job arguments"}, err
 	}
 
-	strategy := getScrapeStrategy(string(j.Type))
+	strategy := getScrapeStrategy(j.Type)
 	jobResult, err := strategy.Execute(j, ts, jobArgs)
 	if err != nil {
 		logrus.Errorf("Error executing job ID %s, type %s: %v", j.UUID, j.Type, err)

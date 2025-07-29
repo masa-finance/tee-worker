@@ -28,7 +28,7 @@ type JobServer struct {
 	results          *ResultCache
 	jobConfiguration types.JobConfiguration
 
-	jobWorkers   map[string]*jobWorkerEntry
+	jobWorkers   map[teetypes.JobType]*jobWorkerEntry
 	executedJobs map[string]bool
 }
 
@@ -80,23 +80,23 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 
 	// Initialize job workers
 	logrus.Info("Setting up job workers...")
-	jobworkers := map[string]*jobWorkerEntry{
-		string(teetypes.WebJob): {
+	jobworkers := map[teetypes.JobType]*jobWorkerEntry{
+		teetypes.WebJob: {
 			w: jobs.NewWebScraper(jc, s),
 		},
-		string(teetypes.TwitterJob): {
+		teetypes.TwitterJob: {
 			w: jobs.NewTwitterScraper(jc, s),
 		},
-		string(teetypes.TwitterCredentialJob): {
+		teetypes.TwitterCredentialJob: {
 			w: jobs.NewTwitterScraper(jc, s), // Uses the same implementation as standard Twitter scraper
 		},
-		string(teetypes.TwitterApiJob): {
+		teetypes.TwitterApiJob: {
 			w: jobs.NewTwitterScraper(jc, s), // Uses the same implementation as standard Twitter scraper
 		},
-		string(teetypes.TelemetryJob): {
+		teetypes.TelemetryJob: {
 			w: jobs.NewTelemetryJob(jc, s),
 		},
-		string(teetypes.TiktokJob): {
+		teetypes.TiktokJob: {
 			w: jobs.NewTikTokTranscriber(jc, s),
 		},
 	}
