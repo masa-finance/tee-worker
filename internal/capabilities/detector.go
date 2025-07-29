@@ -35,15 +35,15 @@ func DetectCapabilities(jc types.JobConfiguration, jobServer JobServerInterface)
 	accounts := jc.GetStringSlice("twitter_accounts", nil)
 	apiKeys := jc.GetStringSlice("twitter_api_keys", nil)
 
-	accountsAvailable := len(accounts) > 0
-	apiKeysAvailable := len(apiKeys) > 0
+	hasAccounts := len(accounts) > 0
+	hasApiKeys := len(apiKeys) > 0
 
 	// Add Twitter-specific capabilities based on available authentication
-	if accountsAvailable {
+	if hasAccounts {
 		capabilities[teetypes.TwitterCredentialJob] = teetypes.TwitterCredentialCaps
 	}
 
-	if apiKeysAvailable {
+	if hasApiKeys {
 		// Start with basic API capabilities
 		apiCaps := make([]teetypes.Capability, len(teetypes.TwitterAPICaps))
 		copy(apiCaps, teetypes.TwitterAPICaps)
@@ -57,10 +57,10 @@ func DetectCapabilities(jc types.JobConfiguration, jobServer JobServerInterface)
 	}
 
 	// Add general TwitterJob capability if any Twitter auth is available
-	if accountsAvailable || apiKeysAvailable {
+	if hasAccounts || hasApiKeys {
 		var twitterJobCaps []teetypes.Capability
 		// Use the most comprehensive capabilities available
-		if accountsAvailable {
+		if hasAccounts {
 			twitterJobCaps = teetypes.TwitterCredentialCaps
 		} else {
 			// Use API capabilities if we only have keys
