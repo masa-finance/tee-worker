@@ -32,11 +32,11 @@ func DetectCapabilities(jc types.JobConfiguration, jobServer JobServerInterface)
 	}
 
 	// Check what Twitter authentication methods are available
-	hasAccounts := jc.GetStringSlice("twitter_accounts", nil)
-	hasApiKeys := jc.GetStringSlice("twitter_api_keys", nil)
+	accounts := jc.GetStringSlice("twitter_accounts", nil)
+	apiKeys := jc.GetStringSlice("twitter_api_keys", nil)
 
-	accountsAvailable := len(hasAccounts) > 0
-	apiKeysAvailable := len(hasApiKeys) > 0
+	accountsAvailable := len(accounts) > 0
+	apiKeysAvailable := len(apiKeys) > 0
 
 	// Add Twitter-specific capabilities based on available authentication
 	if accountsAvailable {
@@ -49,7 +49,7 @@ func DetectCapabilities(jc types.JobConfiguration, jobServer JobServerInterface)
 		copy(apiCaps, teetypes.TwitterAPICaps)
 
 		// Check for elevated API keys and add searchbyfullarchive capability
-		if hasElevatedApiKey(hasApiKeys) {
+		if hasElevatedApiKey(apiKeys) {
 			apiCaps = append(apiCaps, teetypes.CapSearchByFullArchive)
 		}
 
@@ -68,7 +68,7 @@ func DetectCapabilities(jc types.JobConfiguration, jobServer JobServerInterface)
 			copy(twitterJobCaps, teetypes.TwitterAPICaps)
 
 			// Check for elevated API keys and add searchbyfullarchive capability
-			if hasElevatedApiKey(hasApiKeys) {
+			if hasElevatedApiKey(apiKeys) {
 				twitterJobCaps = append(twitterJobCaps, teetypes.CapSearchByFullArchive)
 			}
 		}
