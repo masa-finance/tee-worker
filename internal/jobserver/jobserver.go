@@ -49,8 +49,20 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 	}
 
 	// Retrieve and set buffer size for stats collector
-	bufSize := jc.GetUint("stats_buf_size", 128)
-	logrus.Infof("Using stats_buf_size: %d.", bufSize)
+	bufSizeInt, err := jc.GetInt("stats_buf_size", 128)
+	var bufSize uint
+	if err != nil || bufSizeInt <= 0 {
+		if err != nil {
+			logrus.Errorf("Invalid stats_buf_size config: %v", err)
+		} else {
+			logrus.Errorf("stats_buf_size must be positive: %d", bufSizeInt)
+		}
+		bufSize = 128
+		logrus.Infof("Using default stats_buf_size: %d.", bufSize)
+	} else {
+		bufSize = uint(bufSizeInt)
+		logrus.Infof("Using stats_buf_size: %d.", bufSize)
+	}
 
 	// Start stats collector
 	logrus.Info("Starting stats collector...")
@@ -107,10 +119,18 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 
 	// Return the JobServer instance
 	logrus.Info("JobServer initialization complete.")
+
+	// Get result cache max size with error handling
+	resultCacheMaxSize, err := jc.GetInt("result_cache_max_size", 1000)
+	if err != nil {
+		logrus.Errorf("Invalid result_cache_max_size config: %v", err)
+		resultCacheMaxSize = 1000
+	}
+
 	js := &JobServer{
 		jobChan: make(chan types.Job),
 		// TODO The defaults here should come from config.go, but during tests the config is not necessarily read
-		results:          NewResultCache(jc.GetInt("result_cache_max_size", 1000), jc.GetDuration("result_cache_max_age_seconds", 600)),
+		results:          NewResultCache(resultCacheMaxSize, jc.GetDuration("result_cache_max_age_seconds", 600)),
 		workers:          workers,
 		jobConfiguration: jc,
 		jobWorkers:       jobworkers,
