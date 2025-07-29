@@ -190,7 +190,7 @@ func (ts *TwitterScraper) ScrapeFollowersForProfile(j types.Job, baseDir string,
 		return nil, err
 	}
 	if scraper == nil {
-		return nil, fmt.Errorf("scraper not initialized for %s", teetypes.CapGetFollowers)
+		return nil, fmt.Errorf("scraper not initialized for ScrapeFollowersForProfile")
 	}
 
 	ts.statsCollector.Add(j.WorkerID, stats.TwitterScrapes, 1)
@@ -267,7 +267,7 @@ func (ts *TwitterScraper) queryTweetsWithCredentials(j types.Job, baseDir string
 		return nil, err
 	}
 	if scraper == nil {
-		return nil, fmt.Errorf("scraper not initialized for %s", teetypes.CapSearchByQuery)
+		return nil, fmt.Errorf("scraper not initialized for queryTweetsWithCredentials")
 	}
 	return ts.scrapeTweetsWithCredentials(j, query, count, scraper, account)
 }
@@ -435,7 +435,7 @@ func (ts *TwitterScraper) GetTweet(j types.Job, baseDir, tweetID string) (*teety
 		return nil, err
 	}
 	if scraper == nil {
-		return nil, fmt.Errorf("scraper not initialized for %s", teetypes.CapGetById)
+		return nil, fmt.Errorf("scraper not initialized for GetTweet")
 	}
 
 	ts.statsCollector.Add(j.WorkerID, stats.TwitterScrapes, 1)
@@ -458,7 +458,7 @@ func (ts *TwitterScraper) GetTweetReplies(j types.Job, baseDir, tweetID string, 
 		return nil, err
 	}
 	if scraper == nil {
-		return nil, fmt.Errorf("scraper not initialized for %s", teetypes.CapGetReplies)
+		return nil, fmt.Errorf("scraper not initialized for GetTweetReplies")
 	}
 
 	ts.statsCollector.Add(j.WorkerID, stats.TwitterScrapes, 1)
@@ -493,7 +493,7 @@ func (ts *TwitterScraper) GetTweetRetweeters(j types.Job, baseDir, tweetID strin
 		return nil, err
 	}
 	if scraper == nil {
-		return nil, fmt.Errorf("scraper not initialized for %s", teetypes.CapGetRetweeters)
+		return nil, fmt.Errorf("scraper not initialized for GetTweetRetweeters")
 	}
 
 	ts.statsCollector.Add(j.WorkerID, stats.TwitterScrapes, 1)
@@ -513,7 +513,7 @@ func (ts *TwitterScraper) GetUserTweets(j types.Job, baseDir, username string, c
 		return nil, "", err
 	}
 	if scraper == nil {
-		return nil, "", fmt.Errorf("scraper not initialized for %s", teetypes.CapGetTweets)
+		return nil, "", fmt.Errorf("scraper not initialized for GetUserTweets")
 	}
 	ts.statsCollector.Add(j.WorkerID, stats.TwitterScrapes, 1)
 
@@ -556,7 +556,7 @@ func (ts *TwitterScraper) GetUserMedia(j types.Job, baseDir, username string, co
 		return nil, "", err
 	}
 	if scraper == nil {
-		return nil, "", fmt.Errorf("scraper not initialized for %s", teetypes.CapGetMedia)
+		return nil, "", fmt.Errorf("scraper not initialized for GetUserMedia")
 	}
 	ts.statsCollector.Add(j.WorkerID, stats.TwitterScrapes, 1)
 
@@ -620,7 +620,7 @@ func (ts *TwitterScraper) GetHomeTweets(j types.Job, baseDir string, count int, 
 		return nil, "", err
 	}
 	if scraper == nil {
-		return nil, "", fmt.Errorf("scraper not initialized for %s", teetypes.CapGetHomeTweets)
+		return nil, "", fmt.Errorf("scraper not initialized for GetHomeTweets")
 	}
 	ts.statsCollector.Add(j.WorkerID, stats.TwitterScrapes, 1)
 
@@ -666,7 +666,7 @@ func (ts *TwitterScraper) GetForYouTweets(j types.Job, baseDir string, count int
 		return nil, "", err
 	}
 	if scraper == nil {
-		return nil, "", fmt.Errorf("scraper not initialized for %s", teetypes.CapGetForYouTweets)
+		return nil, "", fmt.Errorf("scraper not initialized for GetForYouTweets")
 	}
 	ts.statsCollector.Add(j.WorkerID, stats.TwitterScrapes, 1)
 
@@ -760,7 +760,7 @@ func (ts *TwitterScraper) GetProfileByID(j types.Job, baseDir, userID string) (*
 		return nil, err
 	}
 	if scraper == nil {
-		return nil, fmt.Errorf("scraper not initialized for %s", teetypes.CapGetProfileById)
+		return nil, fmt.Errorf("scraper not initialized for GetProfileByID")
 	}
 
 	ts.statsCollector.Add(j.WorkerID, stats.TwitterScrapes, 1)
@@ -874,7 +874,7 @@ func (ts *TwitterScraper) GetTrends(j types.Job, baseDir string) ([]string, erro
 		return nil, err
 	}
 	if scraper == nil {
-		return nil, fmt.Errorf("scraper not initialized for %s", teetypes.CapGetTrends)
+		return nil, fmt.Errorf("scraper not initialized for GetTrends")
 	}
 
 	ts.statsCollector.Add(j.WorkerID, stats.TwitterScrapes, 1)
@@ -893,7 +893,7 @@ func (ts *TwitterScraper) GetFollowers(j types.Job, baseDir, user string, count 
 		return nil, "", err
 	}
 	if scraper == nil {
-		return nil, "", fmt.Errorf("scraper not initialized for %s", teetypes.CapGetFollowers)
+		return nil, "", fmt.Errorf("scraper not initialized for GetFollowers")
 	}
 
 	ts.statsCollector.Add(j.WorkerID, stats.TwitterScrapes, 1)
@@ -912,7 +912,7 @@ func (ts *TwitterScraper) GetFollowing(j types.Job, baseDir, username string, co
 		return nil, err
 	}
 	if scraper == nil {
-		return nil, fmt.Errorf("scraper not initialized for %s", teetypes.CapGetFollowing)
+		return nil, fmt.Errorf("scraper not initialized for GetFollowing")
 	}
 
 	ts.statsCollector.Add(j.WorkerID, stats.TwitterScrapes, 1)
@@ -931,7 +931,7 @@ func (ts *TwitterScraper) GetSpace(j types.Job, baseDir, spaceID string) (*twitt
 		return nil, err
 	}
 	if scraper == nil {
-		return nil, fmt.Errorf("scraper not initialized for %s", teetypes.CapGetSpace)
+		return nil, fmt.Errorf("scraper not initialized for GetSpace")
 	}
 
 	ts.statsCollector.Add(j.WorkerID, stats.TwitterScrapes, 1)
@@ -950,7 +950,7 @@ func (ts *TwitterScraper) FetchHomeTweets(j types.Job, baseDir string, count int
 		return nil, "", err
 	}
 	if scraper == nil {
-		return nil, "", fmt.Errorf("scraper not initialized for %s", teetypes.CapGetHomeTweets)
+		return nil, "", fmt.Errorf("scraper not initialized for FetchHomeTweets")
 	}
 
 	ts.statsCollector.Add(j.WorkerID, stats.TwitterScrapes, 1)
@@ -970,7 +970,7 @@ func (ts *TwitterScraper) FetchForYouTweets(j types.Job, baseDir string, count i
 		return nil, "", err
 	}
 	if scraper == nil {
-		return nil, "", fmt.Errorf("scraper not initialized for %s", teetypes.CapGetForYouTweets)
+		return nil, "", fmt.Errorf("scraper not initialized for FetchForYouTweets")
 	}
 
 	ts.statsCollector.Add(j.WorkerID, stats.TwitterScrapes, 1)
