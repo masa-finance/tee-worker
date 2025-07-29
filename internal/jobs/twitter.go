@@ -125,7 +125,7 @@ func (ts *TwitterScraper) getAuthenticatedScraper(j types.Job, baseDir string, j
 			ts.statsCollector.Add(j.WorkerID, stats.TwitterAuthErrors, 1)
 			return nil, nil, nil, fmt.Errorf("no Twitter API keys available for API-based scraping")
 		}
-	default: // string(teetypes.TwitterJob)
+	case teetypes.TwitterJob:
 		logrus.Debug("Using standard Twitter scraper - prefer credentials if available")
 		account = ts.accountManager.GetNextAccount()
 		if account == nil {
@@ -135,6 +135,8 @@ func (ts *TwitterScraper) getAuthenticatedScraper(j types.Job, baseDir string, j
 				return nil, nil, nil, fmt.Errorf("no Twitter accounts or API keys available")
 			}
 		}
+	default:
+		return nil, nil, nil, fmt.Errorf("unsupported job type: %s", jobType)
 	}
 
 	if account != nil {
