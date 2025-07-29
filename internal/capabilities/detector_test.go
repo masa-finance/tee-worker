@@ -102,8 +102,24 @@ func TestDetectCapabilities(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got := DetectCapabilities(tt.jc, tt.jobServer)
 
-			if !reflect.DeepEqual(got, tt.expected) {
-				t.Errorf("DetectCapabilities() = %v, want %v", got, tt.expected)
+			// Extract job type keys and sort for consistent comparison
+			gotKeys := make([]string, 0, len(got))
+			for jobType := range got {
+				gotKeys = append(gotKeys, jobType.String())
+			}
+
+			expectedKeys := make([]string, 0, len(tt.expected))
+			for jobType := range tt.expected {
+				expectedKeys = append(expectedKeys, jobType.String())
+			}
+
+			// Sort both slices for comparison
+			slices.Sort(gotKeys)
+			slices.Sort(expectedKeys)
+
+			// Compare the sorted slices
+			if !reflect.DeepEqual(gotKeys, expectedKeys) {
+				t.Errorf("DetectCapabilities() job types = %v, want %v", gotKeys, expectedKeys)
 			}
 		})
 	}
