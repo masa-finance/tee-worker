@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	teetypes "github.com/masa-finance/tee-types/types"
 	"github.com/masa-finance/tee-worker/pkg/tee"
 	"golang.org/x/exp/rand"
 )
@@ -21,13 +22,13 @@ func (ja JobArguments) Unmarshal(i interface{}) error {
 }
 
 type Job struct {
-	Type         string        `json:"type"`
-	Arguments    JobArguments  `json:"arguments"`
-	UUID         string        `json:"-"`
-	Nonce        string        `json:"quote"`
-	WorkerID     string        `json:"worker_id"`
-	TargetWorker string        `json:"target_worker"`
-	Timeout      time.Duration `json:"timeout"`
+	Type         teetypes.JobType `json:"type"`
+	Arguments    JobArguments     `json:"arguments"`
+	UUID         string           `json:"-"`
+	Nonce        string           `json:"quote"`
+	WorkerID     string           `json:"worker_id"`
+	TargetWorker string           `json:"target_worker"`
+	Timeout      time.Duration    `json:"timeout"`
 }
 
 var letterRunes = []rune("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()_+")
@@ -122,21 +123,23 @@ func (jc JobConfiguration) Unmarshal(v interface{}) error {
 	return nil
 }
 
-// getInt safely extracts an int from JobConfiguration, with a default fallback
-func (jc JobConfiguration) GetInt(key string, def int) int {
+// GetInt safely extracts an int from JobConfiguration, with a default fallback
+func (jc JobConfiguration) GetInt(key string, def int) (int, error) {
 	if v, ok := jc[key]; ok {
 		switch val := v.(type) {
 		case int:
-			return val
+			return val, nil
 		case int64:
-			return int(val)
+			return int(val), nil
 		case float64:
-			return int(val)
+			return int(val), nil
 		case float32:
-			return int(val)
+			return int(val), nil
+		default:
+			return def, fmt.Errorf("value %v for key %q cannot be converted to int", val, key)
 		}
 	}
-	return def
+	return def, nil
 }
 
 func (jc JobConfiguration) GetDuration(key string, defSecs int) time.Duration {
@@ -151,9 +154,29 @@ func (jc JobConfiguration) GetDuration(key string, defSecs int) time.Duration {
 
 func (jc JobConfiguration) GetString(key string, def string) string {
 	if v, ok := jc[key]; ok {
-		return v.(string)
+		if val, ok := v.(string); ok {
+			return val
+		}
 	}
 	return def
 }
 
-type Capability string
+// GetStringSlice safely extracts a string slice from JobConfiguration, with a default fallback
+func (jc JobConfiguration) GetStringSlice(key string, def []string) []string {
+	if v, ok := jc[key]; ok {
+		if val, ok := v.([]string); ok {
+			return val
+		}
+	}
+	return def
+}
+
+// GetBool safely extracts a bool from JobConfiguration, with a default fallback
+func (jc JobConfiguration) GetBool(key string, def bool) bool {
+	if v, ok := jc[key]; ok {
+		if val, ok := v.(bool); ok {
+			return val
+		}
+	}
+	return def
+}

@@ -1,12 +1,11 @@
 package jobs
 
 import (
+	teetypes "github.com/masa-finance/tee-types/types"
 	"github.com/masa-finance/tee-worker/api/types"
 	"github.com/masa-finance/tee-worker/internal/jobs/stats"
 	"github.com/sirupsen/logrus"
 )
-
-const TelemetryJobType = "telemetry"
 
 type TelemetryJob struct {
 	collector *stats.StatsCollector
@@ -16,9 +15,11 @@ func NewTelemetryJob(jc types.JobConfiguration, c *stats.StatsCollector) Telemet
 	return TelemetryJob{collector: c}
 }
 
-// GetCapabilities returns the capabilities supported by the telemetry job
-func (t TelemetryJob) GetCapabilities() []string {
-	return []string{"telemetry"}
+// GetStructuredCapabilities returns the structured capabilities supported by the telemetry job
+func (t TelemetryJob) GetStructuredCapabilities() teetypes.WorkerCapabilities {
+	return teetypes.WorkerCapabilities{
+		teetypes.TelemetryJob: teetypes.AlwaysAvailableTelemetryCaps,
+	}
 }
 
 func (t TelemetryJob) ExecuteJob(j types.Job) (types.JobResult, error) {

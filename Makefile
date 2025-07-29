@@ -1,9 +1,14 @@
 VERSION?=$(shell git describe --tags --abbrev=0)
 PWD:=$(shell pwd)
 IMAGE?=masa-tee-worker:latest
-TEST_COOKIE_DIR?=$(PWD)/.testdir
+TEST_IMAGE?=$(IMAGE)
 export DISTRIBUTOR_PUBKEY?=$(shell cat tee/keybroker.pub | base64 -w0)
 export MINERS_WHITE_LIST?=
+# Additional test arguments, e.g. TEST_ARGS="./internal/jobs" or TEST_ARGS="-v -run TestSpecific ./internal/capabilities"
+export TEST_ARGS?=./...
+
+# Helper to conditionally add --env-file if .env exists
+ENV_FILE_ARG = $(shell [ -f .env ] && echo "--env-file $(PWD)/.env" || echo "")
 
 print-version:
 	@echo "Version: ${VERSION}"
@@ -27,11 +32,13 @@ bundle:
 	@ego bundle ./bin/masa-tee-worker
 
 run-simulate: docker-build
-	touch .masa/.env
-	echo "STANDALONE=true" > .masa/.env
+	@mkdir -p .masa
+	@[ ! -f .masa/.env ] && echo "STANDALONE=true" > .masa/.env || true
 	@docker run --net host -e STANDALONE=true -e OE_SIMULATION=1 --rm -v $(PWD)/.masa:/home/masa -ti $(IMAGE)
 
 run-sgx: docker-build
+	@mkdir -p .masa
+	@[ ! -f .masa/.env ] && echo "STANDALONE=true" > .masa/.env || true
 	@docker run --device /dev/sgx_enclave --device /dev/sgx_provision --net host --rm -v $(PWD)/.masa:/home/masa -ti $(IMAGE)
 
 ## TEE bits
@@ -50,9 +57,24 @@ tee/keybroker.pub: tee/keybroker.pem
 docker-build: tee/private.pem
 	docker build --build-arg DISTRIBUTOR_PUBKEY="$(DISTRIBUTOR_PUBKEY)" --build-arg MINERS_WHITE_LIST="$(MINERS_WHITE_LIST)" --secret id=private_key,src=./tee/private.pem  -t $(IMAGE) -f Dockerfile .
 
-$(TEST_COOKIE_DIR):
-	@mkdir -p $(TEST_COOKIE_DIR)
+docker-build-test: tee/private.pem
+	@docker build --target=dependencies --build-arg baseimage=builder --secret id=private_key,src=./tee/private.pem -t $(TEST_IMAGE) -f Dockerfile .
 
-test: tee/private.pem $(TEST_COOKIE_DIR)
-	@docker build --target=dependencies --build-arg baseimage=builder --secret id=private_key,src=./tee/private.pem -t $(IMAGE) -f Dockerfile .
-	@docker run --user root -e TWITTER_TEST_ACCOUNT -e LOG_LEVEL=debug -e TEST_COOKIE_DIR=/cookies -v $(TEST_COOKIE_DIR):/cookies -v $(PWD)/coverage:/app/coverage --rm --workdir /app $(IMAGE) go test -coverprofile=coverage/coverage.txt -covermode=atomic -v ./...
+ci-test:
+	@go test -coverprofile=coverage/coverage.txt -covermode=atomic -v $(TEST_ARGS)
+
+.PHONY: test
+test: docker-build-test
+	@docker run --user root $(ENV_FILE_ARG) -e LOG_LEVEL=debug -v $(PWD)/coverage:/app/coverage --rm --workdir /app $(TEST_IMAGE) go test -coverprofile=coverage/coverage.txt -covermode=atomic -v $(TEST_ARGS)
+
+test-capabilities: docker-build-test
+	@docker run --user root $(ENV_FILE_ARG) -e LOG_LEVEL=debug -v $(PWD)/coverage:/app/coverage --rm --workdir /app $(TEST_IMAGE) go test -coverprofile=coverage/coverage-capabilities.txt -covermode=atomic -v ./internal/capabilities
+
+test-jobs: docker-build-test
+	@docker run --user root $(ENV_FILE_ARG) -v $(PWD)/.masa:/home/masa -v $(PWD)/coverage:/app/coverage --rm --workdir /app -e DATA_DIR=/home/masa $(TEST_IMAGE) go test -coverprofile=coverage/coverage-jobs.txt -covermode=atomic -v ./internal/jobs
+
+test-twitter: docker-build-test
+	@docker run --user root $(ENV_FILE_ARG) -v $(PWD)/.masa:/home/masa -v $(PWD)/coverage:/app/coverage --rm --workdir /app -e DATA_DIR=/home/masa $(TEST_IMAGE) go test -v ./internal/jobs/twitter_test.go ./internal/jobs/jobs_suite_test.go
+
+test-telemetry: docker-build-test
+	@docker run --user root $(ENV_FILE_ARG) -v $(PWD)/.masa:/home/masa -v $(PWD)/coverage:/app/coverage --rm --workdir /app -e DATA_DIR=/home/masa $(TEST_IMAGE) go test -v ./internal/jobs/telemetry_test.go ./internal/jobs/jobs_suite_test.go

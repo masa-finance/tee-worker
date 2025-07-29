@@ -86,8 +86,9 @@ func readConfig() types.JobConfiguration {
 		for i, u := range twitterAccounts {
 			twitterAccounts[i] = strings.TrimSpace(u)
 		}
-
 		jc["twitter_accounts"] = twitterAccounts
+	} else {
+		jc["twitter_accounts"] = []string{}
 	}
 
 	twitterApiKeys := os.Getenv("TWITTER_API_KEYS")
@@ -98,6 +99,8 @@ func readConfig() types.JobConfiguration {
 			apiKeys[i] = strings.TrimSpace(u)
 		}
 		jc["twitter_api_keys"] = apiKeys
+	} else {
+		jc["twitter_api_keys"] = []string{}
 	}
 
 	tikTokLang := os.Getenv("TIKTOK_DEFAULT_LANGUAGE")
@@ -130,7 +133,6 @@ func readConfig() types.JobConfiguration {
 	}
 
 	jc["profiling_enabled"] = os.Getenv("ENABLE_PPROF") == "true"
-	jc["capabilities"] = os.Getenv("CAPABILITIES")
 
 	return jc
 }

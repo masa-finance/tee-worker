@@ -101,8 +101,9 @@ func ReadConfig() types.JobConfiguration {
 		for i, u := range twitterAccounts {
 			twitterAccounts[i] = strings.TrimSpace(u)
 		}
-
 		jc["twitter_accounts"] = twitterAccounts
+	} else {
+		jc["twitter_accounts"] = []string{}
 	}
 
 	twitterApiKeys := os.Getenv("TWITTER_API_KEYS")
@@ -113,6 +114,8 @@ func ReadConfig() types.JobConfiguration {
 			apiKeys[i] = strings.TrimSpace(u)
 		}
 		jc["twitter_api_keys"] = apiKeys
+	} else {
+		jc["twitter_api_keys"] = []string{}
 	}
 
 	jc["stats_buf_size"] = StatsBufSize()
@@ -133,7 +136,6 @@ func ReadConfig() types.JobConfiguration {
 	}
 
 	jc["profiling_enabled"] = os.Getenv("ENABLE_PPROF") == "true"
-	jc["capabilities"] = os.Getenv("CAPABILITIES")
 
 	return jc
 }

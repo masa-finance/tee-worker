@@ -8,8 +8,10 @@ import (
 	"sync"
 
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/maps"
 
 	"github.com/google/uuid"
+	teetypes "github.com/masa-finance/tee-types/types"
 	"github.com/masa-finance/tee-worker/api/types"
 	"github.com/masa-finance/tee-worker/internal/config"
 	"github.com/masa-finance/tee-worker/internal/jobs"
@@ -26,7 +28,7 @@ type JobServer struct {
 	results          *ResultCache
 	jobConfiguration types.JobConfiguration
 
-	jobWorkers   map[string]*jobWorkerEntry
+	jobWorkers   map[teetypes.JobType]*jobWorkerEntry
 	executedJobs map[string]bool
 }
 
@@ -47,11 +49,18 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 	}
 
 	// Retrieve and set buffer size for stats collector
-	bufSize, ok := jc["stats_buf_size"].(uint)
-	if !ok {
-		logrus.Info("stats_buf_size not provided or invalid in JobConfiguration. Defaulting to 128.")
+	bufSizeInt, err := jc.GetInt("stats_buf_size", 128)
+	var bufSize uint
+	if err != nil || bufSizeInt <= 0 {
+		if err != nil {
+			logrus.Errorf("Invalid stats_buf_size config: %v", err)
+		} else {
+			logrus.Errorf("stats_buf_size must be positive: %d", bufSizeInt)
+		}
 		bufSize = 128
+		logrus.Infof("Using default stats_buf_size: %d.", bufSize)
 	} else {
+		bufSize = uint(bufSizeInt)
 		logrus.Infof("Using stats_buf_size: %d.", bufSize)
 	}
 
@@ -61,7 +70,8 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 	logrus.Info("Stats collector started successfully.")
 
 	// Set worker ID in stats collector if available
-	if workerID, ok := jc["worker_id"].(string); ok && workerID != "" {
+	workerID := jc.GetString("worker_id", "")
+	if workerID != "" {
 		logrus.Infof("Setting worker ID to '%s' in stats collector.", workerID)
 		s.SetWorkerID(workerID)
 	} else {
@@ -70,41 +80,57 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 
 	// Initialize job workers
 	logrus.Info("Setting up job workers...")
-	jobworkers := map[string]*jobWorkerEntry{
-		jobs.WebScraperType: {
+	jobworkers := map[teetypes.JobType]*jobWorkerEntry{
+		teetypes.WebJob: {
 			w: jobs.NewWebScraper(jc, s),
 		},
-		jobs.TwitterScraperType: {
+		teetypes.TwitterJob: {
 			w: jobs.NewTwitterScraper(jc, s),
 		},
-		jobs.TwitterCredentialScraperType: {
+		teetypes.TwitterCredentialJob: {
 			w: jobs.NewTwitterScraper(jc, s), // Uses the same implementation as standard Twitter scraper
 		},
-		jobs.TwitterApiScraperType: {
+		teetypes.TwitterApiJob: {
 			w: jobs.NewTwitterScraper(jc, s), // Uses the same implementation as standard Twitter scraper
 		},
-		jobs.TelemetryJobType: {
+		teetypes.TelemetryJob: {
 			w: jobs.NewTelemetryJob(jc, s),
 		},
-		jobs.TikTokTranscriptionType: {
+		teetypes.TiktokJob: {
 			w: jobs.NewTikTokTranscriber(jc, s),
 		},
 	}
-	logrus.Infof("Initialized job worker for: %s", jobs.WebScraperType)
-	logrus.Infof("Initialized job worker for: %s", jobs.TwitterScraperType)
-	logrus.Infof("Initialized job worker for: %s", jobs.TwitterCredentialScraperType)
-	logrus.Infof("Initialized job worker for: %s", jobs.TwitterApiScraperType)
-	logrus.Infof("Initialized job worker for: %s", jobs.TelemetryJobType)
-	logrus.Infof("Initialized job worker for: %s", jobs.TikTokTranscriptionType)
+	// Validate that all workers were initialized successfully
+	for jobType, workerEntry := range jobworkers {
+		if workerEntry.w == nil {
+			logrus.Errorf("Failed to initialize worker for job type: %s. This worker will not be available.", jobType)
+			// Remove the nil worker from the map to prevent runtime issues
+			delete(jobworkers, jobType)
+		} else {
+			logrus.Infof("Successfully initialized job worker for: %s", jobType)
+		}
+	}
+
+	if len(jobworkers) == 0 {
+		logrus.Error("No job workers were successfully initialized!")
+	}
 
 	logrus.Info("Job workers setup completed.")
 
 	// Return the JobServer instance
 	logrus.Info("JobServer initialization complete.")
+
+	// Get result cache max size with error handling
+	resultCacheMaxSize, err := jc.GetInt("result_cache_max_size", 1000)
+	if err != nil {
+		logrus.Errorf("Invalid result_cache_max_size config: %v", err)
+		resultCacheMaxSize = 1000
+	}
+
 	js := &JobServer{
 		jobChan: make(chan types.Job),
 		// TODO The defaults here should come from config.go, but during tests the config is not necessarily read
-		results:          NewResultCache(jc.GetInt("result_cache_max_size", 1000), jc.GetDuration("result_cache_max_age_seconds", 600)),
+		results:          NewResultCache(resultCacheMaxSize, jc.GetDuration("result_cache_max_age_seconds", 600)),
 		workers:          workers,
 		jobConfiguration: jc,
 		jobWorkers:       jobworkers,
@@ -121,20 +147,36 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 
 // CapabilityProvider is an interface for workers that can report their capabilities
 type CapabilityProvider interface {
-	GetCapabilities() []types.Capability
+	GetStructuredCapabilities() teetypes.WorkerCapabilities
 }
 
-// GetWorkerCapabilities returns the capabilities for all registered workers
-func (js *JobServer) GetWorkerCapabilities() map[string][]types.Capability {
-	capabilities := make(map[string][]types.Capability)
+// GetWorkerCapabilities returns the structured capabilities for all registered workers
+func (js *JobServer) GetWorkerCapabilities() teetypes.WorkerCapabilities {
+	// Use a map to deduplicate capabilities by job type
+	jobTypeCapMap := make(map[teetypes.JobType]map[teetypes.Capability]struct{})
 
-	for workerType, workerEntry := range js.jobWorkers {
+	for _, workerEntry := range js.jobWorkers {
 		if provider, ok := workerEntry.w.(CapabilityProvider); ok {
-			capabilities[workerType] = provider.GetCapabilities()
+			workerCapabilities := provider.GetStructuredCapabilities()
+			for jobType, capabilities := range workerCapabilities {
+				if _, exists := jobTypeCapMap[jobType]; !exists {
+					jobTypeCapMap[jobType] = make(map[teetypes.Capability]struct{})
+				}
+				for _, capability := range capabilities {
+					jobTypeCapMap[jobType][capability] = struct{}{}
+				}
+			}
 		}
 	}
 
-	return capabilities
+	// Convert to final map format
+	allCapabilities := make(teetypes.WorkerCapabilities)
+	for jobType, capabilitySet := range jobTypeCapMap {
+		capabilities := maps.Keys(capabilitySet)
+		allCapabilities[jobType] = capabilities
+	}
+
+	return allCapabilities
 }
 
 func (js *JobServer) Run(ctx context.Context) {
@@ -159,7 +201,7 @@ func (js *JobServer) AddJob(j types.Job) (string, error) {
 		return "", errors.New("this job is not for this worker")
 	}
 
-	if j.Type != jobs.TelemetryJobType && config.MinersWhiteList != "" {
+	if j.Type != teetypes.TelemetryJob && config.MinersWhiteList != "" {
 		var miners []string
 
 		// In standalone mode, we just whitelist ourselves
