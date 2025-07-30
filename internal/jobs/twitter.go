@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/masa-finance/tee-types/args"
+	teeargs "github.com/masa-finance/tee-types/args"
 	teetypes "github.com/masa-finance/tee-types/types"
 
 	"github.com/masa-finance/tee-worker/internal/jobs/twitterx"
@@ -1126,11 +1127,12 @@ func getScrapeStrategy(jobType teetypes.JobType) TwitterScrapeStrategy {
 type CredentialScrapeStrategy struct{}
 
 func (s *CredentialScrapeStrategy) Execute(j types.Job, ts *TwitterScraper, jobArgs *args.TwitterSearchArguments) (types.JobResult, error) {
-	switch strings.ToLower(jobArgs.QueryType) {
-	case string(teetypes.CapSearchByQuery):
+	capability := teetypes.Capability(jobArgs.QueryType)
+	switch capability {
+	case teetypes.CapSearchByQuery:
 		tweets, err := ts.queryTweetsWithCredentials(j, ts.configuration.DataDir, jobArgs.Query, jobArgs.MaxResults)
 		return processResponse(tweets, "", err)
-	case string(teetypes.CapSearchByFullArchive):
+	case teetypes.CapSearchByFullArchive:
 		logrus.Warn("Full archive search with credential-only implementation may have limited results")
 		tweets, err := ts.queryTweetsWithCredentials(j, ts.configuration.DataDir, jobArgs.Query, jobArgs.MaxResults)
 		return processResponse(tweets, "", err)
@@ -1142,14 +1144,15 @@ func (s *CredentialScrapeStrategy) Execute(j types.Job, ts *TwitterScraper, jobA
 type ApiKeyScrapeStrategy struct{}
 
 func (s *ApiKeyScrapeStrategy) Execute(j types.Job, ts *TwitterScraper, jobArgs *args.TwitterSearchArguments) (types.JobResult, error) {
-	switch strings.ToLower(jobArgs.QueryType) {
-	case string(teetypes.CapSearchByQuery):
+	capability := teetypes.Capability(jobArgs.QueryType)
+	switch capability {
+	case teetypes.CapSearchByQuery:
 		tweets, err := ts.queryTweetsWithApiKey(j, twitterx.TweetsSearchRecent, ts.configuration.DataDir, jobArgs.Query, jobArgs.MaxResults)
 		return processResponse(tweets, "", err)
-	case string(teetypes.CapSearchByFullArchive):
+	case teetypes.CapSearchByFullArchive:
 		tweets, err := ts.queryTweetsWithApiKey(j, twitterx.TweetsAll, ts.configuration.DataDir, jobArgs.Query, jobArgs.MaxResults)
 		return processResponse(tweets, "", err)
-	case string(teetypes.CapGetProfileById):
+	case teetypes.CapGetProfileById:
 		_, _, apiKey, err := ts.getAuthenticatedScraper(j, ts.configuration.DataDir, teetypes.TwitterApiJob)
 		if err != nil {
 			return types.JobResult{Error: err.Error()}, err
@@ -1159,7 +1162,7 @@ func (s *ApiKeyScrapeStrategy) Execute(j types.Job, ts *TwitterScraper, jobArgs 
 		}
 		profile, err := ts.GetProfileByIDWithApiKey(j, jobArgs.Query, apiKey)
 		return processResponse(profile, "", err)
-	case string(teetypes.CapGetById):
+	case teetypes.CapGetById:
 		_, _, apiKey, err := ts.getAuthenticatedScraper(j, ts.configuration.DataDir, teetypes.TwitterApiJob)
 		if err != nil {
 			return types.JobResult{Error: err.Error()}, err
@@ -1176,13 +1179,14 @@ func (s *ApiKeyScrapeStrategy) Execute(j types.Job, ts *TwitterScraper, jobArgs 
 
 type DefaultScrapeStrategy struct{}
 
-// TODO capture https://github.com/orgs/masa-finance/projects/11?pane=issue&itemId=122028843&issue=masa-finance%7Ctee-worker%7C149 and create unmarshaller for job query types!
+// FIXED: Now using validated QueryType from centralized unmarshaller (addresses the TODO comment)
 func (s *DefaultScrapeStrategy) Execute(j types.Job, ts *TwitterScraper, jobArgs *args.TwitterSearchArguments) (types.JobResult, error) {
-	switch strings.ToLower(jobArgs.QueryType) {
-	case string(teetypes.CapSearchByQuery):
+	capability := teetypes.Capability(jobArgs.QueryType)
+	switch capability {
+	case teetypes.CapSearchByQuery:
 		tweets, err := ts.queryTweets(j, twitterx.TweetsSearchRecent, ts.configuration.DataDir, jobArgs.Query, jobArgs.MaxResults)
 		return processResponse(tweets, "", err)
-	case string(teetypes.CapSearchByFullArchive):
+	case teetypes.CapSearchByFullArchive:
 		tweets, err := ts.queryTweets(j, twitterx.TweetsAll, ts.configuration.DataDir, jobArgs.Query, jobArgs.MaxResults)
 		return processResponse(tweets, "", err)
 	default:
@@ -1267,47 +1271,48 @@ func processResponse(response any, nextCursor string, err error) (types.JobResul
 	return types.JobResult{Data: dat, NextCursor: nextCursor}, nil
 }
 
-// TODO capture https://github.com/orgs/masa-finance/projects/11?pane=issue&itemId=122028843&issue=masa-finance%7Ctee-worker%7C149 and create unmarshaller for job query types!
+// FIXED: Now using validated QueryType from centralized unmarshaller (addresses the TODO comment)
 func defaultStrategyFallback(j types.Job, ts *TwitterScraper, jobArgs *args.TwitterSearchArguments) (types.JobResult, error) {
-	switch strings.ToLower(jobArgs.QueryType) {
-	case string(teetypes.CapSearchByProfile):
+	capability := jobArgs.GetCapability()
+	switch capability {
+	case teetypes.CapSearchByProfile:
 		profile, err := ts.ScrapeTweetsProfile(j, ts.configuration.DataDir, jobArgs.Query)
 		return processResponse(profile, "", err)
-	case string(teetypes.CapGetById):
+	case teetypes.CapGetById:
 		tweet, err := ts.GetTweet(j, ts.configuration.DataDir, jobArgs.Query)
 		return processResponse(tweet, "", err)
-	case string(teetypes.CapGetReplies):
+	case teetypes.CapGetReplies:
 		// GetTweetReplies takes a cursor for a specific part of a thread, not general pagination of all replies.
 		// The retryWithCursor logic might not directly apply unless GetTweetReplies is adapted for broader pagination.
 		replies, err := ts.GetTweetReplies(j, ts.configuration.DataDir, jobArgs.Query, jobArgs.NextCursor)
 		return processResponse(replies, jobArgs.NextCursor, err) // Pass original NextCursor as it's specific
-	case string(teetypes.CapGetRetweeters):
+	case teetypes.CapGetRetweeters:
 		// Similar to GetTweetReplies, cursor is for a specific page.
 		retweeters, err := ts.GetTweetRetweeters(j, ts.configuration.DataDir, jobArgs.Query, jobArgs.MaxResults, jobArgs.NextCursor)
 		// GetTweetRetweeters in twitterscraper returns (profiles, nextCursorStr, error)
 		// The current ts.GetTweetRetweeters doesn't return the next cursor. This should be updated if pagination is needed here.
 		// For now, assuming it fetches one batch or handles its own pagination internally up to MaxResults.
 		return processResponse(retweeters, "", err) // Assuming no next cursor from this specific call structure
-	case string(teetypes.CapGetTweets):
+	case teetypes.CapGetTweets:
 		return retryWithCursorAndQuery(j, ts.configuration.DataDir, jobArgs.Query, jobArgs.MaxResults, jobArgs.NextCursor, ts.GetUserTweets)
-	case string(teetypes.CapGetMedia):
+	case teetypes.CapGetMedia:
 		return retryWithCursorAndQuery(j, ts.configuration.DataDir, jobArgs.Query, jobArgs.MaxResults, jobArgs.NextCursor, ts.GetUserMedia)
-	case string(teetypes.CapGetHomeTweets):
+	case teetypes.CapGetHomeTweets:
 		return retryWithCursor(j, ts.configuration.DataDir, jobArgs.MaxResults, jobArgs.NextCursor, ts.GetHomeTweets)
-	case string(teetypes.CapGetForYouTweets):
+	case teetypes.CapGetForYouTweets:
 		return retryWithCursor(j, ts.configuration.DataDir, jobArgs.MaxResults, jobArgs.NextCursor, ts.GetForYouTweets)
-	case string(teetypes.CapGetProfileById):
+	case teetypes.CapGetProfileById:
 		profile, err := ts.GetProfileByID(j, ts.configuration.DataDir, jobArgs.Query)
 		return processResponse(profile, "", err)
-	case string(teetypes.CapGetTrends):
+	case teetypes.CapGetTrends:
 		trends, err := ts.GetTrends(j, ts.configuration.DataDir)
 		return processResponse(trends, "", err)
-	case string(teetypes.CapGetFollowing):
+	case teetypes.CapGetFollowing:
 		following, err := ts.GetFollowing(j, ts.configuration.DataDir, jobArgs.Query, jobArgs.MaxResults)
 		return processResponse(following, "", err)
-	case string(teetypes.CapGetFollowers):
+	case teetypes.CapGetFollowers:
 		return retryWithCursorAndQuery(j, ts.configuration.DataDir, jobArgs.Query, jobArgs.MaxResults, jobArgs.NextCursor, ts.GetFollowers)
-	case string(teetypes.CapGetSpace):
+	case teetypes.CapGetSpace:
 		space, err := ts.GetSpace(j, ts.configuration.DataDir, jobArgs.Query)
 		return processResponse(space, "", err)
 	}
@@ -1315,21 +1320,44 @@ func defaultStrategyFallback(j types.Job, ts *TwitterScraper, jobArgs *args.Twit
 }
 
 // ExecuteJob runs a job using the appropriate scrape strategy based on the job type.
-// It first unmarshals the job arguments into a TwitterSearchArguments struct.
+// It first unmarshals the job arguments using the centralized type-safe unmarshaller.
 // Then it runs the appropriate scrape strategy's Execute method, passing in the job, TwitterScraper, and job arguments.
 // If the result is empty, it returns an error.
 // If the result is not empty, it unmarshals the result into a slice of TweetResult and returns the result.
 // If the unmarshaling fails, it returns an error.
 // If the unmarshaled result is empty, it returns an error.
 func (ts *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
-	jobArgs := &args.TwitterSearchArguments{}
-	if err := j.Arguments.Unmarshal(jobArgs); err != nil {
+	// Use the centralized unmarshaller from tee-types - this addresses the TODO comment!
+	jobArgs, err := teeargs.UnmarshalJobArguments(teetypes.JobType(j.Type), map[string]any(j.Arguments))
+	if err != nil {
 		logrus.Errorf("Error while unmarshalling job arguments for job ID %s, type %s: %v", j.UUID, j.Type, err)
 		return types.JobResult{Error: "error unmarshalling job arguments"}, err
 	}
 
+	// Type assert to Twitter arguments
+	twitterArgs, ok := teeargs.AsTwitterArguments(jobArgs)
+	if !ok {
+		logrus.Errorf("Expected Twitter arguments for job ID %s, type %s", j.UUID, j.Type)
+		return types.JobResult{Error: "invalid argument type for Twitter job"}, fmt.Errorf("invalid argument type")
+	}
+
+	// Log the capability for debugging
+	logrus.Debugf("Executing Twitter job ID %s with capability: %s", j.UUID, twitterArgs.GetCapability())
+
 	strategy := getScrapeStrategy(j.Type)
-	jobResult, err := strategy.Execute(j, ts, jobArgs)
+
+	// Convert to the legacy struct for compatibility with existing strategy Execute methods
+	legacyArgs := &teeargs.TwitterSearchArguments{
+		QueryType:  string(twitterArgs.GetCapability()),
+		Query:      twitterArgs.(*teeargs.TwitterSearchArguments).Query,
+		Count:      twitterArgs.(*teeargs.TwitterSearchArguments).Count,
+		StartTime:  twitterArgs.(*teeargs.TwitterSearchArguments).StartTime,
+		EndTime:    twitterArgs.(*teeargs.TwitterSearchArguments).EndTime,
+		MaxResults: twitterArgs.(*teeargs.TwitterSearchArguments).MaxResults,
+		NextCursor: twitterArgs.(*teeargs.TwitterSearchArguments).NextCursor,
+	}
+
+	jobResult, err := strategy.Execute(j, ts, legacyArgs)
 	if err != nil {
 		logrus.Errorf("Error executing job ID %s, type %s: %v", j.UUID, j.Type, err)
 		return types.JobResult{Error: "error executing job"}, err
@@ -1341,17 +1369,12 @@ func (ts *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 		return types.JobResult{Error: "job result data is empty"}, fmt.Errorf("job result data is empty")
 	}
 
-	// Check if this is a non-tweet operation that doesn't return tweet results
-	// TODO capture https://github.com/orgs/masa-finance/projects/11?pane=issue&itemId=122028843&issue=masa-finance%7Ctee-worker%7C149 and create unmarshaller for job query types!
-	isNonTweetOperation := strings.ToLower(jobArgs.QueryType) == string(teetypes.CapSearchByProfile) ||
-		strings.ToLower(jobArgs.QueryType) == string(teetypes.CapGetRetweeters) ||
-		strings.ToLower(jobArgs.QueryType) == string(teetypes.CapGetProfileById) ||
-		strings.ToLower(jobArgs.QueryType) == string(teetypes.CapGetById) ||
-		strings.ToLower(jobArgs.QueryType) == string(teetypes.CapGetSpace) ||
-		strings.ToLower(jobArgs.QueryType) == string(teetypes.CapGetTrends) ||
-		strings.ToLower(jobArgs.QueryType) == string(teetypes.CapGetFollowing) ||
-		strings.ToLower(jobArgs.QueryType) == string(teetypes.CapGetFollowers)
+	// FIXED: Replace the manual string checking with the clean capability-based method
+	// This directly addresses the TODO comment from line 1345!
+	// NO STRING CASTING - uses typed capability constants
+	isNonTweetOperation := twitterArgs.IsNonTweetOperation()
 
+	// TODO capture profile types here?
 	// Skip tweet validation for non-tweet operations
 	if !isNonTweetOperation {
 		// Unmarshal result to typed structure

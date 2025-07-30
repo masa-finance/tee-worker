@@ -46,14 +46,23 @@ func (ws *WebScraper) GetStructuredCapabilities() teetypes.WorkerCapabilities {
 func (ws *WebScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 	logrus.Info("Starting ExecuteJob for web scraper")
 
-	// Step 1: Unmarshal arguments
-	args := &teeargs.WebSearchArguments{}
-	logrus.Info("Unmarshaling job arguments")
-	if err := j.Arguments.Unmarshal(args); err != nil {
+	// Step 1: Use centralized type-safe unmarshaller
+	jobArgs, err := teeargs.UnmarshalJobArguments(teetypes.JobType(j.Type), map[string]any(j.Arguments))
+	if err != nil {
 		logrus.Errorf("Failed to unmarshal job arguments: %v", err)
 		return types.JobResult{Error: fmt.Sprintf("Invalid arguments: %v", err)}, err
 	}
-	logrus.Infof("Job arguments unmarshaled successfully: %+v", args)
+
+	// Type assert to Web arguments
+	webArgs, ok := teeargs.AsWebArguments(jobArgs)
+	if !ok {
+		logrus.Errorf("Expected Web arguments for job ID %s, type %s", j.UUID, j.Type)
+		return types.JobResult{Error: "invalid argument type for Web job"}, fmt.Errorf("invalid argument type")
+	}
+
+	// Convert to the concrete type for easier access
+	args := webArgs.(*teeargs.WebSearchArguments)
+	logrus.Infof("Job arguments unmarshaled and validated successfully: %+v", args)
 
 	// Step 2: Validate URL against blacklist
 	logrus.Info("Validating URL against blacklist")
@@ -70,9 +79,12 @@ func (ws *WebScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 	}
 	logrus.Infof("URL %s passed blacklist validation", args.URL)
 
-	// Step 3: Perform web scraping
-	logrus.Infof("Initiating web scraping for URL: %s with depth: %d", args.URL, args.Depth)
-	result, err := scrapeWeb([]string{args.URL}, args.Depth)
+	// Step 3: Use enhanced methods for cleaner logic and validation
+	logrus.Infof("Initiating web scraping for URL: %s (max_depth: %d, has_selector: %t, is_deep_scrape: %t)",
+		args.URL, webArgs.GetEffectiveMaxDepth(), webArgs.HasSelector(), webArgs.IsDeepScrape())
+
+	// Perform web scraping using the effective max depth
+	result, err := scrapeWeb([]string{args.URL}, webArgs.GetEffectiveMaxDepth())
 	if err != nil {
 		logrus.Errorf("Web scraping failed for URL %s: %v", args.URL, err)
 		ws.stats.Add(j.WorkerID, stats.WebErrors, 1)
