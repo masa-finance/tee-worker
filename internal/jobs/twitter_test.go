@@ -788,7 +788,7 @@ var _ = Describe("Twitter Scraper", func() {
 			Expect(statsCollector.Stats.Stats[j.WorkerID][stats.TwitterTweets]).To(BeNumerically("==", uint(len(results))))
 		})
 
-		FIt("should use Apify for twitter-apify with getfollowers", func() {
+		It("should use Apify for twitter-apify with getfollowers", func() {
 			if apifyApiKey == "" {
 				Skip("APIFY_API_KEY is not set")
 			}
@@ -815,7 +815,7 @@ var _ = Describe("Twitter Scraper", func() {
 			Expect(followers[0].ScreenName).ToNot(BeEmpty())
 		})
 
-		FIt("should use Apify for twitter-apify with getfollowing", func() {
+		It("should use Apify for twitter-apify with getfollowing", func() {
 			if apifyApiKey == "" {
 				Skip("APIFY_API_KEY is not set")
 			}
@@ -842,7 +842,7 @@ var _ = Describe("Twitter Scraper", func() {
 			Expect(following[0].ScreenName).ToNot(BeEmpty())
 		})
 
-		FIt("should prioritize Apify for general twitter job with getfollowers", func() {
+		It("should prioritize Apify for general twitter job with getfollowers", func() {
 			if apifyApiKey == "" || len(twitterAccounts) == 0 {
 				Skip("APIFY_API_KEY or TWITTER_ACCOUNTS not set")
 			}
@@ -868,6 +868,117 @@ var _ = Describe("Twitter Scraper", func() {
 			err = res.Unmarshal(&followers)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(followers).ToNot(BeEmpty())
+		})
+	})
+
+	// --- Error Handling Tests ---
+	Context("Error Handling", func() {
+		It("should handle negative count values in job arguments", func() {
+			res, err := twitterScraper.ExecuteJob(types.Job{
+				Type: teetypes.TwitterJob,
+				Arguments: map[string]interface{}{
+					"type":  teetypes.CapSearchByQuery,
+					"query": "test",
+					"count": -5, // Invalid negative value
+				},
+				Timeout: 10 * time.Second,
+			})
+			Expect(err).To(HaveOccurred())
+			Expect(res.Error).To(ContainSubstring("error unmarshalling job arguments"))
+			Expect(err.Error()).To(ContainSubstring("count must be non-negative"))
+		})
+
+		It("should handle negative max_results values in job arguments", func() {
+			res, err := twitterScraper.ExecuteJob(types.Job{
+				Type: teetypes.TwitterJob,
+				Arguments: map[string]interface{}{
+					"type":        teetypes.CapSearchByQuery,
+					"query":       "test",
+					"max_results": -10, // Invalid negative value
+				},
+				Timeout: 10 * time.Second,
+			})
+			Expect(err).To(HaveOccurred())
+			Expect(res.Error).To(ContainSubstring("error unmarshalling job arguments"))
+			Expect(err.Error()).To(ContainSubstring("max_results must be non-negative"))
+		})
+
+		It("should handle invalid capability for job type", func() {
+			res, err := twitterScraper.ExecuteJob(types.Job{
+				Type: teetypes.TwitterApiJob, // API job type
+				Arguments: map[string]interface{}{
+					"type":  "invalidcapability", // Invalid capability
+					"query": "test",
+				},
+				Timeout: 10 * time.Second,
+			})
+			Expect(err).To(HaveOccurred())
+			Expect(res.Error).To(ContainSubstring("error unmarshalling job arguments"))
+			Expect(err.Error()).To(ContainSubstring("capability 'invalidcapability' is not valid for job type"))
+		})
+
+		It("should handle capability not available for specific job type", func() {
+			res, err := twitterScraper.ExecuteJob(types.Job{
+				Type: teetypes.TwitterApiJob, // API job type - doesn't support getfollowers
+				Arguments: map[string]interface{}{
+					"type":  teetypes.CapGetFollowers, // Valid capability but not for TwitterApiJob
+					"query": "test",
+				},
+				Timeout: 10 * time.Second,
+			})
+			Expect(err).To(HaveOccurred())
+			Expect(res.Error).To(ContainSubstring("error unmarshalling job arguments"))
+			Expect(err.Error()).To(ContainSubstring("capability 'getfollowers' is not valid for job type 'twitter-api'"))
+		})
+
+		It("should handle invalid JSON data structure", func() {
+			// Create a job with arguments that will cause JSON unmarshalling to fail
+			res, err := twitterScraper.ExecuteJob(types.Job{
+				Type: teetypes.TwitterJob,
+				Arguments: map[string]interface{}{
+					"type":        teetypes.CapSearchByQuery,
+					"query":       "test",
+					"max_results": "not_a_number", // String instead of int
+				},
+				Timeout: 10 * time.Second,
+			})
+			Expect(err).To(HaveOccurred())
+			Expect(res.Error).To(ContainSubstring("error unmarshalling job arguments"))
+			Expect(err.Error()).To(ContainSubstring("failed to unmarshal"))
+		})
+
+		It("should handle jobs with unknown job type", func() {
+			// Test with an unknown job type - this should be caught by the unmarshaller
+			res, err := twitterScraper.ExecuteJob(types.Job{
+				Type: "unknown-job-type", // Invalid job type
+				Arguments: map[string]interface{}{
+					"type":  teetypes.CapSearchByQuery,
+					"query": "test",
+				},
+				Timeout: 10 * time.Second,
+			})
+			Expect(err).To(HaveOccurred())
+			Expect(res.Error).To(ContainSubstring("error unmarshalling job arguments"))
+			Expect(err.Error()).To(ContainSubstring("unknown job type"))
+		})
+
+		It("should handle empty arguments map", func() {
+			res, err := twitterScraper.ExecuteJob(types.Job{
+				Type:      teetypes.TwitterJob,
+				Arguments: map[string]interface{}{}, // Empty arguments
+				Timeout:   10 * time.Second,
+			})
+			// Empty arguments should now work with default capability (searchbyquery)
+			// The default capability will be used from JobDefaultCapabilityMap
+			if len(twitterAccounts) == 0 && len(twitterApiKeys) == 0 {
+				// If no auth is available, expect auth error
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("no Twitter"))
+			} else {
+				// If auth is available, it should work with default searchbyquery capability
+				Expect(err).NotTo(HaveOccurred())
+				Expect(res.Error).To(BeEmpty())
+			}
 		})
 	})
 })
