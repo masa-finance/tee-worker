@@ -1369,40 +1369,52 @@ func (ts *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 		return types.JobResult{Error: "job result data is empty"}, fmt.Errorf("job result data is empty")
 	}
 
-	// FIXED: Replace the manual string checking with the clean capability-based method
-	// This directly addresses the TODO comment from line 1345!
-	// NO STRING CASTING - uses typed capability constants
-	isNonTweetOperation := twitterArgs.IsNonTweetOperation()
 	isSingleTweetOperation := twitterArgs.IsSingleTweetOperation()
+	isMultipleTweetOperation := twitterArgs.IsMultipleTweetOperation()
+	isSingleProfileOperation := twitterArgs.IsSingleProfileOperation()
+	isMultipleProfileOperation := twitterArgs.IsMultipleProfileOperation()
+	isSingleSpaceOperation := twitterArgs.IsSingleSpaceOperation()
+	isTrendsOperation := twitterArgs.IsTrendsOperation()
 
-	// TODO capture profile types here?
-	// Skip tweet validation for non-tweet operations
-	if !isNonTweetOperation && !isSingleTweetOperation {
-		// Unmarshal result to typed structure for operations that return arrays of tweets
-		var results []*teetypes.TweetResult
-		if err := jobResult.Unmarshal(&results); err != nil {
-			logrus.Errorf("Error while unmarshalling job result for job ID %s, type %s: %v", j.UUID, j.Type, err)
-			return types.JobResult{Error: "error unmarshalling job result for final validation and result length check"}, err
-		}
-
-		// Final validation after unmarshaling
-		if len(results) == 0 {
-			logrus.Errorf("Job result is empty for job ID %s, type %s", j.UUID, j.Type)
-			return types.JobResult{Error: "job result is empty"}, fmt.Errorf("job result is empty")
-		}
-	} else if isSingleTweetOperation {
-		// Unmarshal result to typed structure for operations that return a single tweet
+	if isSingleTweetOperation {
 		var result *teetypes.TweetResult
 		if err := jobResult.Unmarshal(&result); err != nil {
 			logrus.Errorf("Error while unmarshalling single tweet result for job ID %s, type %s: %v", j.UUID, j.Type, err)
 			return types.JobResult{Error: "error unmarshalling single tweet result for final validation"}, err
 		}
-
-		// Final validation after unmarshaling
-		if result == nil {
-			logrus.Errorf("Single tweet result is nil for job ID %s, type %s", j.UUID, j.Type)
-			return types.JobResult{Error: "single tweet result is nil"}, fmt.Errorf("single tweet result is nil")
+	} else if isMultipleTweetOperation {
+		var results []*teetypes.TweetResult
+		if err := jobResult.Unmarshal(&results); err != nil {
+			logrus.Errorf("Error while unmarshalling multiple tweet result for job ID %s, type %s: %v", j.UUID, j.Type, err)
+			return types.JobResult{Error: "error unmarshalling multiple tweet result for final validation"}, err
 		}
+	} else if isSingleProfileOperation {
+		var result *twitterscraper.Profile
+		if err := jobResult.Unmarshal(&result); err != nil {
+			logrus.Errorf("Error while unmarshalling single profile result for job ID %s, type %s: %v", j.UUID, j.Type, err)
+			return types.JobResult{Error: "error unmarshalling single profile result for final validation"}, err
+		}
+	} else if isMultipleProfileOperation {
+		var results []*twitterscraper.Profile
+		if err := jobResult.Unmarshal(&results); err != nil {
+			logrus.Errorf("Error while unmarshalling multiple profile result for job ID %s, type %s: %v", j.UUID, j.Type, err)
+			return types.JobResult{Error: "error unmarshalling multiple profile result for final validation"}, err
+		}
+	} else if isSingleSpaceOperation {
+		var result *twitterscraper.Space
+		if err := jobResult.Unmarshal(&result); err != nil {
+			logrus.Errorf("Error while unmarshalling single space result for job ID %s, type %s: %v", j.UUID, j.Type, err)
+			return types.JobResult{Error: "error unmarshalling single space result for final validation"}, err
+		}
+	} else if isTrendsOperation {
+		var results []string
+		if err := jobResult.Unmarshal(&results); err != nil {
+			logrus.Errorf("Error while unmarshalling trends result for job ID %s, type %s: %v", j.UUID, j.Type, err)
+			return types.JobResult{Error: "error unmarshalling trends result for final validation"}, err
+		}
+	} else {
+		logrus.Errorf("Invalid operation type for job ID %s, type %s", j.UUID, j.Type)
+		return types.JobResult{Error: "invalid operation type"}, fmt.Errorf("invalid operation type")
 	}
 
 	return jobResult, nil
