@@ -1373,11 +1373,12 @@ func (ts *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 	// This directly addresses the TODO comment from line 1345!
 	// NO STRING CASTING - uses typed capability constants
 	isNonTweetOperation := twitterArgs.IsNonTweetOperation()
+	isSingleTweetOperation := twitterArgs.IsSingleTweetOperation()
 
 	// TODO capture profile types here?
 	// Skip tweet validation for non-tweet operations
-	if !isNonTweetOperation {
-		// Unmarshal result to typed structure
+	if !isNonTweetOperation && !isSingleTweetOperation {
+		// Unmarshal result to typed structure for operations that return arrays of tweets
 		var results []*teetypes.TweetResult
 		if err := jobResult.Unmarshal(&results); err != nil {
 			logrus.Errorf("Error while unmarshalling job result for job ID %s, type %s: %v", j.UUID, j.Type, err)
@@ -1388,6 +1389,19 @@ func (ts *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 		if len(results) == 0 {
 			logrus.Errorf("Job result is empty for job ID %s, type %s", j.UUID, j.Type)
 			return types.JobResult{Error: "job result is empty"}, fmt.Errorf("job result is empty")
+		}
+	} else if isSingleTweetOperation {
+		// Unmarshal result to typed structure for operations that return a single tweet
+		var result *teetypes.TweetResult
+		if err := jobResult.Unmarshal(&result); err != nil {
+			logrus.Errorf("Error while unmarshalling single tweet result for job ID %s, type %s: %v", j.UUID, j.Type, err)
+			return types.JobResult{Error: "error unmarshalling single tweet result for final validation"}, err
+		}
+
+		// Final validation after unmarshaling
+		if result == nil {
+			logrus.Errorf("Single tweet result is nil for job ID %s, type %s", j.UUID, j.Type)
+			return types.JobResult{Error: "single tweet result is nil"}, fmt.Errorf("single tweet result is nil")
 		}
 	}
 
