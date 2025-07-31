@@ -13,7 +13,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/labstack/echo-contrib v0.17.3
 	github.com/labstack/echo/v4 v4.13.3
-	github.com/masa-finance/tee-types v1.0.1-0.20250731000630-e186771bede5
+	github.com/masa-finance/tee-types v1.0.1-0.20250731001836-a91ba0558b34
 	github.com/onsi/ginkgo/v2 v2.23.3
 	github.com/onsi/gomega v1.36.2
 	github.com/sirupsen/logrus v1.9.3
