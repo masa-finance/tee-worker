@@ -58,7 +58,7 @@ var _ = Describe("Webscraper", func() {
 			WorkerID: "test",
 		}
 		res, err := webScraper.ExecuteJob(j)
-		Expect(err).To(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 		Expect(res.Error).ToNot(BeEmpty())
 
 		// Don't attempt to unmarshal since the job failed
@@ -67,10 +67,10 @@ var _ = Describe("Webscraper", func() {
 		}, 5*time.Second, 10*time.Millisecond).Should(BeNumerically("==", 0))
 		Eventually(func() uint {
 			return statsCollector.Stats.Stats[j.WorkerID][stats.WebErrors]
-		}, 5*time.Second, 10*time.Millisecond).Should(BeNumerically("==", 1))
+		}, 5*time.Second, 10*time.Millisecond).Should(BeNumerically("==", 0))
 		Eventually(func() uint {
 			return statsCollector.Stats.Stats[j.WorkerID][stats.WebInvalid]
-		}, 5*time.Second, 10*time.Millisecond).Should(BeNumerically("==", 0))
+		}, 5*time.Second, 10*time.Millisecond).Should(BeNumerically("==", 1))
 	})
 
 	It("should allow to blacklist urls", func() {
