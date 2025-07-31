@@ -801,7 +801,7 @@ var _ = Describe("Twitter Scraper", func() {
 				Arguments: map[string]interface{}{
 					"type":        teetypes.CapGetFollowers,
 					"query":       "elonmusk",
-					"max_results": 5,
+					"max_results": 200,
 				},
 				Timeout: 60 * time.Second,
 			})
@@ -815,7 +815,7 @@ var _ = Describe("Twitter Scraper", func() {
 			Expect(followers[0].ScreenName).ToNot(BeEmpty())
 		})
 
-		It("should use Apify for twitter-apify with getfollowing", func() {
+		FIt("should use Apify for twitter-apify with getfollowing", func() {
 			if apifyApiKey == "" {
 				Skip("APIFY_API_KEY is not set")
 			}
@@ -828,7 +828,7 @@ var _ = Describe("Twitter Scraper", func() {
 				Arguments: map[string]interface{}{
 					"type":        teetypes.CapGetFollowing,
 					"query":       "elonmusk",
-					"max_results": 5,
+					"max_results": 200,
 				},
 				Timeout: 60 * time.Second,
 			})
@@ -842,7 +842,7 @@ var _ = Describe("Twitter Scraper", func() {
 			Expect(following[0].ScreenName).ToNot(BeEmpty())
 		})
 
-		It("should prioritize Apify for general twitter job with getfollowers", func() {
+		FIt("should prioritize Apify for general twitter job with getfollowers", func() {
 			if apifyApiKey == "" || len(twitterAccounts) == 0 {
 				Skip("APIFY_API_KEY or TWITTER_ACCOUNTS not set")
 			}
@@ -856,7 +856,7 @@ var _ = Describe("Twitter Scraper", func() {
 				Arguments: map[string]interface{}{
 					"type":        teetypes.CapGetFollowers,
 					"query":       "elonmusk",
-					"max_results": 5,
+					"max_results": 200,
 				},
 				Timeout: 60 * time.Second,
 			})
