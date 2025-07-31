@@ -55,6 +55,7 @@ var _ = Describe("Twitter Scraper", func() {
 	var err error
 	var twitterAccounts []string
 	var twitterApiKeys []string
+	var apifyApiKey string
 
 	BeforeEach(func() {
 		logrus.SetLevel(logrus.DebugLevel)
@@ -69,6 +70,7 @@ var _ = Describe("Twitter Scraper", func() {
 
 		twitterAccounts = parseTwitterAccounts()
 		twitterApiKeys = parseTwitterApiKeys()
+		apifyApiKey = os.Getenv("APIFY_API_KEY")
 
 		// Skip all tests if neither auth method is available
 		if len(twitterAccounts) == 0 && len(twitterApiKeys) == 0 {
@@ -784,6 +786,88 @@ var _ = Describe("Twitter Scraper", func() {
 			Expect(results[0].Text).ToNot(BeEmpty())
 			Expect(statsCollector.Stats.Stats[j.WorkerID][stats.TwitterScrapes]).To(BeNumerically("==", 1))
 			Expect(statsCollector.Stats.Stats[j.WorkerID][stats.TwitterTweets]).To(BeNumerically("==", uint(len(results))))
+		})
+
+		FIt("should use Apify for twitter-apify with getfollowers", func() {
+			if apifyApiKey == "" {
+				Skip("APIFY_API_KEY is not set")
+			}
+			scraper := NewTwitterScraper(types.JobConfiguration{
+				"apify_api_key": apifyApiKey,
+				"data_dir":      tempDir,
+			}, statsCollector)
+			res, err := scraper.ExecuteJob(types.Job{
+				Type: teetypes.TwitterApifyJob,
+				Arguments: map[string]interface{}{
+					"type":        teetypes.CapGetFollowers,
+					"query":       "elonmusk",
+					"max_results": 5,
+				},
+				Timeout: 60 * time.Second,
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(res.Error).To(BeEmpty())
+
+			var followers []*teetypes.ProfileResultApify
+			err = res.Unmarshal(&followers)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(followers).ToNot(BeEmpty())
+			Expect(followers[0].ScreenName).ToNot(BeEmpty())
+		})
+
+		It("should use Apify for twitter-apify with getfollowing", func() {
+			if apifyApiKey == "" {
+				Skip("APIFY_API_KEY is not set")
+			}
+			scraper := NewTwitterScraper(types.JobConfiguration{
+				"apify_api_key": apifyApiKey,
+				"data_dir":      tempDir,
+			}, statsCollector)
+			res, err := scraper.ExecuteJob(types.Job{
+				Type: teetypes.TwitterApifyJob,
+				Arguments: map[string]interface{}{
+					"type":        teetypes.CapGetFollowing,
+					"query":       "elonmusk",
+					"max_results": 5,
+				},
+				Timeout: 60 * time.Second,
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(res.Error).To(BeEmpty())
+
+			var following []*teetypes.ProfileResultApify
+			err = res.Unmarshal(&following)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(following).ToNot(BeEmpty())
+			Expect(following[0].ScreenName).ToNot(BeEmpty())
+		})
+
+		It("should prioritize Apify for general twitter job with getfollowers", func() {
+			if apifyApiKey == "" || len(twitterAccounts) == 0 {
+				Skip("APIFY_API_KEY or TWITTER_ACCOUNTS not set")
+			}
+			scraper := NewTwitterScraper(types.JobConfiguration{
+				"apify_api_key":    apifyApiKey,
+				"twitter_accounts": twitterAccounts,
+				"data_dir":         tempDir,
+			}, statsCollector)
+			res, err := scraper.ExecuteJob(types.Job{
+				Type: teetypes.TwitterJob,
+				Arguments: map[string]interface{}{
+					"type":        teetypes.CapGetFollowers,
+					"query":       "elonmusk",
+					"max_results": 5,
+				},
+				Timeout: 60 * time.Second,
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(res.Error).To(BeEmpty())
+
+			// Should return ProfileResultApify (from Apify) not twitterscraper.Profile
+			var followers []*teetypes.ProfileResultApify
+			err = res.Unmarshal(&followers)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(followers).ToNot(BeEmpty())
 		})
 	})
 })

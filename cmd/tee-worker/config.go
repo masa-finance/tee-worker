@@ -103,6 +103,15 @@ func readConfig() types.JobConfiguration {
 		jc["twitter_api_keys"] = []string{}
 	}
 
+	// Apify API key loading
+	apifyApiKey := os.Getenv("APIFY_API_KEY")
+	if apifyApiKey != "" {
+		logrus.Info("Apify API key found")
+		jc["apify_api_key"] = apifyApiKey
+	} else {
+		jc["apify_api_key"] = ""
+	}
+
 	tikTokLang := os.Getenv("TIKTOK_DEFAULT_LANGUAGE")
 	if tikTokLang == "" {
 		tikTokLang = "eng-US"
