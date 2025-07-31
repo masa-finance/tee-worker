@@ -87,7 +87,7 @@ var _ = Describe("Webscraper", func() {
 		}
 		res, err := webScraper.ExecuteJob(j)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(res.Error).To(Equal("URL blacklisted: google"))
+		Expect(res.Error).To(Equal("URL blacklisted: https://google.com"))
 		Eventually(func() uint {
 			return statsCollector.Stats.Stats[j.WorkerID][stats.WebSuccess]
 		}, 5*time.Second, 10*time.Millisecond).Should(BeNumerically("==", 0))

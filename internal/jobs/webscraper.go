@@ -50,6 +50,7 @@ func (ws *WebScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 	jobArgs, err := teeargs.UnmarshalJobArguments(teetypes.JobType(j.Type), map[string]any(j.Arguments))
 	if err != nil {
 		logrus.Errorf("Failed to unmarshal job arguments: %v", err)
+		ws.stats.Add(j.WorkerID, stats.WebErrors, 1)
 		return types.JobResult{Error: fmt.Sprintf("Invalid arguments: %v", err)}, err
 	}
 
@@ -57,6 +58,7 @@ func (ws *WebScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 	webArgs, ok := teeargs.AsWebArguments(jobArgs)
 	if !ok {
 		logrus.Errorf("Expected Web arguments for job ID %s, type %s", j.UUID, j.Type)
+		ws.stats.Add(j.WorkerID, stats.WebErrors, 1)
 		return types.JobResult{Error: "invalid argument type for Web job"}, fmt.Errorf("invalid argument type")
 	}
 
