@@ -1346,18 +1346,10 @@ func (ts *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 
 	strategy := getScrapeStrategy(j.Type)
 
-	// Convert to the legacy struct for compatibility with existing strategy Execute methods
-	legacyArgs := &teeargs.TwitterSearchArguments{
-		QueryType:  string(twitterArgs.GetCapability()),
-		Query:      twitterArgs.(*teeargs.TwitterSearchArguments).Query,
-		Count:      twitterArgs.(*teeargs.TwitterSearchArguments).Count,
-		StartTime:  twitterArgs.(*teeargs.TwitterSearchArguments).StartTime,
-		EndTime:    twitterArgs.(*teeargs.TwitterSearchArguments).EndTime,
-		MaxResults: twitterArgs.(*teeargs.TwitterSearchArguments).MaxResults,
-		NextCursor: twitterArgs.(*teeargs.TwitterSearchArguments).NextCursor,
-	}
+	// Convert to concrete type for direct usage
+	args := twitterArgs.(*teeargs.TwitterSearchArguments)
 
-	jobResult, err := strategy.Execute(j, ts, legacyArgs)
+	jobResult, err := strategy.Execute(j, ts, args)
 	if err != nil {
 		logrus.Errorf("Error executing job ID %s, type %s: %v", j.UUID, j.Type, err)
 		return types.JobResult{Error: "error executing job"}, err
