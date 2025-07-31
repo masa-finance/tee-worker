@@ -198,13 +198,30 @@ func (c *ApifyClient) GetDatasetItems(datasetId string, offset, limit int) (*Dat
 		return nil, fmt.Errorf("unexpected status code %d: %s", resp.StatusCode, string(body))
 	}
 
-	// Parse response
-	var datasetResp DatasetResponse
-	if err := json.Unmarshal(body, &datasetResp); err != nil {
+	// Parse response - Apify returns a direct array of items, not wrapped in a data object
+	var items []json.RawMessage
+	if err := json.Unmarshal(body, &items); err != nil {
 		logrus.Errorf("error parsing response: %v", err)
 		return nil, fmt.Errorf("error parsing response: %w", err)
 	}
 
-	logrus.Debugf("Retrieved %d items from dataset (total: %d)", len(datasetResp.Data.Items), datasetResp.Data.Total)
-	return &datasetResp, nil
+	// Create a DatasetResponse object with the items and estimated pagination info
+	datasetResp := &DatasetResponse{
+		Data: struct {
+			Items  []json.RawMessage `json:"items"`
+			Count  int               `json:"count"`
+			Offset int               `json:"offset"`
+			Limit  int               `json:"limit"`
+			Total  int               `json:"total"`
+		}{
+			Items:  items,
+			Count:  len(items),
+			Offset: offset,
+			Limit:  limit,
+			Total:  offset + len(items), // Estimate total, could be more if limit is reached
+		},
+	}
+
+	logrus.Debugf("Retrieved %d items from dataset", len(items))
+	return datasetResp, nil
 }
