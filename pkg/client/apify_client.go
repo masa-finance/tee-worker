@@ -22,16 +22,6 @@ type ApifyClient struct {
 	httpClient *http.Client
 }
 
-// ActorRunRequest represents the input for running an actor
-type ActorRunRequest struct {
-	UserNames     []string `json:"user_names"`
-	UserIds       []string `json:"user_ids"`
-	MaxFollowers  int      `json:"maxFollowers"`
-	MaxFollowings int      `json:"maxFollowings"`
-	GetFollowers  bool     `json:"getFollowers"`
-	GetFollowing  bool     `json:"getFollowing"`
-}
-
 // ActorRunResponse represents the response from running an actor
 type ActorRunResponse struct {
 	Data struct {
@@ -68,7 +58,7 @@ func (c *ApifyClient) HTTPClient() *http.Client {
 }
 
 // RunActor runs an actor with the given input
-func (c *ApifyClient) RunActor(actorId string, input ActorRunRequest) (*ActorRunResponse, error) {
+func (c *ApifyClient) RunActor(actorId string, input interface{}) (*ActorRunResponse, error) {
 	url := fmt.Sprintf("%s/acts/%s/runs?token=%s", c.baseUrl, actorId, c.apiToken)
 	logrus.Infof("Running actor %s", actorId)
 

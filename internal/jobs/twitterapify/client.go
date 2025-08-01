@@ -15,6 +15,16 @@ const (
 	TwitterFollowerActorID = "kaitoeasyapi~premium-x-follower-scraper-following-data"
 )
 
+// FollowerActorRunRequest represents the input for running the Twitter follower actor
+type FollowerActorRunRequest struct {
+	UserNames     []string `json:"user_names"`
+	UserIds       []string `json:"user_ids"`
+	MaxFollowers  int      `json:"maxFollowers"`
+	MaxFollowings int      `json:"maxFollowings"`
+	GetFollowers  bool     `json:"getFollowers"`
+	GetFollowing  bool     `json:"getFollowing"`
+}
+
 // TwitterApifyClient wraps the generic Apify client for Twitter-specific operations
 type TwitterApifyClient struct {
 	apifyClient *client.ApifyClient
@@ -42,7 +52,7 @@ func (c *TwitterApifyClient) GetFollowers(username string, maxResults int, curso
 		minFollowers = 200
 	}
 
-	input := client.ActorRunRequest{
+	input := FollowerActorRunRequest{
 		UserNames:     []string{username},
 		UserIds:       []string{}, // Explicitly set empty array as required by actor
 		MaxFollowers:  minFollowers,
@@ -64,7 +74,7 @@ func (c *TwitterApifyClient) GetFollowing(username string, maxResults int, curso
 		minFollowings = 200
 	}
 
-	input := client.ActorRunRequest{
+	input := FollowerActorRunRequest{
 		UserNames:     []string{username},
 		UserIds:       []string{}, // Explicitly set empty array as required by actor
 		MaxFollowers:  200,        // Actor requires minimum 200 even when not used
@@ -77,7 +87,7 @@ func (c *TwitterApifyClient) GetFollowing(username string, maxResults int, curso
 }
 
 // runActorAndGetProfiles runs the actor and retrieves profiles from the dataset
-func (c *TwitterApifyClient) runActorAndGetProfiles(input client.ActorRunRequest, offset, limit int) ([]*teetypes.ProfileResultApify, string, error) {
+func (c *TwitterApifyClient) runActorAndGetProfiles(input FollowerActorRunRequest, offset, limit int) ([]*teetypes.ProfileResultApify, string, error) {
 	// 1. Run the actor
 	logrus.Infof("Starting Apify actor run for %v", input.UserNames)
 	runResp, err := c.apifyClient.RunActor(TwitterFollowerActorID, input)
