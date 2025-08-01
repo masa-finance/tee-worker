@@ -58,6 +58,7 @@ The tee-worker requires various environment variables for operation. These shoul
 - `TWITTER_SKIP_LOGIN_VERIFICATION`: Set to `true` to skip Twitter's login verification step. This can help avoid rate limiting issues with Twitter's verify_credentials API endpoint when running multiple workers or processing large volumes of requests.
 - `TIKTOK_DEFAULT_LANGUAGE`: Default language for TikTok transcriptions (default: `eng-US`).
 - `TIKTOK_API_USER_AGENT`: User-Agent header for TikTok API requests (default: standard mobile browser user agent).
+- `APIFY_API_KEY`: API key for Apify Twitter scraping services. Required for `twitter-apify` job type and enables enhanced follower/following data collection.
 - `LISTEN_ADDRESS`: The address the service listens on (default: `:8080`).
 - `RESULT_CACHE_MAX_SIZE`: Maximum number of job results to keep in the result cache (default: `1000`).
 - `RESULT_CACHE_MAX_AGE_SECONDS`: Maximum age (in seconds) to keep a result in the cache (default: `600`).
@@ -90,12 +91,17 @@ The worker automatically detects and exposes capabilities based on available con
    - **Requirements**: `TWITTER_API_KEYS` environment variable
 
 5. **`twitter`** - General Twitter scraping (uses best available auth)
-   - **Sub-capabilities**: Dynamic based on available authentication (same as credential or API depending on what's configured)
-   - **Requirements**: Either `TWITTER_ACCOUNTS` or `TWITTER_API_KEYS`
+   - **Sub-capabilities**: Dynamic based on available authentication (combines capabilities from credential, API, and Apify depending on what's configured)
+   - **Requirements**: Either `TWITTER_ACCOUNTS`, `TWITTER_API_KEYS`, or `APIFY_API_KEY`
+   - **Priority**: For follower/following operations: Apify > Credentials. For search operations: Credentials > API.
+
+6. **`twitter-apify`** - Twitter scraping using Apify's API (requires `APIFY_API_KEY`)
+   - **Sub-capabilities**: `["getfollowers", "getfollowing"]`
+   - **Requirements**: `APIFY_API_KEY` environment variable
 
 **Stats Service (Always Available):**
 
-6. **`telemetry`** - Worker monitoring and stats
+7. **`telemetry`** - Worker monitoring and stats
    - **Sub-capabilities**: `["telemetry"]`
    - **Requirements**: None (always available)
 
@@ -195,10 +201,11 @@ Transcribes TikTok videos to text.
 
 #### Twitter Job Types
 
-Twitter scraping is available through three job types:
-- `twitter-scraper`: Uses best available auth method (credential or API)
-- `twitter-credential-scraper`: Forces credential-based scraping (requires `TWITTER_ACCOUNTS`)
-- `twitter-api-scraper`: Forces API-based scraping (requires `TWITTER_API_KEYS`)
+Twitter scraping is available through four job types:
+- `twitter`: Uses best available auth method (credential, API, or Apify)
+- `twitter-credential`: Forces credential-based scraping (requires `TWITTER_ACCOUNTS`)
+- `twitter-api`: Forces API-based scraping (requires `TWITTER_API_KEYS`)
+- `twitter-apify`: Forces Apify-based scraping (requires `APIFY_API_KEY`)
 
 **Common Parameters:**
 - `type` (string, required): The operation type (see sub-capabilities below)
@@ -211,7 +218,7 @@ Twitter scraping is available through three job types:
 **`searchbyquery`** - Search tweets using Twitter query syntax
 ```json
 {
-  "type": "twitter-scraper",
+  "type": "twitter",
   "arguments": {
     "type": "searchbyquery",
     "query": "climate change",
@@ -223,7 +230,7 @@ Twitter scraping is available through three job types:
 **`searchbyfullarchive`** - Search full tweet archive (requires elevated API key for API-based scraping)
 ```json
 {
-  "type": "twitter-api-scraper",
+  "type": "twitter-api",
   "arguments": {
     "type": "searchbyfullarchive",
     "query": "NASA",
@@ -235,7 +242,7 @@ Twitter scraping is available through three job types:
 **`getbyid`** - Get specific tweet by ID
 ```json
 {
-  "type": "twitter-scraper",
+  "type": "twitter",
   "arguments": {
     "type": "getbyid",
     "query": "1881258110712492142"
@@ -246,7 +253,7 @@ Twitter scraping is available through three job types:
 **`getreplies`** - Get replies to a specific tweet
 ```json
 {
-  "type": "twitter-credential-scraper",
+  "type": "twitter-credential",
   "arguments": {
     "type": "getreplies",
     "query": "1234567890",
@@ -258,7 +265,7 @@ Twitter scraping is available through three job types:
 **`getretweeters`** - Get users who retweeted a specific tweet
 ```json
 {
-  "type": "twitter-credential-scraper",
+  "type": "twitter-credential",
   "arguments": {
     "type": "getretweeters",
     "query": "1234567890",
@@ -272,7 +279,7 @@ Twitter scraping is available through three job types:
 **`gettweets`** - Get tweets from a user's timeline
 ```json
 {
-  "type": "twitter-credential-scraper",
+  "type": "twitter-credential",
   "arguments": {
     "type": "gettweets",
     "query": "NASA",
@@ -284,7 +291,7 @@ Twitter scraping is available through three job types:
 **`getmedia`** - Get media (photos/videos) from a user
 ```json
 {
-  "type": "twitter-credential-scraper",
+  "type": "twitter-credential",
   "arguments": {
     "type": "getmedia",
     "query": "NASA",
@@ -296,7 +303,7 @@ Twitter scraping is available through three job types:
 **`gethometweets`** - Get authenticated user's home timeline (credential-based only)
 ```json
 {
-  "type": "twitter-credential-scraper",
+  "type": "twitter-credential",
   "arguments": {
     "type": "gethometweets",
     "max_results": 30
@@ -307,7 +314,7 @@ Twitter scraping is available through three job types:
 **`getforyoutweets`** - Get "For You" timeline (credential-based only)
 ```json
 {
-  "type": "twitter-credential-scraper",
+  "type": "twitter-credential",
   "arguments": {
     "type": "getforyoutweets",
     "max_results": 25
@@ -320,7 +327,7 @@ Twitter scraping is available through three job types:
 **`searchbyprofile`** - Get user profile information
 ```json
 {
-  "type": "twitter-credential-scraper",
+  "type": "twitter-credential",
   "arguments": {
     "type": "searchbyprofile",
     "query": "NASA_Marshall"
@@ -331,7 +338,7 @@ Twitter scraping is available through three job types:
 **`getprofilebyid`** - Get user profile by user ID
 ```json
 {
-  "type": "twitter-scraper",
+  "type": "twitter",
   "arguments": {
     "type": "getprofilebyid",
     "query": "44196397"
@@ -342,7 +349,7 @@ Twitter scraping is available through three job types:
 **`getfollowers`** - Get followers of a profile
 ```json
 {
-  "type": "twitter-credential-scraper",
+  "type": "twitter-credential",
   "arguments": {
     "type": "getfollowers",
     "query": "NASA",
@@ -351,14 +358,40 @@ Twitter scraping is available through three job types:
 }
 ```
 
+**`getfollowers`** (using Apify for enhanced data) - Get followers with detailed profile information
+```json
+{
+  "type": "twitter-apify",
+  "arguments": {
+    "type": "getfollowers",
+    "query": "NASA",
+    "max_results": 100,
+    "next_cursor": "optional_pagination_cursor"
+  }
+}
+```
+
 **`getfollowing`** - Get users that a profile is following
 ```json
 {
-  "type": "twitter-credential-scraper",
+  "type": "twitter-credential",
   "arguments": {
     "type": "getfollowing",
     "query": "NASA",
     "max_results": 100
+  }
+}
+```
+
+**`getfollowing`** (using Apify for enhanced data) - Get following with detailed profile information
+```json
+{
+  "type": "twitter-apify",
+  "arguments": {
+    "type": "getfollowing",
+    "query": "NASA",
+    "max_results": 100,
+    "next_cursor": "optional_pagination_cursor"
   }
 }
 ```
@@ -368,12 +401,24 @@ Twitter scraping is available through three job types:
 **`gettrends`** - Get trending topics (no query required)
 ```json
 {
-  "type": "twitter-credential-scraper",
+  "type": "twitter-credential",
   "arguments": {
     "type": "gettrends"
   }
 }
 ```
+
+##### Return Types
+
+**Enhanced Profile Data with Apify**: When using `twitter-apify` for `getfollowers` or `getfollowing` operations, the response returns `ProfileResultApify` objects which include comprehensive profile information such as:
+- Basic profile data (ID, name, screen name, location, description)
+- Detailed follower/following counts and engagement metrics
+- Profile appearance settings and colors
+- Account verification and security status
+- Privacy and interaction settings
+- Business account information when available
+
+This enhanced data provides richer insights compared to standard credential or API-based profile results.
 
 ### Health Check Endpoints
 

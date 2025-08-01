@@ -30,16 +30,16 @@ func TestDetectCapabilities(t *testing.T) {
 			jc:   types.JobConfiguration{},
 			jobServer: &MockJobServer{
 				capabilities: teetypes.WorkerCapabilities{
-					teetypes.WebJob:       {teetypes.CapWebScraper},
+					teetypes.WebJob:       {teetypes.CapScraper},
 					teetypes.TelemetryJob: {teetypes.CapTelemetry},
-					teetypes.TiktokJob:    {teetypes.CapTiktokTranscription},
+					teetypes.TiktokJob:    {teetypes.CapTranscription},
 					teetypes.TwitterJob:   {teetypes.CapSearchByQuery, teetypes.CapGetById, teetypes.CapGetProfileById},
 				},
 			},
 			expected: teetypes.WorkerCapabilities{
-				teetypes.WebJob:       {teetypes.CapWebScraper},
+				teetypes.WebJob:       {teetypes.CapScraper},
 				teetypes.TelemetryJob: {teetypes.CapTelemetry},
-				teetypes.TiktokJob:    {teetypes.CapTiktokTranscription},
+				teetypes.TiktokJob:    {teetypes.CapTranscription},
 				teetypes.TwitterJob:   {teetypes.CapSearchByQuery, teetypes.CapGetById, teetypes.CapGetProfileById},
 			},
 		},
@@ -48,9 +48,9 @@ func TestDetectCapabilities(t *testing.T) {
 			jc:        types.JobConfiguration{},
 			jobServer: nil,
 			expected: teetypes.WorkerCapabilities{
-				teetypes.WebJob:       {teetypes.CapWebScraper},
+				teetypes.WebJob:       {teetypes.CapScraper},
 				teetypes.TelemetryJob: {teetypes.CapTelemetry},
-				teetypes.TiktokJob:    {teetypes.CapTiktokTranscription},
+				teetypes.TiktokJob:    {teetypes.CapTranscription},
 			},
 		},
 		{
@@ -60,9 +60,9 @@ func TestDetectCapabilities(t *testing.T) {
 			},
 			jobServer: nil,
 			expected: teetypes.WorkerCapabilities{
-				teetypes.WebJob:               {teetypes.CapWebScraper},
+				teetypes.WebJob:               {teetypes.CapScraper},
 				teetypes.TelemetryJob:         {teetypes.CapTelemetry},
-				teetypes.TiktokJob:            {teetypes.CapTiktokTranscription},
+				teetypes.TiktokJob:            {teetypes.CapTranscription},
 				teetypes.TwitterCredentialJob: teetypes.TwitterCredentialCaps,
 				teetypes.TwitterJob:           teetypes.TwitterCredentialCaps,
 			},
@@ -74,9 +74,9 @@ func TestDetectCapabilities(t *testing.T) {
 			},
 			jobServer: nil,
 			expected: teetypes.WorkerCapabilities{
-				teetypes.WebJob:        {teetypes.CapWebScraper},
+				teetypes.WebJob:        {teetypes.CapScraper},
 				teetypes.TelemetryJob:  {teetypes.CapTelemetry},
-				teetypes.TiktokJob:     {teetypes.CapTiktokTranscription},
+				teetypes.TiktokJob:     {teetypes.CapTranscription},
 				teetypes.TwitterApiJob: teetypes.TwitterAPICaps,
 				teetypes.TwitterJob:    teetypes.TwitterAPICaps,
 			},
@@ -88,9 +88,9 @@ func TestDetectCapabilities(t *testing.T) {
 			},
 			jobServer: nil,
 			expected: teetypes.WorkerCapabilities{
-				teetypes.WebJob:       {teetypes.CapWebScraper},
+				teetypes.WebJob:       {teetypes.CapScraper},
 				teetypes.TelemetryJob: {teetypes.CapTelemetry},
-				teetypes.TiktokJob:    {teetypes.CapTiktokTranscription},
+				teetypes.TiktokJob:    {teetypes.CapTranscription},
 				// Note: Mock elevated keys will be detected as basic since we can't make real API calls in tests
 				teetypes.TwitterApiJob: teetypes.TwitterAPICaps,
 				teetypes.TwitterJob:    teetypes.TwitterAPICaps,

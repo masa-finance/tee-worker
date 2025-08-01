@@ -88,17 +88,13 @@ var _ = Describe("API", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(jobResult.UUID).NotTo(BeEmpty())
 
-		// Step 4: Wait for the job result
+		// Step 4: Wait for the job result - should fail due to invalid URL
 		encryptedResult, err := jobResult.Get()
-		Expect(err).NotTo(HaveOccurred())
-		Expect(encryptedResult).NotTo(BeEmpty())
+		Expect(err).To(HaveOccurred())
+		Expect(encryptedResult).To(BeEmpty())
 
-		// Step 5: Decrypt the result
-		decryptedResult, err := clientInstance.Decrypt(jobSignature, encryptedResult)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(decryptedResult).NotTo(BeEmpty())
-		Expect(decryptedResult).NotTo(ContainSubstring("google"))
-		Expect(decryptedResult).To(ContainSubstring(`"pages":null`))
+		// The error should be about URL scheme validation
+		Expect(err.Error()).To(ContainSubstring("URL must include a scheme"))
 	})
 
 	It("should submit a job and get the correct result", func() {
