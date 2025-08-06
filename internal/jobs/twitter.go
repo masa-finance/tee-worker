@@ -961,14 +961,7 @@ func (ts *TwitterScraper) FetchForYouTweets(j types.Job, baseDir string, count i
 	return tweets, nextCursor, nil
 }
 
-// TwitterScraperConfig holds the configuration for TwitterScraper with JSON tags for deserialization
-type TwitterScraperConfig struct {
-	Accounts              []string `json:"twitter_accounts"`
-	ApiKeys               []string `json:"twitter_api_keys"`
-	ApifyApiKey           string   `json:"apify_api_key"`
-	DataDir               string   `json:"data_dir"`
-	SkipLoginVerification bool     `json:"skip_login_verification,omitempty"`
-}
+// TwitterScraperConfig is now defined in api/types to avoid duplication and circular imports
 
 // twitterScraperRuntimeConfig holds the runtime configuration without JSON tags to prevent credential serialization
 type twitterScraperRuntimeConfig struct {
@@ -987,11 +980,8 @@ type TwitterScraper struct {
 }
 
 func NewTwitterScraper(jc types.JobConfiguration, c *stats.StatsCollector) *TwitterScraper {
-	var config TwitterScraperConfig
-	if err := jc.Unmarshal(&config); err != nil {
-		logrus.Errorf("Error unmarshalling Twitter scraper configuration: %v", err)
-		return nil
-	}
+	// Use direct config access instead of JSON marshaling/unmarshaling
+	config := jc.GetTwitterConfig()
 
 	accounts := parseAccounts(config.Accounts)
 	apiKeys := parseApiKeys(config.ApiKeys)
