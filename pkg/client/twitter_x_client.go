@@ -3,9 +3,10 @@ package client
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"io"
 	"net/http"
+
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -81,7 +82,7 @@ func (c *TwitterXClient) Get(endpointUrl string) (*http.Response, error) {
 }
 
 // TestAuth tests if the API key is valid by making a request to /2/users/me
-func (c *TwitterXClient) testAuth() error {
+func (c *TwitterXClient) TestAuth() error {
 	// Create request
 	req, err := http.NewRequest("GET", baseURL+"/users/me", nil)
 	if err != nil {

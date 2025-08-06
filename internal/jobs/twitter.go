@@ -141,6 +141,14 @@ func (ts *TwitterScraper) getApiScraper(j types.Job) (*twitterx.TwitterXScraper,
 	}
 
 	apiClient := client.NewTwitterXClient(apiKey.Key)
+
+	// Validate API key similar to credential scraper validation
+	if err := apiClient.TestAuth(); err != nil {
+		ts.statsCollector.Add(j.WorkerID, stats.TwitterAuthErrors, 1)
+		logrus.Errorf("API key validation failed: %v", err)
+		return nil, apiKey, fmt.Errorf("twitter API key validation failed: %w", err)
+	}
+
 	twitterXScraper := twitterx.NewTwitterXScraper(apiClient)
 
 	return twitterXScraper, apiKey, nil
