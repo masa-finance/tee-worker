@@ -80,10 +80,10 @@ func (c *TwitterXClient) Get(endpointUrl string) (*http.Response, error) {
 }
 
 // TestAuth tests if the API key is valid by making a minimal search request
-// Mimics the detectTwitterKeyType function but with max_results=1 to minimize quota usage
+// Mimics the detectTwitterKeyType function but with max_results=10 to minimize quota usage
 func (c *TwitterXClient) TestAuth() error {
-	// Use minimal search similar to detectTwitterKeyType but with max_results=1
-	endpoint := "tweets/search/recent?query=from:twitterdev&max_results=1"
+	// Use minimal search similar to detectTwitterKeyType but with max_results=10 (minimum allowed)
+	endpoint := "tweets/search/recent?query=from:twitterdev&max_results=10"
 	resp, err := c.Get(endpoint)
 	if err != nil {
 		return fmt.Errorf("error making auth test request: %w", err)
