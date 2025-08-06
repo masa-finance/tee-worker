@@ -961,27 +961,33 @@ func (ts *TwitterScraper) FetchForYouTweets(j types.Job, baseDir string, count i
 	return tweets, nextCursor, nil
 }
 
+// TwitterScraperConfig holds the configuration for TwitterScraper with JSON tags for deserialization
+type TwitterScraperConfig struct {
+	Accounts              []string `json:"twitter_accounts"`
+	ApiKeys               []string `json:"twitter_api_keys"`
+	ApifyApiKey           string   `json:"apify_api_key"`
+	DataDir               string   `json:"data_dir"`
+	SkipLoginVerification bool     `json:"skip_login_verification,omitempty"`
+}
+
+// twitterScraperRuntimeConfig holds the runtime configuration without JSON tags to prevent credential serialization
+type twitterScraperRuntimeConfig struct {
+	Accounts              []string
+	ApiKeys               []string
+	ApifyApiKey           string
+	DataDir               string
+	SkipLoginVerification bool
+}
+
 type TwitterScraper struct {
-	configuration struct {
-		Accounts              []string `json:"twitter_accounts"`
-		ApiKeys               []string `json:"twitter_api_keys"`
-		ApifyApiKey           string   `json:"apify_api_key"`
-		DataDir               string   `json:"data_dir"`
-		SkipLoginVerification bool     `json:"skip_login_verification,omitempty"`
-	}
+	configuration  twitterScraperRuntimeConfig
 	accountManager *twitter.TwitterAccountManager
 	statsCollector *stats.StatsCollector
 	capabilities   map[teetypes.Capability]bool
 }
 
 func NewTwitterScraper(jc types.JobConfiguration, c *stats.StatsCollector) *TwitterScraper {
-	config := struct {
-		Accounts              []string `json:"twitter_accounts"`
-		ApiKeys               []string `json:"twitter_api_keys"`
-		ApifyApiKey           string   `json:"apify_api_key"`
-		DataDir               string   `json:"data_dir"`
-		SkipLoginVerification bool     `json:"skip_login_verification,omitempty"`
-	}{}
+	var config TwitterScraperConfig
 	if err := jc.Unmarshal(&config); err != nil {
 		logrus.Errorf("Error unmarshalling Twitter scraper configuration: %v", err)
 		return nil
@@ -1008,7 +1014,13 @@ func NewTwitterScraper(jc types.JobConfiguration, c *stats.StatsCollector) *Twit
 	}
 
 	return &TwitterScraper{
-		configuration:  config,
+		configuration: twitterScraperRuntimeConfig{
+			Accounts:              config.Accounts,
+			ApiKeys:               config.ApiKeys,
+			ApifyApiKey:           config.ApifyApiKey,
+			DataDir:               config.DataDir,
+			SkipLoginVerification: config.SkipLoginVerification,
+		},
 		accountManager: accountManager,
 		statsCollector: c,
 		capabilities: map[teetypes.Capability]bool{
