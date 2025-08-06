@@ -1,9 +1,7 @@
 package client
 
 import (
-	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 
 	"github.com/sirupsen/logrus"
@@ -81,45 +79,18 @@ func (c *TwitterXClient) Get(endpointUrl string) (*http.Response, error) {
 	return resp, nil
 }
 
-// TestAuth tests if the API key is valid by making a request to /2/users/me
+// TestAuth tests if the API key is valid by making a minimal search request
+// Mimics the detectTwitterKeyType function but with max_results=1 to minimize quota usage
 func (c *TwitterXClient) TestAuth() error {
-	// Create request
-	req, err := http.NewRequest("GET", baseURL+"/users/me", nil)
-	if err != nil {
-		return fmt.Errorf("error creating auth test request: %w", err)
-	}
-
-	// Add headers
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", c.apiKey))
-	req.Header.Add("Content-Type", "application/json")
-
-	// Make request
-	resp, err := c.httpClient.Do(req)
+	// Use minimal search similar to detectTwitterKeyType but with max_results=1
+	endpoint := "tweets/search/recent?query=from:twitterdev&max_results=1"
+	resp, err := c.Get(endpoint)
 	if err != nil {
 		return fmt.Errorf("error making auth test request: %w", err)
 	}
 	defer resp.Body.Close()
 
-	// Read response body
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return fmt.Errorf("error reading response: %w", err)
-	}
-
-	// Parse response
-	var authResp AuthResponse
-	if err := json.Unmarshal(body, &authResp); err != nil {
-		return fmt.Errorf("error parsing response: %w", err)
-	}
-
-	// Check for errors
-	if len(authResp.Errors) > 0 {
-		return fmt.Errorf("API error: %s (code: %d)",
-			authResp.Errors[0].Message,
-			authResp.Errors[0].Code)
-	}
-
-	// Check response status
+	// Check response status - same logic as detectTwitterKeyType
 	switch resp.StatusCode {
 	case http.StatusOK:
 		return nil
@@ -127,6 +98,8 @@ func (c *TwitterXClient) TestAuth() error {
 		return fmt.Errorf("invalid API key")
 	case http.StatusTooManyRequests:
 		return fmt.Errorf("rate limit exceeded")
+	case http.StatusForbidden:
+		return fmt.Errorf("insufficient permissions for API key")
 	default:
 		return fmt.Errorf("API auth test failed with status: %d", resp.StatusCode)
 	}
