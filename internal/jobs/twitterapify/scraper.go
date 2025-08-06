@@ -26,7 +26,7 @@ func (s *TwitterApifyScraper) GetFollowing(username string, maxResults int, curs
 	return s.client.GetFollowing(username, maxResults, cursor)
 }
 
-// TestAuth tests if the Apify API token is valid
-func (s *TwitterApifyScraper) TestAuth() error {
-	return s.client.apifyClient.TestAuth()
+// ValidateApiKey tests if the Apify API token is valid
+func (s *TwitterApifyScraper) ValidateApiKey() error {
+	return s.client.apifyClient.ValidateApiKey()
 }

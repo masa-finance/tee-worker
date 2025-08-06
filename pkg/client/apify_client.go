@@ -216,9 +216,9 @@ func (c *ApifyClient) GetDatasetItems(datasetId string, offset, limit int) (*Dat
 	return datasetResp, nil
 }
 
-// TestAuth tests if the API token is valid by making a request to /users/me
+// ValidateApiKey tests if the API token is valid by making a request to /users/me
 // This endpoint doesn't consume any actor runs or quotas - it's perfect for validation
-func (c *ApifyClient) TestAuth() error {
+func (c *ApifyClient) ValidateApiKey() error {
 	url := fmt.Sprintf("%s/users/me?token=%s", c.baseUrl, c.apiToken)
 	logrus.Debug("Testing Apify API token")
 

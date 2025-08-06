@@ -141,14 +141,6 @@ func (ts *TwitterScraper) getApiScraper(j types.Job) (*twitterx.TwitterXScraper,
 	}
 
 	apiClient := client.NewTwitterXClient(apiKey.Key)
-
-	// Validate API key similar to credential scraper validation
-	if err := apiClient.TestAuth(); err != nil {
-		ts.statsCollector.Add(j.WorkerID, stats.TwitterAuthErrors, 1)
-		logrus.Errorf("API key validation failed: %v", err)
-		return nil, apiKey, fmt.Errorf("twitter API key validation failed: %w", err)
-	}
-
 	twitterXScraper := twitterx.NewTwitterXScraper(apiClient)
 
 	return twitterXScraper, apiKey, nil
@@ -162,14 +154,6 @@ func (ts *TwitterScraper) getApifyScraper(j types.Job) (*twitterapify.TwitterApi
 	}
 
 	apifyScraper := twitterapify.NewTwitterApifyScraper(ts.configuration.ApifyApiKey)
-
-	// Validate Apify API key similar to other scrapers
-	if err := apifyScraper.TestAuth(); err != nil {
-		ts.statsCollector.Add(j.WorkerID, stats.TwitterAuthErrors, 1)
-		logrus.Errorf("Apify API key validation failed: %v", err)
-		return nil, fmt.Errorf("apify API key validation failed: %w", err)
-	}
-
 	return apifyScraper, nil
 }
 
@@ -1007,6 +991,17 @@ func NewTwitterScraper(jc types.JobConfiguration, c *stats.StatsCollector) *Twit
 	apiKeys := parseApiKeys(config.ApiKeys)
 	accountManager := twitter.NewTwitterAccountManager(accounts, apiKeys)
 	accountManager.DetectAllApiKeyTypes()
+
+	// Validate Apify API key at startup if provided (similar to API key detection)
+	if config.ApifyApiKey != "" {
+		apifyScraper := twitterapify.NewTwitterApifyScraper(config.ApifyApiKey)
+		if err := apifyScraper.ValidateApiKey(); err != nil {
+			logrus.Errorf("Apify API key validation failed at startup: %v", err)
+			// Don't fail startup, just log the error - the key might work later or be temporary
+		} else {
+			logrus.Infof("Apify API key validated successfully at startup")
+		}
+	}
 
 	if os.Getenv("TWITTER_SKIP_LOGIN_VERIFICATION") == "true" {
 		config.SkipLoginVerification = true

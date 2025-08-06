@@ -18,19 +18,6 @@ type TwitterXClient struct {
 	httpClient *http.Client
 }
 
-// AuthResponse Simple auth response structure
-type AuthResponse struct {
-	Data struct {
-		ID       string `json:"id"`
-		Name     string `json:"name"`
-		Username string `json:"username"`
-	} `json:"data"`
-	Errors []struct {
-		Message string `json:"message"`
-		Code    int    `json:"code"`
-	} `json:"errors,omitempty"`
-}
-
 func NewTwitterXClient(apiKey string) *TwitterXClient {
 	logrus.Info("Creating new TwitterXClient with API key")
 	// test if the API key is valid before returning the client
@@ -77,30 +64,4 @@ func (c *TwitterXClient) Get(endpointUrl string) (*http.Response, error) {
 	}
 
 	return resp, nil
-}
-
-// TestAuth tests if the API key is valid by making a minimal search request
-// Mimics the detectTwitterKeyType function but with max_results=10 to minimize quota usage
-func (c *TwitterXClient) TestAuth() error {
-	// Use minimal search similar to detectTwitterKeyType but with max_results=10 (minimum allowed)
-	endpoint := "tweets/search/recent?query=from:twitterdev&max_results=10"
-	resp, err := c.Get(endpoint)
-	if err != nil {
-		return fmt.Errorf("error making auth test request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	// Check response status - same logic as detectTwitterKeyType
-	switch resp.StatusCode {
-	case http.StatusOK:
-		return nil
-	case http.StatusUnauthorized:
-		return fmt.Errorf("invalid API key")
-	case http.StatusTooManyRequests:
-		return fmt.Errorf("rate limit exceeded")
-	case http.StatusForbidden:
-		return fmt.Errorf("insufficient permissions for API key")
-	default:
-		return fmt.Errorf("API auth test failed with status: %d", resp.StatusCode)
-	}
 }
