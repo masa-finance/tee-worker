@@ -25,3 +25,8 @@ func (s *TwitterApifyScraper) GetFollowers(username string, maxResults int, curs
 func (s *TwitterApifyScraper) GetFollowing(username string, maxResults int, cursor string) ([]*teetypes.ProfileResultApify, string, error) {
 	return s.client.GetFollowing(username, maxResults, cursor)
 }
+
+// TestAuth tests if the Apify API token is valid
+func (s *TwitterApifyScraper) TestAuth() error {
+	return s.client.apifyClient.TestAuth()
+}

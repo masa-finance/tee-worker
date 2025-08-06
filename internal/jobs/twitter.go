@@ -162,6 +162,14 @@ func (ts *TwitterScraper) getApifyScraper(j types.Job) (*twitterapify.TwitterApi
 	}
 
 	apifyScraper := twitterapify.NewTwitterApifyScraper(ts.configuration.ApifyApiKey)
+
+	// Validate Apify API key similar to other scrapers
+	if err := apifyScraper.TestAuth(); err != nil {
+		ts.statsCollector.Add(j.WorkerID, stats.TwitterAuthErrors, 1)
+		logrus.Errorf("Apify API key validation failed: %v", err)
+		return nil, fmt.Errorf("apify API key validation failed: %w", err)
+	}
+
 	return apifyScraper, nil
 }
 

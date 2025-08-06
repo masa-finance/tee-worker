@@ -215,3 +215,40 @@ func (c *ApifyClient) GetDatasetItems(datasetId string, offset, limit int) (*Dat
 	logrus.Debugf("Retrieved %d items from dataset", len(items))
 	return datasetResp, nil
 }
+
+// TestAuth tests if the API token is valid by making a request to /users/me
+// This endpoint doesn't consume any actor runs or quotas - it's perfect for validation
+func (c *ApifyClient) TestAuth() error {
+	url := fmt.Sprintf("%s/users/me?token=%s", c.baseUrl, c.apiToken)
+	logrus.Debug("Testing Apify API token")
+
+	// Create request
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		logrus.Errorf("error creating auth test request: %v", err)
+		return fmt.Errorf("error creating auth test request: %w", err)
+	}
+
+	// Make the request
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		logrus.Errorf("error making auth test request: %v", err)
+		return fmt.Errorf("error making auth test request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Check response status
+	switch resp.StatusCode {
+	case http.StatusOK:
+		logrus.Debug("Apify API token validation successful")
+		return nil
+	case http.StatusUnauthorized:
+		return fmt.Errorf("invalid Apify API token")
+	case http.StatusForbidden:
+		return fmt.Errorf("insufficient permissions for Apify API token")
+	case http.StatusTooManyRequests:
+		return fmt.Errorf("rate limit exceeded")
+	default:
+		return fmt.Errorf("Apify API auth test failed with status: %d", resp.StatusCode)
+	}
+}
