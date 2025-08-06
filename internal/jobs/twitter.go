@@ -1381,44 +1381,37 @@ func (ts *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 		return types.JobResult{Error: "job result data is empty"}, fmt.Errorf("job result data is empty")
 	}
 
-	isSingleTweetOperation := twitterArgs.IsSingleTweetOperation()
-	isMultipleTweetOperation := twitterArgs.IsMultipleTweetOperation()
-	isSingleProfileOperation := twitterArgs.IsSingleProfileOperation()
-	isMultipleProfileOperation := twitterArgs.IsMultipleProfileOperation()
-	isSingleSpaceOperation := twitterArgs.IsSingleSpaceOperation()
-	isTrendsOperation := twitterArgs.IsTrendsOperation()
-
-	if isSingleTweetOperation {
+	if twitterArgs.IsSingleTweetOperation() {
 		var result *teetypes.TweetResult
 		if err := jobResult.Unmarshal(&result); err != nil {
 			logrus.Errorf("Error while unmarshalling single tweet result for job ID %s, type %s: %v", j.UUID, j.Type, err)
 			return types.JobResult{Error: "error unmarshalling single tweet result for final validation"}, err
 		}
-	} else if isMultipleTweetOperation {
+	} else if twitterArgs.IsMultipleTweetOperation() {
 		var results []*teetypes.TweetResult
 		if err := jobResult.Unmarshal(&results); err != nil {
 			logrus.Errorf("Error while unmarshalling multiple tweet result for job ID %s, type %s: %v", j.UUID, j.Type, err)
 			return types.JobResult{Error: "error unmarshalling multiple tweet result for final validation"}, err
 		}
-	} else if isSingleProfileOperation {
+	} else if twitterArgs.IsSingleProfileOperation() {
 		var result *twitterscraper.Profile
 		if err := jobResult.Unmarshal(&result); err != nil {
 			logrus.Errorf("Error while unmarshalling single profile result for job ID %s, type %s: %v", j.UUID, j.Type, err)
 			return types.JobResult{Error: "error unmarshalling single profile result for final validation"}, err
 		}
-	} else if isMultipleProfileOperation {
+	} else if twitterArgs.IsMultipleProfileOperation() {
 		var results []*twitterscraper.Profile
 		if err := jobResult.Unmarshal(&results); err != nil {
 			logrus.Errorf("Error while unmarshalling multiple profile result for job ID %s, type %s: %v", j.UUID, j.Type, err)
 			return types.JobResult{Error: "error unmarshalling multiple profile result for final validation"}, err
 		}
-	} else if isSingleSpaceOperation {
+	} else if twitterArgs.IsSingleSpaceOperation() {
 		var result *twitterscraper.Space
 		if err := jobResult.Unmarshal(&result); err != nil {
 			logrus.Errorf("Error while unmarshalling single space result for job ID %s, type %s: %v", j.UUID, j.Type, err)
 			return types.JobResult{Error: "error unmarshalling single space result for final validation"}, err
 		}
-	} else if isTrendsOperation {
+	} else if twitterArgs.IsTrendsOperation() {
 		var results []string
 		if err := jobResult.Unmarshal(&results); err != nil {
 			logrus.Errorf("Error while unmarshalling trends result for job ID %s, type %s: %v", j.UUID, j.Type, err)
