@@ -251,7 +251,7 @@ func (ts *TwitterScraper) queryTweets(j types.Job, baseQueryEndpoint string, bas
 		ts.statsCollector.Add(j.WorkerID, stats.TwitterAuthErrors, 1)
 		return nil, fmt.Errorf("no Twitter accounts or API keys available")
 	}
-	return ts.scrapeTweetsWithApiKeyUsingExistingScraper(j, baseQueryEndpoint, query, count, twitterXScraper, apiKey)
+	return ts.scrapeTweets(j, baseQueryEndpoint, query, count, twitterXScraper, apiKey)
 }
 
 func (ts *TwitterScraper) queryTweetsWithCredentials(j types.Job, baseDir string, query string, count int) ([]*teetypes.TweetResult, error) {
@@ -267,7 +267,7 @@ func (ts *TwitterScraper) queryTweetsWithApiKey(j types.Job, baseQueryEndpoint s
 	if err != nil {
 		return nil, err
 	}
-	return ts.scrapeTweetsWithApiKeyUsingExistingScraper(j, baseQueryEndpoint, query, count, twitterXScraper, apiKey)
+	return ts.scrapeTweets(j, baseQueryEndpoint, query, count, twitterXScraper, apiKey)
 }
 
 func (ts *TwitterScraper) scrapeTweetsWithCredentials(j types.Job, query string, count int, scraper *twitter.Scraper, account *twitter.TwitterAccount) ([]*teetypes.TweetResult, error) {
@@ -292,8 +292,8 @@ func (ts *TwitterScraper) scrapeTweetsWithCredentials(j types.Job, query string,
 	return tweets, nil
 }
 
-// scrapeTweetsWithApiKeyUsingExistingScraper uses an existing scraper instance
-func (ts *TwitterScraper) scrapeTweetsWithApiKeyUsingExistingScraper(j types.Job, baseQueryEndpoint string, query string, count int, twitterXScraper *twitterx.TwitterXScraper, apiKey *twitter.TwitterApiKey) ([]*teetypes.TweetResult, error) {
+// scrapeTweets uses an existing scraper instance
+func (ts *TwitterScraper) scrapeTweets(j types.Job, baseQueryEndpoint string, query string, count int, twitterXScraper *twitterx.TwitterXScraper, apiKey *twitter.TwitterApiKey) ([]*teetypes.TweetResult, error) {
 	ts.statsCollector.Add(j.WorkerID, stats.TwitterScrapes, 1)
 
 	if baseQueryEndpoint == twitterx.TweetsAll && apiKey.Type == twitter.TwitterApiKeyTypeBase {
@@ -393,7 +393,7 @@ EndLoop:
 func (ts *TwitterScraper) scrapeTweetsWithApiKey(j types.Job, baseQueryEndpoint string, query string, count int, apiKey *twitter.TwitterApiKey) ([]*teetypes.TweetResult, error) {
 	apiClient := client.NewTwitterXClient(apiKey.Key)
 	twitterXScraper := twitterx.NewTwitterXScraper(apiClient)
-	return ts.scrapeTweetsWithApiKeyUsingExistingScraper(j, baseQueryEndpoint, query, count, twitterXScraper, apiKey)
+	return ts.scrapeTweets(j, baseQueryEndpoint, query, count, twitterXScraper, apiKey)
 }
 
 func (ts *TwitterScraper) ScrapeTweetByID(j types.Job, baseDir string, tweetID string) (*teetypes.TweetResult, error) {
