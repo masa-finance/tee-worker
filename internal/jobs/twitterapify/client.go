@@ -45,18 +45,19 @@ func NewTwitterApifyClient(apiToken string) *TwitterApifyClient {
 // GetFollowers retrieves followers for a username using Apify
 func (c *TwitterApifyClient) GetFollowers(username string, maxResults int, cursor string) ([]*teetypes.ProfileResultApify, string, error) {
 	offset := parseCursor(cursor)
+	minimum := 200
 
 	// Ensure minimum of 200 as required by the actor
-	minFollowers := maxResults
-	if minFollowers < 200 {
-		minFollowers = 200
+	maxFollowers := maxResults
+	if maxFollowers < minimum {
+		maxFollowers = minimum
 	}
 
 	input := FollowerActorRunRequest{
 		UserNames:     []string{username},
 		UserIds:       []string{}, // Explicitly set empty array as required by actor
-		MaxFollowers:  minFollowers,
-		MaxFollowings: 200, // Actor requires minimum 200 even when not used
+		MaxFollowers:  maxFollowers,
+		MaxFollowings: minimum, // Actor requires minimum even when not used
 		GetFollowers:  true,
 		GetFollowing:  false,
 	}
@@ -67,18 +68,19 @@ func (c *TwitterApifyClient) GetFollowers(username string, maxResults int, curso
 // GetFollowing retrieves following for a username using Apify
 func (c *TwitterApifyClient) GetFollowing(username string, maxResults int, cursor string) ([]*teetypes.ProfileResultApify, string, error) {
 	offset := parseCursor(cursor)
+	minimum := 200
 
 	// Ensure minimum of 200 as required by the actor
-	minFollowings := maxResults
-	if minFollowings < 200 {
-		minFollowings = 200
+	maxFollowings := maxResults
+	if maxFollowings < minimum {
+		maxFollowings = minimum
 	}
 
 	input := FollowerActorRunRequest{
 		UserNames:     []string{username},
 		UserIds:       []string{}, // Explicitly set empty array as required by actor
-		MaxFollowers:  200,        // Actor requires minimum 200 even when not used
-		MaxFollowings: minFollowings,
+		MaxFollowers:  minimum,    // Actor requires minimum even when not used
+		MaxFollowings: maxFollowings,
 		GetFollowers:  false,
 		GetFollowing:  true,
 	}
