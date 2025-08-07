@@ -34,9 +34,11 @@ func DetectCapabilities(jc types.JobConfiguration, jobServer JobServerInterface)
 	// Check what Twitter authentication methods are available
 	accounts := jc.GetStringSlice("twitter_accounts", nil)
 	apiKeys := jc.GetStringSlice("twitter_api_keys", nil)
+	apifyApiKey := jc.GetString("apify_api_key", "")
 
 	hasAccounts := len(accounts) > 0
 	hasApiKeys := len(apiKeys) > 0
+	hasApifyKey := apifyApiKey != ""
 
 	// Add Twitter-specific capabilities based on available authentication
 	if hasAccounts {
@@ -56,8 +58,13 @@ func DetectCapabilities(jc types.JobConfiguration, jobServer JobServerInterface)
 		capabilities[teetypes.TwitterApiJob] = apiCaps
 	}
 
+	// Add Apify-specific capabilities based on available API key
+	if hasApifyKey {
+		capabilities[teetypes.TwitterApifyJob] = teetypes.TwitterApifyCaps
+	}
+
 	// Add general TwitterJob capability if any Twitter auth is available
-	if hasAccounts || hasApiKeys {
+	if hasAccounts || hasApiKeys || hasApifyKey {
 		var twitterJobCaps []teetypes.Capability
 		// Use the most comprehensive capabilities available
 		if hasAccounts {
@@ -71,6 +78,11 @@ func DetectCapabilities(jc types.JobConfiguration, jobServer JobServerInterface)
 			if hasElevatedApiKey(apiKeys) {
 				twitterJobCaps = append(twitterJobCaps, teetypes.CapSearchByFullArchive)
 			}
+		}
+
+		// Add Apify capabilities if available
+		if hasApifyKey {
+			twitterJobCaps = append(twitterJobCaps, teetypes.TwitterApifyCaps...)
 		}
 
 		capabilities[teetypes.TwitterJob] = twitterJobCaps

@@ -129,7 +129,7 @@ var _ = Describe("TikTokTranscriber", func() {
 			By("Checking for job execution errors")
 			Expect(err).To(HaveOccurred(), "An error should occur for empty VideoURL")
 			Expect(res.Error).NotTo(BeEmpty(), "JobResult.Error should detail the validation failure")
-			Expect(res.Error).To(ContainSubstring("VideoURL is required"))
+			Expect(res.Error).To(ContainSubstring("Failed to unmarshal job arguments"))
 			Expect(res.Data).To(BeNil())
 
 			By("Verifying error statistics")

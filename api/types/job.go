@@ -180,3 +180,25 @@ func (jc JobConfiguration) GetBool(key string, def bool) bool {
 	}
 	return def
 }
+
+// TwitterScraperConfig represents the configuration needed for Twitter scraping
+// This is defined here to avoid circular imports between api/types and internal/jobs
+type TwitterScraperConfig struct {
+	Accounts              []string `json:"twitter_accounts"`
+	ApiKeys               []string `json:"twitter_api_keys"`
+	ApifyApiKey           string   `json:"apify_api_key"`
+	DataDir               string   `json:"data_dir"`
+	SkipLoginVerification bool     `json:"skip_login_verification,omitempty"`
+}
+
+// GetTwitterConfig constructs a TwitterScraperConfig directly from the JobConfiguration
+// This eliminates the need for JSON marshaling/unmarshaling
+func (jc JobConfiguration) GetTwitterConfig() TwitterScraperConfig {
+	return TwitterScraperConfig{
+		Accounts:              jc.GetStringSlice("twitter_accounts", []string{}),
+		ApiKeys:               jc.GetStringSlice("twitter_api_keys", []string{}),
+		ApifyApiKey:           jc.GetString("apify_api_key", ""),
+		DataDir:               jc.GetString("data_dir", ""),
+		SkipLoginVerification: jc.GetBool("skip_login_verification", false),
+	}
+}

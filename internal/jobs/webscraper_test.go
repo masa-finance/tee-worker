@@ -34,7 +34,7 @@ var _ = Describe("Webscraper", func() {
 		Expect(res.Error).To(BeEmpty())
 
 		var scrapedData CollectedData
-		res.Unmarshal(&scrapedData)
+		err = res.Unmarshal(&scrapedData)
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(scrapedData.Pages).ToNot(BeEmpty())
@@ -59,39 +59,35 @@ var _ = Describe("Webscraper", func() {
 		}
 		res, err := webScraper.ExecuteJob(j)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(res.Error).To(BeEmpty())
+		Expect(res.Error).To(Equal("Invalid arguments: failed to unmarshal web job arguments: failed to unmarshal arguments: URL must include a scheme (http:// or https://)"))
 
-		var scrapedData CollectedData
-		res.Unmarshal(&scrapedData)
-		Expect(err).NotTo(HaveOccurred())
-
-		Expect(scrapedData.Pages).To(BeEmpty())
+		// Don't attempt to unmarshal since the job failed
 		Eventually(func() uint {
 			return statsCollector.Stats.Stats[j.WorkerID][stats.WebSuccess]
-		}, 5*time.Second, 10*time.Millisecond).Should(BeNumerically("==", 1))
+		}, 5*time.Second, 10*time.Millisecond).Should(BeNumerically("==", 0))
 		Eventually(func() uint {
 			return statsCollector.Stats.Stats[j.WorkerID][stats.WebErrors]
 		}, 5*time.Second, 10*time.Millisecond).Should(BeNumerically("==", 0))
 		Eventually(func() uint {
 			return statsCollector.Stats.Stats[j.WorkerID][stats.WebInvalid]
-		}, 5*time.Second, 10*time.Millisecond).Should(BeNumerically("==", 0))
+		}, 5*time.Second, 10*time.Millisecond).Should(BeNumerically("==", 1))
 	})
 
 	It("should allow to blacklist urls", func() {
 		webScraper := NewWebScraper(types.JobConfiguration{
-			"webscraper_blacklist": []string{"google"},
+			"webscraper_blacklist": []string{"https://google.com"},
 		}, statsCollector)
 
 		j := types.Job{
 			Type: teetypes.WebJob,
 			Arguments: map[string]interface{}{
-				"url": "google",
+				"url": "https://google.com",
 			},
 			WorkerID: "test",
 		}
 		res, err := webScraper.ExecuteJob(j)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(res.Error).To(Equal("URL blacklisted: google"))
+		Expect(res.Error).To(Equal("URL blacklisted: https://google.com"))
 		Eventually(func() uint {
 			return statsCollector.Stats.Stats[j.WorkerID][stats.WebSuccess]
 		}, 5*time.Second, 10*time.Millisecond).Should(BeNumerically("==", 0))
