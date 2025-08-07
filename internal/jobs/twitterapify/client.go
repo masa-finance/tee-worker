@@ -13,6 +13,7 @@ import (
 
 const (
 	TwitterFollowerActorID = "kaitoeasyapi~premium-x-follower-scraper-following-data"
+	MaxActorPolls          = 60 // 5 minutes max wait time
 )
 
 // FollowerActorRunRequest represents the input for running the Twitter follower actor
@@ -99,7 +100,6 @@ func (c *TwitterApifyClient) runActorAndGetProfiles(input FollowerActorRunReques
 
 	// 2. Poll for completion
 	logrus.Infof("Polling for actor run completion: %s", runResp.Data.ID)
-	maxPolls := 60 // 5 minutes max wait time
 	pollCount := 0
 
 	for {
@@ -118,8 +118,8 @@ func (c *TwitterApifyClient) runActorAndGetProfiles(input FollowerActorRunReques
 		}
 
 		pollCount++
-		if pollCount >= maxPolls {
-			return nil, "", fmt.Errorf("actor run timed out after %d polls", maxPolls)
+		if pollCount >= MaxActorPolls {
+			return nil, "", fmt.Errorf("actor run timed out after %d polls", MaxActorPolls)
 		}
 
 		time.Sleep(5 * time.Second)
