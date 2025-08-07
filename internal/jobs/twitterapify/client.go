@@ -13,7 +13,8 @@ import (
 
 const (
 	TwitterFollowerActorID = "kaitoeasyapi~premium-x-follower-scraper-following-data"
-	MaxActorPolls          = 60 // 5 minutes max wait time
+	MaxActorPolls          = 60              // 5 minutes max wait time
+	ActorPollInterval      = 5 * time.Second // polling interval between status checks
 )
 
 // FollowerActorRunRequest represents the input for running the Twitter follower actor
@@ -122,7 +123,7 @@ func (c *TwitterApifyClient) runActorAndGetProfiles(input FollowerActorRunReques
 			return nil, "", fmt.Errorf("actor run timed out after %d polls", MaxActorPolls)
 		}
 
-		time.Sleep(5 * time.Second)
+		time.Sleep(ActorPollInterval)
 	}
 
 	// 3. Get dataset items with pagination

@@ -59,7 +59,7 @@ var _ = Describe("Webscraper", func() {
 		}
 		res, err := webScraper.ExecuteJob(j)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(res.Error).ToNot(BeEmpty())
+		Expect(res.Error).To(Equal("Invalid arguments: failed to unmarshal web job arguments: failed to unmarshal arguments: URL must include a scheme (http:// or https://)"))
 
 		// Don't attempt to unmarshal since the job failed
 		Eventually(func() uint {
