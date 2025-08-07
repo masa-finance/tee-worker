@@ -2,7 +2,7 @@ module github.com/masa-finance/tee-worker
 
 go 1.23.0
 
-toolchain go1.24.0
+toolchain go1.24.3
 
 require (
 	github.com/cenkalti/backoff v2.2.1+incompatible
@@ -13,13 +13,15 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/labstack/echo-contrib v0.17.3
 	github.com/labstack/echo/v4 v4.13.3
-	github.com/masa-finance/tee-types v1.1.5-0.20250805191041-208cbacd6456
+	github.com/masa-finance/tee-types v1.1.5-0.20250807185930-d9c63c756203
 	github.com/onsi/ginkgo/v2 v2.23.4
 	github.com/onsi/gomega v1.38.0
 	github.com/sirupsen/logrus v1.9.3
 )
 
 replace github.com/imperatrona/twitter-scraper => github.com/masa-finance/twitter-scraper v1.0.2
+
+// replace github.com/masa-finance/tee-types => ../tee-types
 
 require (
 	github.com/AlexEidt/Vidio v1.5.1 // indirect
