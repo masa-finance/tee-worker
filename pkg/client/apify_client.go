@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"time"
 
 	"github.com/sirupsen/logrus"
 )
@@ -17,9 +16,9 @@ const (
 
 // ApifyClient represents a client for the Apify API
 type ApifyClient struct {
-	apiToken   string
-	baseUrl    string
-	httpClient *http.Client
+	apiToken string
+	baseUrl  string
+	options  *Options
 }
 
 // ActorRunResponse represents the response from running an actor
@@ -42,19 +41,25 @@ type DatasetResponse struct {
 	} `json:"data"`
 }
 
-// NewApifyClient creates a new Apify client
-func NewApifyClient(apiToken string) *ApifyClient {
+// NewApifyClient creates a new Apify client with functional options
+func NewApifyClient(apiToken string, opts ...Option) (*ApifyClient, error) {
 	logrus.Info("Creating new ApifyClient with API token")
-	return &ApifyClient{
-		apiToken:   apiToken,
-		baseUrl:    apifyBaseURL,
-		httpClient: &http.Client{Timeout: 5 * time.Minute},
+
+	options, err := NewOptions(opts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create options: %w", err)
 	}
+
+	return &ApifyClient{
+		apiToken: apiToken,
+		baseUrl:  apifyBaseURL,
+		options:  options,
+	}, nil
 }
 
-// HTTPClient exposes the http client
+// HTTPClient exposes the configured http client
 func (c *ApifyClient) HTTPClient() *http.Client {
-	return c.httpClient
+	return c.options.HttpClient
 }
 
 // RunActor runs an actor with the given input
@@ -80,7 +85,7 @@ func (c *ApifyClient) RunActor(actorId string, input interface{}) (*ActorRunResp
 	req.Header.Add("Content-Type", "application/json")
 
 	// Make the request
-	resp, err := c.httpClient.Do(req)
+	resp, err := c.options.HttpClient.Do(req)
 	if err != nil {
 		logrus.Errorf("error making POST request: %v", err)
 		return nil, fmt.Errorf("error making POST request: %w", err)
@@ -124,7 +129,7 @@ func (c *ApifyClient) GetActorRun(runId string) (*ActorRunResponse, error) {
 	}
 
 	// Make the request
-	resp, err := c.httpClient.Do(req)
+	resp, err := c.options.HttpClient.Do(req)
 	if err != nil {
 		logrus.Errorf("error making GET request: %v", err)
 		return nil, fmt.Errorf("error making GET request: %w", err)
@@ -168,7 +173,7 @@ func (c *ApifyClient) GetDatasetItems(datasetId string, offset, limit int) (*Dat
 	}
 
 	// Make the request
-	resp, err := c.httpClient.Do(req)
+	resp, err := c.options.HttpClient.Do(req)
 	if err != nil {
 		logrus.Errorf("error making GET request: %v", err)
 		return nil, fmt.Errorf("error making GET request: %w", err)
@@ -230,7 +235,7 @@ func (c *ApifyClient) ValidateApiKey() error {
 	}
 
 	// Make the request
-	resp, err := c.httpClient.Do(req)
+	resp, err := c.options.HttpClient.Do(req)
 	if err != nil {
 		logrus.Errorf("error making auth test request: %v", err)
 		return fmt.Errorf("error making auth test request: %w", err)

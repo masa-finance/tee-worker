@@ -1,6 +1,8 @@
 package twitterapify
 
 import (
+	"fmt"
+
 	teetypes "github.com/masa-finance/tee-types/types"
 )
 
@@ -10,10 +12,15 @@ type TwitterApifyScraper struct {
 }
 
 // NewTwitterApifyScraper creates a new Twitter Apify scraper
-func NewTwitterApifyScraper(apiToken string) *TwitterApifyScraper {
-	return &TwitterApifyScraper{
-		client: NewTwitterApifyClient(apiToken),
+func NewTwitterApifyScraper(apiToken string) (*TwitterApifyScraper, error) {
+	client, err := NewTwitterApifyClient(apiToken)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create twitter apify client: %w", err)
 	}
+
+	return &TwitterApifyScraper{
+		client: client,
+	}, nil
 }
 
 // GetFollowers retrieves followers for a username

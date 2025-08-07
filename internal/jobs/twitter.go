@@ -153,7 +153,11 @@ func (ts *TwitterScraper) getApifyScraper(j types.Job) (*twitterapify.TwitterApi
 		return nil, fmt.Errorf("no Apify API key available")
 	}
 
-	apifyScraper := twitterapify.NewTwitterApifyScraper(ts.configuration.ApifyApiKey)
+	apifyScraper, err := twitterapify.NewTwitterApifyScraper(ts.configuration.ApifyApiKey)
+	if err != nil {
+		ts.statsCollector.Add(j.WorkerID, stats.TwitterAuthErrors, 1)
+		return nil, fmt.Errorf("failed to create apify scraper: %w", err)
+	}
 	return apifyScraper, nil
 }
 
@@ -990,8 +994,11 @@ func NewTwitterScraper(jc types.JobConfiguration, c *stats.StatsCollector) *Twit
 
 	// Validate Apify API key at startup if provided (similar to API key detection)
 	if config.ApifyApiKey != "" {
-		apifyScraper := twitterapify.NewTwitterApifyScraper(config.ApifyApiKey)
-		if err := apifyScraper.ValidateApiKey(); err != nil {
+		apifyScraper, err := twitterapify.NewTwitterApifyScraper(config.ApifyApiKey)
+		if err != nil {
+			logrus.Errorf("Failed to create Apify scraper at startup: %v", err)
+			// Don't fail startup, just log the error - the key might work later or be temporary
+		} else if err := apifyScraper.ValidateApiKey(); err != nil {
 			logrus.Errorf("Apify API key validation failed at startup: %v", err)
 			// Don't fail startup, just log the error - the key might work later or be temporary
 		} else {

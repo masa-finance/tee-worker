@@ -38,10 +38,15 @@ type CursorData struct {
 }
 
 // NewTwitterApifyClient creates a new Twitter Apify client
-func NewTwitterApifyClient(apiToken string) *TwitterApifyClient {
-	return &TwitterApifyClient{
-		apifyClient: client.NewApifyClient(apiToken),
+func NewTwitterApifyClient(apiToken string) (*TwitterApifyClient, error) {
+	apifyClient, err := client.NewApifyClient(apiToken)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create apify client: %w", err)
 	}
+
+	return &TwitterApifyClient{
+		apifyClient: apifyClient,
+	}, nil
 }
 
 // GetFollowers retrieves followers for a username using Apify
