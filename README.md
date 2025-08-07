@@ -73,11 +73,11 @@ The worker automatically detects and exposes capabilities based on available con
 **Core Services (Always Available):**
 
 1. **`web`** - Web scraping services
-   - **Sub-capabilities**: `["web-scraper"]`
+   - **Sub-capabilities**: `["scraper"]`
    - **Requirements**: None (always available)
 
 2. **`tiktok`** - TikTok video processing
-   - **Sub-capabilities**: `["tiktok-transcription"]`
+   - **Sub-capabilities**: `["transcription"]`
    - **Requirements**: None (always available)
 
 **Twitter Services (Configuration-Dependent):**
@@ -148,7 +148,7 @@ curl -s localhost:8080/job/result \
 
 All job types follow the same API flow above. Here are the available job types and their specific parameters:
 
-#### `web-scraper`
+#### `web`
 Scrapes content from web pages.
 
 **Parameters:**
@@ -157,8 +157,9 @@ Scrapes content from web pages.
 
 ```json
 {
-  "type": "web-scraper",
+  "type": "web",
   "arguments": {
+    "type": "scraper",
     "url": "https://www.google.com",
     "depth": 1
   }
@@ -191,8 +192,9 @@ Transcribes TikTok videos to text.
 
 ```json
 {
-  "type": "tiktok-transcription",
+  "type": "tiktok",
   "arguments": {
+    "type": "transcription",
     "video_url": "https://www.tiktok.com/@coachty23/video/7502100651397172526",
     "language": "eng-US"
   }
