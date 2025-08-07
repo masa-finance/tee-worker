@@ -15,6 +15,11 @@ const (
 	TwitterFollowerActorID = "kaitoeasyapi~premium-x-follower-scraper-following-data"
 	MaxActorPolls          = 60              // 5 minutes max wait time
 	ActorPollInterval      = 5 * time.Second // polling interval between status checks
+
+	// Actor run status constants
+	ActorStatusSucceeded = "SUCCEEDED"
+	ActorStatusFailed    = "FAILED"
+	ActorStatusAborted   = "ABORTED"
 )
 
 // FollowerActorRunRequest represents the input for running the Twitter follower actor
@@ -116,10 +121,10 @@ func (c *TwitterApifyClient) runActorAndGetProfiles(input FollowerActorRunReques
 
 		logrus.Debugf("Actor run status: %s", status.Data.Status)
 
-		if status.Data.Status == "SUCCEEDED" {
+		if status.Data.Status == ActorStatusSucceeded {
 			logrus.Infof("Actor run completed successfully")
 			break
-		} else if status.Data.Status == "FAILED" || status.Data.Status == "ABORTED" {
+		} else if status.Data.Status == ActorStatusFailed || status.Data.Status == ActorStatusAborted {
 			return nil, "", fmt.Errorf("actor run failed with status: %s", status.Data.Status)
 		}
 
