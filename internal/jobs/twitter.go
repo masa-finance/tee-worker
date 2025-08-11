@@ -968,16 +968,10 @@ func (ts *TwitterScraper) FetchForYouTweets(j types.Job, baseDir string, count i
 // TwitterScraperConfig is now defined in api/types to avoid duplication and circular imports
 
 // twitterScraperRuntimeConfig holds the runtime configuration without JSON tags to prevent credential serialization
-type twitterScraperRuntimeConfig struct {
-	Accounts              []string
-	ApiKeys               []string
-	ApifyApiKey           string
-	DataDir               string
-	SkipLoginVerification bool
-}
+// Unified config: use types.TwitterScraperConfig directly
 
 type TwitterScraper struct {
-	configuration  twitterScraperRuntimeConfig
+	configuration  types.TwitterScraperConfig
 	accountManager *twitter.TwitterAccountManager
 	statsCollector *stats.StatsCollector
 	capabilities   map[teetypes.Capability]bool
@@ -1011,13 +1005,7 @@ func NewTwitterScraper(jc types.JobConfiguration, c *stats.StatsCollector) *Twit
 	}
 
 	return &TwitterScraper{
-		configuration: twitterScraperRuntimeConfig{
-			Accounts:              config.Accounts,
-			ApiKeys:               config.ApiKeys,
-			ApifyApiKey:           config.ApifyApiKey,
-			DataDir:               config.DataDir,
-			SkipLoginVerification: config.SkipLoginVerification,
-		},
+		configuration:  config,
 		accountManager: accountManager,
 		statsCollector: c,
 		capabilities: map[teetypes.Capability]bool{
