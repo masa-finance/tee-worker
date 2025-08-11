@@ -54,6 +54,11 @@ func NewTwitterApifyClient(apiToken string) (*TwitterApifyClient, error) {
 	}, nil
 }
 
+// ValidateApiKey tests if the Apify API token is valid
+func (c *TwitterApifyClient) ValidateApiKey() error {
+	return c.apifyClient.ValidateApiKey()
+}
+
 // GetFollowers retrieves followers for a username using Apify
 func (c *TwitterApifyClient) GetFollowers(username string, maxResults int, cursor string) ([]*teetypes.ProfileResultApify, string, error) {
 	offset := parseCursor(cursor)
