@@ -1076,6 +1076,11 @@ func (ts *TwitterScraper) GetStructuredCapabilities() teetypes.WorkerCapabilitie
 		capabilities[teetypes.TwitterApiJob] = apiCaps
 	}
 
+	// Add Apify-specific capabilities based on available API key
+	if ts.configuration.ApifyApiKey != "" {
+		capabilities[teetypes.TwitterApifyJob] = teetypes.TwitterApifyCaps
+	}
+
 	// Add general twitter scraper capability (uses best available method)
 	if len(ts.configuration.Accounts) > 0 || len(ts.configuration.ApiKeys) > 0 {
 		var generalCaps []teetypes.Capability
