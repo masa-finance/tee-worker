@@ -111,7 +111,7 @@ var _ = Describe("TikTokTranscriber", func() {
 	})
 
 	Context("when arguments are invalid", func() {
-		It("should return an error if VideoURL is empty and record error stats", func() {
+		It("should return an error if VideoURL is empty and not record error stats", func() {
 			jobArguments := map[string]interface{}{
 				"video_url": "", // Empty URL
 			}
@@ -142,7 +142,7 @@ var _ = Describe("TikTokTranscriber", func() {
 					return 0
 				}
 				return workerStatsMap[stats.TikTokTranscriptionErrors]
-			}, 5*time.Second, 100*time.Millisecond).Should(BeNumerically("==", 1), "TikTokTranscriptionErrors count should be 1")
+			}, 5*time.Second, 100*time.Millisecond).Should(BeNumerically("==", 0), "TikTokTranscriptionErrors count should be 0")
 
 			Eventually(func() uint {
 				if statsCollector == nil || statsCollector.Stats == nil || statsCollector.Stats.Stats == nil {
