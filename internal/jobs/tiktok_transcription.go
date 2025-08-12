@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/masa-finance/tee-types/args"
+	teeargs "github.com/masa-finance/tee-types/args"
 	teetypes "github.com/masa-finance/tee-types/types"
 	"github.com/masa-finance/tee-worker/api/types"
 	"github.com/masa-finance/tee-worker/internal/jobs/stats"
@@ -104,27 +104,38 @@ func (ttt *TikTokTranscriber) ExecuteJob(j types.Job) (types.JobResult, error) {
 		return types.JobResult{Error: "TikTok transcription endpoint is not configured for the worker"}, fmt.Errorf("tiktok transcription endpoint not configured")
 	}
 
-	args := &args.TikTokTranscriptionArguments{}
-	if err := j.Arguments.Unmarshal(args); err != nil {
-		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1)
+	// Use the centralized type-safe unmarshaller
+	jobArgs, err := teeargs.UnmarshalJobArguments(teetypes.JobType(j.Type), map[string]any(j.Arguments))
+	if err != nil {
 		return types.JobResult{Error: "Failed to unmarshal job arguments"}, fmt.Errorf("unmarshal job arguments: %w", err)
 	}
 
-	if args.VideoURL == "" {
+	// Type assert to TikTok arguments
+	tiktokArgs, ok := teeargs.AsTikTokArguments(jobArgs)
+	if !ok {
+		return types.JobResult{Error: "invalid argument type for TikTok job"}, fmt.Errorf("invalid argument type")
+	}
+
+	// Use interface methods; no need to downcast
+	logrus.WithField("job_uuid", j.UUID).Infof("TikTok arguments validated: video_url=%s, language=%s, has_language_preference=%t",
+		tiktokArgs.GetVideoURL(), tiktokArgs.GetLanguageCode(), tiktokArgs.HasLanguagePreference())
+
+	// VideoURL validation is now handled by the unmarshaller, but we check again for safety
+	if tiktokArgs.GetVideoURL() == "" {
 		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1)
 		return types.JobResult{Error: "VideoURL is required"}, fmt.Errorf("videoURL is required")
 	}
-	// Sanitize/Validate VideoURL further if necessary (e.g., ensure it's a TikTok URL)
 
-	// Placeholder for language selection logic
-	selectedLanguageKey := args.Language
-	if selectedLanguageKey == "" {
-		selectedLanguageKey = ttt.configuration.DefaultLanguage
+	// Use the enhanced language selection logic
+	selectedLanguageKey := tiktokArgs.GetLanguageCode() // This handles defaults automatically
+	if tiktokArgs.HasLanguagePreference() {
+		logrus.WithField("job_uuid", j.UUID).Infof("Using custom language preference: %s", selectedLanguageKey)
+	} else {
+		logrus.WithField("job_uuid", j.UUID).Infof("Using default language: %s", selectedLanguageKey)
 	}
-	// If still empty, a hardcoded default like "eng-US" or first available will be used later
 
 	// Sub-Step 3.1: Call TikTok Transcription API
-	apiRequestBody := map[string]string{"url": args.VideoURL}
+	apiRequestBody := map[string]string{"url": tiktokArgs.GetVideoURL()}
 	jsonBody, err := json.Marshal(apiRequestBody)
 	if err != nil {
 		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1)
@@ -149,7 +160,7 @@ func (ttt *TikTokTranscriber) ExecuteJob(j types.Job) (types.JobResult, error) {
 
 	logrus.WithFields(logrus.Fields{
 		"job_uuid":     j.UUID,
-		"url":          args.VideoURL,
+		"url":          tiktokArgs.GetVideoURL(),
 		"method":       "POST",
 		"api_endpoint": ttt.configuration.TranscriptionEndpoint,
 	}).Info("Calling TikTok Transcription API")
@@ -246,7 +257,7 @@ func (ttt *TikTokTranscriber) ExecuteJob(j types.Job) (types.JobResult, error) {
 		TranscriptionText: plainTextTranscription,
 		DetectedLanguage:  finalDetectedLanguage,
 		VideoTitle:        parsedAPIResponse.VideoTitle,
-		OriginalURL:       args.VideoURL,
+		OriginalURL:       tiktokArgs.GetVideoURL(),
 		ThumbnailURL:      parsedAPIResponse.ThumbnailURL,
 	}
 

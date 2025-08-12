@@ -93,6 +93,9 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 		teetypes.TwitterApiJob: {
 			w: jobs.NewTwitterScraper(jc, s), // Uses the same implementation as standard Twitter scraper
 		},
+		teetypes.TwitterApifyJob: {
+			w: jobs.NewTwitterScraper(jc, s), // Register Apify job type with Twitter scraper
+		},
 		teetypes.TelemetryJob: {
 			w: jobs.NewTelemetryJob(jc, s),
 		},
