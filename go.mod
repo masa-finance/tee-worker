@@ -21,7 +21,7 @@ require (
 
 replace github.com/imperatrona/twitter-scraper => github.com/masa-finance/twitter-scraper v1.0.2
 
-// replace github.com/masa-finance/tee-types => ../tee-types
+replace github.com/masa-finance/tee-types => ../tee-types
 
 require (
 	github.com/AlexEidt/Vidio v1.5.1 // indirect

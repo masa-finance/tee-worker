@@ -118,13 +118,12 @@ func (ttt *TikTokTranscriber) ExecuteJob(j types.Job) (types.JobResult, error) {
 		return types.JobResult{Error: "invalid argument type for TikTok job"}, fmt.Errorf("invalid argument type")
 	}
 
-	// Convert to the concrete type for easier access
-	args := tiktokArgs.(*teeargs.TikTokTranscriptionArguments)
+	// Use interface methods; no need to downcast
 	logrus.WithField("job_uuid", j.UUID).Infof("TikTok arguments validated: video_url=%s, language=%s, has_language_preference=%t",
-		args.VideoURL, tiktokArgs.GetLanguageCode(), tiktokArgs.HasLanguagePreference())
+		tiktokArgs.GetVideoURL(), tiktokArgs.GetLanguageCode(), tiktokArgs.HasLanguagePreference())
 
 	// VideoURL validation is now handled by the unmarshaller, but we check again for safety
-	if args.VideoURL == "" {
+	if tiktokArgs.GetVideoURL() == "" {
 		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1)
 		return types.JobResult{Error: "VideoURL is required"}, fmt.Errorf("videoURL is required")
 	}
@@ -138,7 +137,7 @@ func (ttt *TikTokTranscriber) ExecuteJob(j types.Job) (types.JobResult, error) {
 	}
 
 	// Sub-Step 3.1: Call TikTok Transcription API
-	apiRequestBody := map[string]string{"url": args.VideoURL}
+	apiRequestBody := map[string]string{"url": tiktokArgs.GetVideoURL()}
 	jsonBody, err := json.Marshal(apiRequestBody)
 	if err != nil {
 		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1)
@@ -163,7 +162,7 @@ func (ttt *TikTokTranscriber) ExecuteJob(j types.Job) (types.JobResult, error) {
 
 	logrus.WithFields(logrus.Fields{
 		"job_uuid":     j.UUID,
-		"url":          args.VideoURL,
+		"url":          tiktokArgs.GetVideoURL(),
 		"method":       "POST",
 		"api_endpoint": ttt.configuration.TranscriptionEndpoint,
 	}).Info("Calling TikTok Transcription API")
@@ -260,7 +259,7 @@ func (ttt *TikTokTranscriber) ExecuteJob(j types.Job) (types.JobResult, error) {
 		TranscriptionText: plainTextTranscription,
 		DetectedLanguage:  finalDetectedLanguage,
 		VideoTitle:        parsedAPIResponse.VideoTitle,
-		OriginalURL:       args.VideoURL,
+		OriginalURL:       tiktokArgs.GetVideoURL(),
 		ThumbnailURL:      parsedAPIResponse.ThumbnailURL,
 	}
 
