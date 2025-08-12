@@ -107,14 +107,12 @@ func (ttt *TikTokTranscriber) ExecuteJob(j types.Job) (types.JobResult, error) {
 	// Use the centralized type-safe unmarshaller
 	jobArgs, err := teeargs.UnmarshalJobArguments(teetypes.JobType(j.Type), map[string]any(j.Arguments))
 	if err != nil {
-		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1)
 		return types.JobResult{Error: "Failed to unmarshal job arguments"}, fmt.Errorf("unmarshal job arguments: %w", err)
 	}
 
 	// Type assert to TikTok arguments
 	tiktokArgs, ok := teeargs.AsTikTokArguments(jobArgs)
 	if !ok {
-		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1)
 		return types.JobResult{Error: "invalid argument type for TikTok job"}, fmt.Errorf("invalid argument type")
 	}
 

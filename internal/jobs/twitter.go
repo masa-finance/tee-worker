@@ -1349,7 +1349,6 @@ func (ts *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 	jobArgs, err := teeargs.UnmarshalJobArguments(teetypes.JobType(j.Type), map[string]any(j.Arguments))
 	if err != nil {
 		logrus.Errorf("Error while unmarshalling job arguments for job ID %s, type %s: %v", j.UUID, j.Type, err)
-		ts.statsCollector.Add(j.WorkerID, stats.TwitterErrors, 1)
 		return types.JobResult{Error: "error unmarshalling job arguments"}, err
 	}
 
