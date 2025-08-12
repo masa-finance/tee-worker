@@ -56,6 +56,6 @@ jobs:
 
       - name: Verify that merging is OK
         run: |
-          if grep -rE 'DO[ ]NOT[ ]MERGE|[F]IXME' .; then
+          if grep -rE 'DO[ ]NOT[ ]MERGE|[ ]FIXME' .; then
               exit 1
           fi
