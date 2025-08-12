@@ -13,16 +13,14 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/labstack/echo-contrib v0.17.4
 	github.com/labstack/echo/v4 v4.13.4
-	github.com/masa-finance/tee-types v1.1.5
+	// FIXME: update this once we have a new version of tee-types
+	github.com/masa-finance/tee-types v1.1.5-0.20250812010432-482839a9a841
 	github.com/onsi/ginkgo/v2 v2.23.4
 	github.com/onsi/gomega v1.38.0
 	github.com/sirupsen/logrus v1.9.3
 )
 
 replace github.com/imperatrona/twitter-scraper => github.com/masa-finance/twitter-scraper v1.0.2
-
-// FIXME: remove this once we have a new version of tee-types
-replace github.com/masa-finance/tee-types => ../tee-types
 
 require (
 	github.com/AlexEidt/Vidio v1.5.1 // indirect
