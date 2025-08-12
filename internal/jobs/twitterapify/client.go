@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	util "github.com/masa-finance/tee-types/pkg/util"
 	teetypes "github.com/masa-finance/tee-types/types"
 	"github.com/masa-finance/tee-worker/pkg/client"
 	"github.com/sirupsen/logrus"
@@ -65,10 +66,7 @@ func (c *TwitterApifyClient) GetFollowers(username string, maxResults int, curso
 	minimum := 200
 
 	// Ensure minimum of 200 as required by the actor
-	maxFollowers := maxResults
-	if maxFollowers < minimum {
-		maxFollowers = minimum
-	}
+	maxFollowers := util.Max(maxResults, minimum)
 
 	input := FollowerActorRunRequest{
 		UserNames:     []string{username},
@@ -88,10 +86,7 @@ func (c *TwitterApifyClient) GetFollowing(username string, maxResults int, curso
 	minimum := 200
 
 	// Ensure minimum of 200 as required by the actor
-	maxFollowings := maxResults
-	if maxFollowings < minimum {
-		maxFollowings = minimum
-	}
+	maxFollowings := util.Max(maxResults, minimum)
 
 	input := FollowerActorRunRequest{
 		UserNames:     []string{username},
