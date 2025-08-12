@@ -21,6 +21,7 @@ require (
 
 replace github.com/imperatrona/twitter-scraper => github.com/masa-finance/twitter-scraper v1.0.2
 
+// FIXME: remove this once we have a new version of tee-types
 replace github.com/masa-finance/tee-types => ../tee-types
 
 require (
