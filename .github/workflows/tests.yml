@@ -46,3 +46,16 @@ jobs:
         if diff <(echo "$getenvs") <(echo "$jsons") | grep \<; then
           exit 1
         fi
+
+  ready-to-merge:
+      runs-on: ubuntu-latest
+
+      steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Verify that merging is OK
+        run: |
+          if grep -rE 'DO[ ]NOT[ ]MERGE|[ ]FIXME' .; then
+              exit 1
+          fi
