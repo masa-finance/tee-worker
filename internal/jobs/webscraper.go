@@ -55,15 +55,12 @@ func (ws *WebScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 	}
 
 	// Type assert to Web arguments
-	webArgs, ok := teeargs.AsWebArguments(jobArgs)
+	args, ok := teeargs.AsWebArguments(jobArgs)
 	if !ok {
 		logrus.Errorf("Expected Web arguments for job ID %s, type %s", j.UUID, j.Type)
 		ws.stats.Add(j.WorkerID, stats.WebInvalid, 1)
 		return types.JobResult{Error: "invalid argument type for Web job"}, nil
 	}
-
-	// Convert to the concrete type for easier access
-	args := webArgs.(*teeargs.WebSearchArguments)
 	logrus.Infof("Job arguments unmarshaled and validated successfully: %+v", args)
 
 	// Step 2: Validate URL against blacklist
@@ -83,10 +80,10 @@ func (ws *WebScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 
 	// Step 3: Use enhanced methods for cleaner logic and validation
 	logrus.Infof("Initiating web scraping for URL: %s (max_depth: %d, has_selector: %t, is_deep_scrape: %t)",
-		args.URL, webArgs.GetEffectiveMaxDepth(), webArgs.HasSelector(), webArgs.IsDeepScrape())
+		args.URL, args.GetEffectiveMaxDepth(), args.HasSelector(), args.IsDeepScrape())
 
 	// Perform web scraping using the effective max depth
-	result, err := scrapeWeb([]string{args.URL}, webArgs.GetEffectiveMaxDepth())
+	result, err := scrapeWeb([]string{args.URL}, args.GetEffectiveMaxDepth())
 	if err != nil {
 		logrus.Errorf("Web scraping failed for URL %s: %v", args.URL, err)
 		ws.stats.Add(j.WorkerID, stats.WebErrors, 1)

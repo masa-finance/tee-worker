@@ -1357,7 +1357,6 @@ func (ts *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 	twitterArgs, ok := teeargs.AsTwitterArguments(jobArgs)
 	if !ok {
 		logrus.Errorf("Expected Twitter arguments for job ID %s, type %s", j.UUID, j.Type)
-		ts.statsCollector.Add(j.WorkerID, stats.TwitterErrors, 1)
 		return types.JobResult{Error: "invalid argument type for Twitter job"}, fmt.Errorf("invalid argument type")
 	}
 
