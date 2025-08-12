@@ -37,7 +37,6 @@ type DatasetResponse struct {
 		Count  int               `json:"count"`
 		Offset int               `json:"offset"`
 		Limit  int               `json:"limit"`
-		Total  int               `json:"total"`
 	} `json:"data"`
 }
 
@@ -207,13 +206,11 @@ func (c *ApifyClient) GetDatasetItems(datasetId string, offset, limit int) (*Dat
 			Count  int               `json:"count"`
 			Offset int               `json:"offset"`
 			Limit  int               `json:"limit"`
-			Total  int               `json:"total"`
 		}{
 			Items:  items,
 			Count:  len(items),
 			Offset: offset,
 			Limit:  limit,
-			Total:  offset + len(items), // Lower-bound estimate only; when len(items) == limit there may be more. Consumers should not rely on this to paginate.
 		},
 	}
 
