@@ -159,14 +159,18 @@ func (c *TwitterApifyClient) runActorAndGetProfiles(input FollowerActorRunReques
 		profiles = append(profiles, &profile)
 	}
 
-	// 5. Generate next cursor if more data available
+	// 5. Generate next cursor if more data may be available
 	var nextCursor string
-	if offset+limit < dataset.Data.Total {
-		nextCursor = generateCursor(offset + limit)
-		logrus.Debugf("Generated next cursor for offset %d", offset+limit)
+	if len(dataset.Data.Items) == limit {
+		nextCursor = generateCursor(offset + len(dataset.Data.Items))
+		logrus.Debugf("Generated next cursor for offset %d", offset+len(dataset.Data.Items))
 	}
 
-	logrus.Infof("Successfully retrieved %d profiles (total available: %d)", len(profiles), dataset.Data.Total)
+	if len(dataset.Data.Items) == limit {
+		logrus.Infof("Successfully retrieved %d profiles; more may be available", len(profiles))
+	} else {
+		logrus.Infof("Successfully retrieved %d profiles", len(profiles))
+	}
 	return profiles, nextCursor, nil
 }
 

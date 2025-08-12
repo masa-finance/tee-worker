@@ -213,7 +213,7 @@ func (c *ApifyClient) GetDatasetItems(datasetId string, offset, limit int) (*Dat
 			Count:  len(items),
 			Offset: offset,
 			Limit:  limit,
-			Total:  offset + len(items), // Estimate total, could be more if limit is reached
+			Total:  offset + len(items), // Lower-bound estimate only; when len(items) == limit there may be more. Consumers should not rely on this to paginate.
 		},
 	}
 
