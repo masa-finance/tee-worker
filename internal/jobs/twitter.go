@@ -16,12 +16,12 @@ import (
 	"github.com/masa-finance/tee-worker/internal/jobs/twitterx"
 	"github.com/masa-finance/tee-worker/pkg/client"
 
-	twitterscraper "github.com/imperatrona/twitter-scraper"
 	"github.com/masa-finance/tee-worker/api/types"
 	"github.com/masa-finance/tee-worker/internal/jobs/stats"
 	"github.com/masa-finance/tee-worker/internal/jobs/twitter"
 	"github.com/masa-finance/tee-worker/internal/jobs/twitterapify"
 
+	twitterscraper "github.com/imperatrona/twitter-scraper"
 	"github.com/sirupsen/logrus"
 )
 
@@ -880,7 +880,7 @@ func (ts *TwitterScraper) GetFollowing(j types.Job, baseDir, username string, co
 }
 
 // getFollowersApify retrieves followers using Apify
-func (ts *TwitterScraper) getFollowersApify(j types.Job, username string, maxResults int, cursor string) ([]*teetypes.ProfileResultApify, string, error) {
+func (ts *TwitterScraper) getFollowersApify(j types.Job, username string, maxResults int, cursor client.Cursor) ([]*teetypes.ProfileResultApify, client.Cursor, error) {
 	apifyScraper, err := ts.getApifyScraper(j)
 	if err != nil {
 		return nil, "", err
@@ -898,7 +898,7 @@ func (ts *TwitterScraper) getFollowersApify(j types.Job, username string, maxRes
 }
 
 // getFollowingApify retrieves following using Apify
-func (ts *TwitterScraper) getFollowingApify(j types.Job, username string, maxResults int, cursor string) ([]*teetypes.ProfileResultApify, string, error) {
+func (ts *TwitterScraper) getFollowingApify(j types.Job, username string, maxResults int, cursor client.Cursor) ([]*teetypes.ProfileResultApify, client.Cursor, error) {
 	apifyScraper, err := ts.getApifyScraper(j)
 	if err != nil {
 		return nil, "", err
@@ -906,7 +906,7 @@ func (ts *TwitterScraper) getFollowingApify(j types.Job, username string, maxRes
 
 	ts.statsCollector.Add(j.WorkerID, stats.TwitterScrapes, 1)
 
-	following, nextCursor, err := apifyScraper.GetFollowing(username, maxResults, cursor)
+	following, nextCursor, err := apifyScraper.GetFollowing(username, cursor, maxResults)
 	if err != nil {
 		return nil, "", err
 	}
@@ -1170,11 +1170,11 @@ func (s *ApifyScrapeStrategy) Execute(j types.Job, ts *TwitterScraper, jobArgs *
 	capability := teetypes.Capability(jobArgs.QueryType)
 	switch capability {
 	case teetypes.CapGetFollowers:
-		followers, nextCursor, err := ts.getFollowersApify(j, jobArgs.Query, jobArgs.MaxResults, jobArgs.NextCursor)
-		return processResponse(followers, nextCursor, err)
+		followers, nextCursor, err := ts.getFollowersApify(j, jobArgs.Query, jobArgs.MaxResults, client.Cursor(jobArgs.NextCursor))
+		return processResponse(followers, nextCursor.String(), err)
 	case teetypes.CapGetFollowing:
-		following, nextCursor, err := ts.getFollowingApify(j, jobArgs.Query, jobArgs.MaxResults, jobArgs.NextCursor)
-		return processResponse(following, nextCursor, err)
+		following, nextCursor, err := ts.getFollowingApify(j, jobArgs.Query, jobArgs.MaxResults, client.Cursor(jobArgs.NextCursor))
+		return processResponse(following, nextCursor.String(), err)
 	default:
 		return types.JobResult{Error: fmt.Sprintf("unsupported capability %s for Apify job", capability)}, fmt.Errorf("unsupported capability %s for Apify job", capability)
 	}
