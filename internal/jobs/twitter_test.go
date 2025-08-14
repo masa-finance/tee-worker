@@ -817,7 +817,6 @@ var _ = Describe("Twitter Scraper", func() {
 			Expect(followers).ToNot(BeEmpty())
 			Expect(followers[0].ScreenName).ToNot(BeEmpty())
 			Expect(statsCollector.Stats.Stats[j.WorkerID][stats.TwitterFollowers]).To(BeNumerically("==", uint(len(followers))))
-
 		})
 
 		It("should use Apify for twitter-apify with getfollowing", func() {
