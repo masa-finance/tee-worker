@@ -62,7 +62,7 @@ func (c *TwitterApifyClient) GetFollowers(username string, maxResults int, curso
 		GetFollowing:  false,
 	}
 
-	return c.runActorAndGetProfiles(input, cursor, maxResults)
+	return c.getProfiles(input, cursor, maxResults)
 }
 
 // GetFollowing retrieves following for a username using Apify
@@ -81,11 +81,11 @@ func (c *TwitterApifyClient) GetFollowing(username string, cursor client.Cursor,
 		GetFollowing:  true,
 	}
 
-	return c.runActorAndGetProfiles(input, cursor, maxResults)
+	return c.getProfiles(input, cursor, maxResults)
 }
 
-// runActorAndGetProfiles runs the actor and retrieves profiles from the dataset
-func (c *TwitterApifyClient) runActorAndGetProfiles(input FollowerActorRunRequest, cursor client.Cursor, limit int) ([]*teetypes.ProfileResultApify, client.Cursor, error) {
+// getProfiles runs the actor and retrieves profiles from the dataset
+func (c *TwitterApifyClient) getProfiles(input FollowerActorRunRequest, cursor client.Cursor, limit int) ([]*teetypes.ProfileResultApify, client.Cursor, error) {
 	dataset, nextCursor, err := c.apifyClient.RunActorAndGetResponse(TwitterFollowerActorID, input, cursor, limit)
 	if err != nil {
 		return nil, client.EmptyCursor, err
