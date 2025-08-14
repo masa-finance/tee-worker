@@ -2,16 +2,26 @@ package client
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/sirupsen/logrus"
 )
 
 const (
-	apifyBaseURL = "https://api.apify.com/v2"
+	apifyBaseURL      = "https://api.apify.com/v2"
+	MaxActorPolls     = 60              // 5 minutes max wait time
+	ActorPollInterval = 5 * time.Second // polling interval between status checks
+
+	// Actor run status constants
+	ActorStatusSucceeded = "SUCCEEDED"
+	ActorStatusFailed    = "FAILED"
+	ActorStatusAborted   = "ABORTED"
 )
 
 // ApifyClient represents a client for the Apify API
@@ -38,6 +48,21 @@ type DatasetResponse struct {
 		Offset int               `json:"offset"`
 		Limit  int               `json:"limit"`
 	} `json:"data"`
+}
+
+// CursorData represents the pagination data stored in cursor
+type CursorData struct {
+	Offset int `json:"offset"`
+}
+
+// Cursor represents an encoded CursorData
+type Cursor string
+
+// EmptyCursor represents the state when there is no cursor (i.e. at the start of a fetch loop)
+const EmptyCursor Cursor = ""
+
+func (c Cursor) String() string {
+	return string(c)
 }
 
 // NewApifyClient creates a new Apify client with functional options
@@ -253,4 +278,109 @@ func (c *ApifyClient) ValidateApiKey() error {
 	default:
 		return fmt.Errorf("Apify API auth test failed with status: %d", resp.StatusCode)
 	}
+}
+
+var (
+	ErrActorFailed  = errors.New("Actor run failed")
+	ErrActorAborted = errors.New("Actor run aborted")
+)
+
+// runActorAndGetProfiles runs the actor and retrieves profiles from the dataset
+func (c *ApifyClient) RunActorAndGetResponse(actorId string, input any, cursor Cursor, limit int) (*DatasetResponse, Cursor, error) {
+	var offset int
+	if cursor != EmptyCursor {
+		offset = parseCursor(cursor)
+	}
+
+	// 1. Run the actor
+	runResp, err := c.RunActor(actorId, input)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to run actor: %w", err)
+	}
+
+	// 2. Poll for completion
+	logrus.Infof("Polling for actor run completion: %s", runResp.Data.ID)
+	pollCount := 0
+
+PollLoop:
+	for {
+		status, err := c.GetActorRun(runResp.Data.ID)
+		if err != nil {
+			return nil, "", fmt.Errorf("failed to get actor run status: %w", err)
+		}
+
+		logrus.Debugf("Actor run status: %s", status.Data.Status)
+
+		switch status.Data.Status {
+		case ActorStatusSucceeded:
+			logrus.Debug("Actor run completed successfully")
+			break PollLoop
+		case ActorStatusFailed:
+			return nil, "", ErrActorFailed
+		case ActorStatusAborted:
+			return nil, "", ErrActorAborted
+		}
+
+		// TODO: Parametrize these two
+		pollCount++
+		if pollCount >= MaxActorPolls {
+			return nil, "", fmt.Errorf("actor run timed out after %d polls", MaxActorPolls)
+		}
+
+		time.Sleep(ActorPollInterval)
+	}
+
+	// 3. Get dataset items with pagination
+	logrus.Infof("Retrieving dataset items from: %s (offset: %d, limit: %d)", runResp.Data.DefaultDatasetId, offset, limit)
+	dataset, err := c.GetDatasetItems(runResp.Data.DefaultDatasetId, offset, limit)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to get dataset items: %w", err)
+	}
+
+	// 4. Generate next cursor if more data may be available
+	var nextCursor Cursor
+	if len(dataset.Data.Items) == limit {
+		nextCursor = generateCursor(offset + len(dataset.Data.Items))
+		logrus.Debugf("Generated next cursor for offset %d", offset+len(dataset.Data.Items))
+	}
+
+	if len(dataset.Data.Items) == limit {
+		logrus.Infof("Successfully retrieved %d profiles; more may be available", len(dataset.Data.Items))
+	} else {
+		logrus.Infof("Successfully retrieved %d profiles", len(dataset.Data.Items))
+	}
+	return dataset, nextCursor, nil
+}
+
+// parseCursor decodes a base64 cursor to get the offset
+func parseCursor(cursor Cursor) int {
+	if cursor == "" {
+		return 0
+	}
+
+	decoded, err := base64.StdEncoding.DecodeString(cursor.String())
+	if err != nil {
+		logrus.Warnf("Failed to decode cursor: %v", err)
+		return 0
+	}
+
+	var cursorData CursorData
+	if err := json.Unmarshal(decoded, &cursorData); err != nil {
+		logrus.Warnf("Failed to unmarshal cursor data: %v", err)
+		return 0
+	}
+
+	return cursorData.Offset
+}
+
+// generateCursor encodes an offset as a base64 cursor
+func generateCursor(offset int) Cursor {
+	cursorData := CursorData{Offset: offset}
+	data, err := json.Marshal(cursorData)
+	if err != nil {
+		logrus.Warnf("Failed to marshal cursor data: %v", err)
+		return ""
+	}
+
+	return Cursor(base64.StdEncoding.EncodeToString(data))
 }
