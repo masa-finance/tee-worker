@@ -893,7 +893,7 @@ func (ts *TwitterScraper) getFollowersApify(j types.Job, username string, maxRes
 		return nil, "", err
 	}
 
-	ts.statsCollector.Add(j.WorkerID, stats.TwitterProfiles, uint(len(followers)))
+	ts.statsCollector.Add(j.WorkerID, stats.TwitterFollowers, uint(len(followers)))
 	return followers, nextCursor, nil
 }
 
@@ -911,7 +911,7 @@ func (ts *TwitterScraper) getFollowingApify(j types.Job, username string, maxRes
 		return nil, "", err
 	}
 
-	ts.statsCollector.Add(j.WorkerID, stats.TwitterProfiles, uint(len(following)))
+	ts.statsCollector.Add(j.WorkerID, stats.TwitterFollowers, uint(len(following)))
 	return following, nextCursor, nil
 }
 

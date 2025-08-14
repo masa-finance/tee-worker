@@ -19,6 +19,7 @@ const (
 	TwitterScrapes             StatType = "twitter_scrapes"
 	TwitterTweets              StatType = "twitter_returned_tweets"
 	TwitterProfiles            StatType = "twitter_returned_profiles"
+	TwitterFollowers           StatType = "twitter_returned_followers"
 	TwitterOther               StatType = "twitter_returned_other"
 	TwitterErrors              StatType = "twitter_errors"
 	TwitterAuthErrors          StatType = "twitter_auth_errors"
@@ -29,7 +30,7 @@ const (
 	WebInvalid                 StatType = "web_invalid"
 	TikTokTranscriptionSuccess StatType = "tiktok_transcription_success"
 	TikTokTranscriptionErrors  StatType = "tiktok_transcription_errors"
-	// TODO: Should we add stats for calls to each of the Twitter job types?
+	// TODO: Should we add stats for calls to each of the Twitter capabilities to decouple business / scoring logic?
 )
 
 // AddStat is the struct used in the rest of the tee-worker for sending statistics

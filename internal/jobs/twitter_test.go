@@ -796,7 +796,8 @@ var _ = Describe("Twitter Scraper", func() {
 				"apify_api_key": apifyApiKey,
 				"data_dir":      tempDir,
 			}, statsCollector)
-			res, err := scraper.ExecuteJob(types.Job{
+
+			j := types.Job{
 				Type: teetypes.TwitterApifyJob,
 				Arguments: map[string]interface{}{
 					"type":        teetypes.CapGetFollowers,
@@ -804,7 +805,9 @@ var _ = Describe("Twitter Scraper", func() {
 					"max_results": 200,
 				},
 				Timeout: 60 * time.Second,
-			})
+			}
+
+			res, err := scraper.ExecuteJob(j)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(res.Error).To(BeEmpty())
 
@@ -813,6 +816,8 @@ var _ = Describe("Twitter Scraper", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(followers).ToNot(BeEmpty())
 			Expect(followers[0].ScreenName).ToNot(BeEmpty())
+			Expect(statsCollector.Stats.Stats[j.WorkerID][stats.TwitterFollowers]).To(BeNumerically("==", uint(len(followers))))
+
 		})
 
 		It("should use Apify for twitter-apify with getfollowing", func() {
@@ -823,7 +828,8 @@ var _ = Describe("Twitter Scraper", func() {
 				"apify_api_key": apifyApiKey,
 				"data_dir":      tempDir,
 			}, statsCollector)
-			res, err := scraper.ExecuteJob(types.Job{
+
+			j := types.Job{
 				Type: teetypes.TwitterApifyJob,
 				Arguments: map[string]interface{}{
 					"type":        teetypes.CapGetFollowing,
@@ -831,7 +837,9 @@ var _ = Describe("Twitter Scraper", func() {
 					"max_results": 200,
 				},
 				Timeout: 60 * time.Second,
-			})
+			}
+
+			res, err := scraper.ExecuteJob(j)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(res.Error).To(BeEmpty())
 
@@ -840,6 +848,7 @@ var _ = Describe("Twitter Scraper", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(following).ToNot(BeEmpty())
 			Expect(following[0].ScreenName).ToNot(BeEmpty())
+			Expect(statsCollector.Stats.Stats[j.WorkerID][stats.TwitterFollowers]).To(BeNumerically("==", uint(len(following))))
 		})
 
 		It("should prioritize Apify for general twitter job with getfollowers", func() {
