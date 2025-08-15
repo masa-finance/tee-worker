@@ -115,6 +115,7 @@ var _ = Describe("TikTok", func() {
 	Context("when arguments are invalid", func() {
 		It("should return an error if VideoURL is empty and not record error stats", func() {
 			jobArguments := map[string]interface{}{
+				"type":      teetypes.CapTranscription,
 				"video_url": "", // Empty URL
 			}
 
@@ -237,7 +238,7 @@ var _ = Describe("TikTok", func() {
 				Arguments: map[string]interface{}{
 					"type":         teetypes.CapSearchByTrending,
 					"country_code": "US",
-					"sort_by":      "vv",
+					"sort_by":      "repost",
 					"max_items":    5,
 					"period":       "7",
 				},
@@ -280,9 +281,6 @@ var _ = Describe("TikTok", func() {
 				}
 				return workerStatsMap[stats.TikTokErrors]
 			}, 5*time.Second, 100*time.Millisecond).Should(BeNumerically("==", 0), "TikTokErrors should be 0 on success")
-
-			fmt.Println(items)
-
 		})
 
 		It("should increment TikTokErrors when Apify key is missing", func() {
