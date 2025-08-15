@@ -2,6 +2,7 @@ package jobs_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 	"time"
 
@@ -41,10 +42,10 @@ var _ = Describe("TikTokTranscriber", func() {
 
 	Context("when a valid TikTok URL is provided", func() {
 		It("should successfully transcribe the video and record success stats", func(ctx SpecContext) {
-			videoURL := "https://www.tiktok.com/@coachty23/video/7502100651397172526"
+			videoURL := "https://www.tiktok.com/@.jake.ai/video/7516694182245813509"
 			jobArguments := map[string]interface{}{
 				"video_url": videoURL,
-				"language":  "eng-US", // Request a specific language
+				"language":  "ara-SA", // Request a specific language
 			}
 
 			job := types.Job{
@@ -80,6 +81,8 @@ var _ = Describe("TikTokTranscriber", func() {
 			if transcriptionResult.ThumbnailURL != "" {
 				Expect(strings.HasPrefix(transcriptionResult.ThumbnailURL, "http")).To(BeTrue(), "ThumbnailURL if present should be a valid URL")
 			}
+
+			fmt.Println("transcriptionResult: ", transcriptionResult)
 
 			By("Verifying success statistics")
 			Eventually(func() uint {
