@@ -143,7 +143,7 @@ func (ttt *TikTokTranscriber) executeTranscription(j types.Job, a *teeargs.TikTo
 	}
 
 	reqBody := map[string]any{
-		"video_url": a.GetVideoURL(),
+		"url": a.GetVideoURL(),
 	}
 	if a.HasLanguagePreference() {
 		reqBody["language"] = a.GetLanguageCode()
