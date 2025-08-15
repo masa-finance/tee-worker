@@ -61,9 +61,19 @@ func DetectCapabilities(jc types.JobConfiguration, jobServer JobServerInterface)
 	// Add Apify-specific capabilities based on available API key
 	if hasApifyKey {
 		capabilities[teetypes.TwitterApifyJob] = teetypes.TwitterApifyCaps
+		// Merge TikTok search caps with any existing (keep transcription)
+		existing := capabilities[teetypes.TiktokJob]
+		merged := append([]teetypes.Capability{}, existing...)
+		for _, c := range teetypes.TiktokSearchCaps {
+			if !slices.Contains(merged, c) {
+				merged = append(merged, c)
+			}
+		}
+		capabilities[teetypes.TiktokJob] = merged
 	}
 
 	// Add general TwitterJob capability if any Twitter auth is available
+	// TODO: this will get cleaned up with unique twitter capabilities
 	if hasAccounts || hasApiKeys || hasApifyKey {
 		var twitterJobCaps []teetypes.Capability
 		// Use the most comprehensive capabilities available
