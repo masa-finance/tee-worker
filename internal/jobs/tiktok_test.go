@@ -45,6 +45,7 @@ var _ = Describe("TikTok", func() {
 		It("should successfully transcribe the video and record success stats", func(ctx SpecContext) {
 			videoURL := "https://www.tiktok.com/@coachty23/video/7502100651397172526"
 			jobArguments := map[string]interface{}{
+				"type":      teetypes.CapTranscription,
 				"video_url": videoURL,
 				"language":  "eng-US", // Request a specific language
 			}
