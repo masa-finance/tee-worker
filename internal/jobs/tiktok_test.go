@@ -2,6 +2,8 @@ package jobs_test
 
 import (
 	"encoding/json"
+	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -15,7 +17,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var _ = Describe("TikTokTranscriber", func() {
+var _ = Describe("TikTok", func() {
 	var statsCollector *stats.StatsCollector
 	var tikTokTranscriber *TikTokTranscriber
 	var jobConfig types.JobConfiguration
@@ -154,6 +156,177 @@ var _ = Describe("TikTokTranscriber", func() {
 				}
 				return workerStatsMap[stats.TikTokTranscriptionSuccess]
 			}, 5*time.Second, 100*time.Millisecond).Should(BeNumerically("==", 0), "TikTokTranscriptionSuccess count should be 0")
+		})
+	})
+
+	Context("TikTok Apify search", func() {
+		It("should search by query via Apify", func() {
+			apifyKey := os.Getenv("APIFY_API_KEY")
+			if apifyKey == "" {
+				Skip("APIFY_API_KEY is not set")
+			}
+
+			jobConfig := types.JobConfiguration{
+				"apify_api_key": apifyKey,
+			}
+			t := NewTikTokTranscriber(jobConfig, statsCollector)
+
+			j := types.Job{
+				Type: teetypes.TiktokJob,
+				Arguments: map[string]interface{}{
+					"type":      teetypes.CapSearchByQuery,
+					"search":    []string{"crypto", "ai"},
+					"max_items": 5,
+					"end_page":  1,
+					"proxy":     map[string]any{"use_apify_proxy": true},
+				},
+				WorkerID: "tiktok-test-worker-search-query",
+				Timeout:  60 * time.Second,
+			}
+
+			res, err := t.ExecuteJob(j)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(res.Error).To(BeEmpty())
+
+			var items []*teetypes.TikTokSearchByQueryResult
+			err = json.Unmarshal(res.Data, &items)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(items).NotTo(BeEmpty())
+
+			for _, item := range items {
+				fmt.Println("Video: ", item.URL)
+			}
+
+			expectedCount := uint(len(items))
+			Eventually(func() uint {
+				if statsCollector == nil || statsCollector.Stats == nil || statsCollector.Stats.Stats == nil {
+					return 0
+				}
+				workerStatsMap := statsCollector.Stats.Stats[j.WorkerID]
+				if workerStatsMap == nil {
+					return 0
+				}
+				return workerStatsMap[stats.TikTokVideos]
+			}, 15*time.Second, 250*time.Millisecond).Should(BeNumerically("==", expectedCount), "TikTokVideos count should equal returned items")
+
+			Eventually(func() uint {
+				if statsCollector == nil || statsCollector.Stats == nil || statsCollector.Stats.Stats == nil {
+					return 0
+				}
+				workerStatsMap := statsCollector.Stats.Stats[j.WorkerID]
+				if workerStatsMap == nil {
+					return 0
+				}
+				return workerStatsMap[stats.TikTokErrors]
+			}, 5*time.Second, 100*time.Millisecond).Should(BeNumerically("==", 0), "TikTokErrors should be 0 on success")
+		})
+
+		It("should search trending via Apify", func() {
+			apifyKey := os.Getenv("APIFY_API_KEY")
+			if apifyKey == "" {
+				Skip("APIFY_API_KEY is not set")
+			}
+
+			jobConfig := types.JobConfiguration{
+				"apify_api_key": apifyKey,
+			}
+			t := NewTikTokTranscriber(jobConfig, statsCollector)
+
+			j := types.Job{
+				Type: teetypes.TiktokJob,
+				Arguments: map[string]interface{}{
+					"type":         teetypes.CapSearchByTrending,
+					"country_code": "US",
+					"sort_by":      "vv",
+					"max_items":    5,
+					"period":       "7",
+				},
+				WorkerID: "tiktok-test-worker-search-trending",
+				Timeout:  60 * time.Second,
+			}
+
+			res, err := t.ExecuteJob(j)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(res.Error).To(BeEmpty())
+
+			var items []*teetypes.TikTokSearchByTrending
+			err = json.Unmarshal(res.Data, &items)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(items).NotTo(BeEmpty())
+
+			for _, item := range items {
+				fmt.Println("Video: ", item.Title)
+			}
+
+			expectedCount := uint(len(items))
+			Eventually(func() uint {
+				if statsCollector == nil || statsCollector.Stats == nil || statsCollector.Stats.Stats == nil {
+					return 0
+				}
+				workerStatsMap := statsCollector.Stats.Stats[j.WorkerID]
+				if workerStatsMap == nil {
+					return 0
+				}
+				return workerStatsMap[stats.TikTokVideos]
+			}, 15*time.Second, 250*time.Millisecond).Should(BeNumerically("==", expectedCount), "TikTokVideos count should equal returned items")
+
+			Eventually(func() uint {
+				if statsCollector == nil || statsCollector.Stats == nil || statsCollector.Stats.Stats == nil {
+					return 0
+				}
+				workerStatsMap := statsCollector.Stats.Stats[j.WorkerID]
+				if workerStatsMap == nil {
+					return 0
+				}
+				return workerStatsMap[stats.TikTokErrors]
+			}, 5*time.Second, 100*time.Millisecond).Should(BeNumerically("==", 0), "TikTokErrors should be 0 on success")
+
+			fmt.Println(items)
+
+		})
+
+		It("should increment TikTokErrors when Apify key is missing", func() {
+			// No APIFY_API_KEY provided in config
+			jobConfig := types.JobConfiguration{}
+			t := NewTikTokTranscriber(jobConfig, statsCollector)
+
+			j := types.Job{
+				Type: teetypes.TiktokJob,
+				Arguments: map[string]interface{}{
+					"type":      teetypes.CapSearchByQuery,
+					"search":    []string{"tiktok"},
+					"max_items": 1,
+					"end_page":  1,
+				},
+				WorkerID: "tiktok-test-worker-missing-key",
+				Timeout:  10 * time.Second,
+			}
+
+			res, err := t.ExecuteJob(j)
+			Expect(err).To(HaveOccurred())
+			Expect(res.Error).NotTo(BeEmpty())
+
+			Eventually(func() uint {
+				if statsCollector == nil || statsCollector.Stats == nil || statsCollector.Stats.Stats == nil {
+					return 0
+				}
+				workerStatsMap := statsCollector.Stats.Stats[j.WorkerID]
+				if workerStatsMap == nil {
+					return 0
+				}
+				return workerStatsMap[stats.TikTokErrors]
+			}, 5*time.Second, 100*time.Millisecond).Should(BeNumerically("==", 1), "TikTokErrors should increment by 1 for missing API key")
+
+			Consistently(func() uint {
+				if statsCollector == nil || statsCollector.Stats == nil || statsCollector.Stats.Stats == nil {
+					return 0
+				}
+				workerStatsMap := statsCollector.Stats.Stats[j.WorkerID]
+				if workerStatsMap == nil {
+					return 0
+				}
+				return workerStatsMap[stats.TikTokVideos]
+			}, 1*time.Second, 100*time.Millisecond).Should(BeNumerically("==", 0), "TikTokVideos should remain 0 on error")
 		})
 	})
 })

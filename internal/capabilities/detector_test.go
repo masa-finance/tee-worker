@@ -180,3 +180,35 @@ func TestDetectCapabilities_ScraperTypes(t *testing.T) {
 		})
 	}
 }
+
+func TestDetectCapabilities_Apify(t *testing.T) {
+	jc := types.JobConfiguration{
+		"apify_api_key": "dummy",
+	}
+
+	caps := DetectCapabilities(jc, nil)
+
+	// TikTok should gain search capabilities
+	tiktokCaps, ok := caps[teetypes.TiktokJob]
+	if !ok {
+		t.Fatalf("expected tiktok capabilities to be present")
+	}
+	if !slices.Contains(tiktokCaps, teetypes.CapSearchByQuery) {
+		t.Errorf("expected tiktok to include capability %q", teetypes.CapSearchByQuery)
+	}
+	if !slices.Contains(tiktokCaps, teetypes.CapSearchByTrending) {
+		t.Errorf("expected tiktok to include capability %q", teetypes.CapSearchByTrending)
+	}
+
+	// Twitter-Apify job should be present with follower/following capabilities
+	twitterApifyCaps, ok := caps[teetypes.TwitterApifyJob]
+	if !ok {
+		t.Fatalf("expected twitter-apify capabilities to be present")
+	}
+	if !slices.Contains(twitterApifyCaps, teetypes.CapGetFollowers) {
+		t.Errorf("expected twitter-apify to include capability %q", teetypes.CapGetFollowers)
+	}
+	if !slices.Contains(twitterApifyCaps, teetypes.CapGetFollowing) {
+		t.Errorf("expected twitter-apify to include capability %q", teetypes.CapGetFollowing)
+	}
+}
