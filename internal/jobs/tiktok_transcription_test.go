@@ -2,7 +2,6 @@ package jobs_test
 
 import (
 	"encoding/json"
-	"fmt"
 	"strings"
 	"time"
 
@@ -45,7 +44,7 @@ var _ = Describe("TikTokTranscriber", func() {
 			videoURL := "https://www.tiktok.com/@.jake.ai/video/7516694182245813509"
 			jobArguments := map[string]interface{}{
 				"video_url": videoURL,
-				"language":  "ara-SA", // Request a specific language
+				// default language is eng-US from tee types
 			}
 
 			job := types.Job{
@@ -81,8 +80,6 @@ var _ = Describe("TikTokTranscriber", func() {
 			if transcriptionResult.ThumbnailURL != "" {
 				Expect(strings.HasPrefix(transcriptionResult.ThumbnailURL, "http")).To(BeTrue(), "ThumbnailURL if present should be a valid URL")
 			}
-
-			fmt.Println("transcriptionResult: ", transcriptionResult)
 
 			By("Verifying success statistics")
 			Eventually(func() uint {
