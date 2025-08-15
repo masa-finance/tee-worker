@@ -203,34 +203,18 @@ func (ttt *TikTokTranscriber) ExecuteJob(j types.Job) (types.JobResult, error) {
 	}
 
 	vttText := ""
-	finalDetectedLanguage := ""
 
-	// Try requested/default language
-	if selectedLanguageKey != "" {
-		if transcript, ok := parsedAPIResponse.Transcripts[selectedLanguageKey]; ok {
-			vttText = transcript
-			finalDetectedLanguage = selectedLanguageKey
-		}
-	}
-
-	// If not found, try a hardcoded common default or first available
-	if vttText == "" {
-		commonDefault := "eng-US" // As per spec
-		if transcript, ok := parsedAPIResponse.Transcripts[commonDefault]; ok {
-			vttText = transcript
-			finalDetectedLanguage = commonDefault
-		} else { // Pick the first one available if commonDefault also not found
-			for lang, transcript := range parsedAPIResponse.Transcripts {
-				vttText = transcript
-				finalDetectedLanguage = lang
-				logrus.WithFields(logrus.Fields{
-					"job_uuid":       j.UUID,
-					"requested_lang": selectedLanguageKey,
-					"fallback_used":  finalDetectedLanguage,
-				}).Info("Requested/default language not found, using first available transcript")
-				break
-			}
-		}
+	// Directly use the requested/default language; if missing, return an error
+	if transcript, ok := parsedAPIResponse.Transcripts[selectedLanguageKey]; ok && strings.TrimSpace(transcript) != "" {
+		vttText = transcript
+	} else {
+		errMsg := fmt.Sprintf("Transcript for requested language %s not found in API response", selectedLanguageKey)
+		logrus.WithFields(logrus.Fields{
+			"job_uuid":       j.UUID,
+			"requested_lang": selectedLanguageKey,
+		}).Error(errMsg)
+		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1)
+		return types.JobResult{Error: errMsg}, fmt.Errorf(errMsg)
 	}
 
 	if vttText == "" {
@@ -240,7 +224,7 @@ func (ttt *TikTokTranscriber) ExecuteJob(j types.Job) (types.JobResult, error) {
 		return types.JobResult{Error: errMsg}, fmt.Errorf(errMsg)
 	}
 
-	logrus.Debugf("Job %s: Raw VTT content for language %s:\n%s", j.UUID, finalDetectedLanguage, vttText)
+	logrus.Debugf("Job %s: Raw VTT content for language %s:\n%s", j.UUID, selectedLanguageKey, vttText)
 
 	// Convert VTT to Plain Text
 	plainTextTranscription, err := convertVTTToPlainText(vttText)
@@ -255,7 +239,7 @@ func (ttt *TikTokTranscriber) ExecuteJob(j types.Job) (types.JobResult, error) {
 	// Process Result & Return
 	resultData := teetypes.TikTokTranscriptionResult{
 		TranscriptionText: plainTextTranscription,
-		DetectedLanguage:  finalDetectedLanguage,
+		DetectedLanguage:  selectedLanguageKey,
 		VideoTitle:        parsedAPIResponse.VideoTitle,
 		OriginalURL:       tiktokArgs.GetVideoURL(),
 		ThumbnailURL:      parsedAPIResponse.ThumbnailURL,
