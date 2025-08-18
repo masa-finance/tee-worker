@@ -847,20 +847,20 @@ func (ts *TwitterScraper) GetTrends(j types.Job, baseDir string) ([]string, erro
 	return trends, nil
 }
 
-func (ts *TwitterScraper) GetFollowers(j types.Job, baseDir, user string, count int, cursor string) ([]*twitterscraper.Profile, string, error) {
+func (ts *TwitterScraper) GetFollowers(j types.Job, baseDir, user string, count int) ([]*twitterscraper.Profile, error) {
 	scraper, account, err := ts.getCredentialScraper(j, baseDir)
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 
 	ts.statsCollector.Add(j.WorkerID, stats.TwitterScrapes, 1)
-	followers, nextCursor, fetchErr := scraper.FetchFollowers(user, count, cursor)
+	followers, _, fetchErr := scraper.FetchFollowers(user, count, "")
 	if fetchErr != nil {
 		_ = ts.handleError(j, fetchErr, account)
-		return nil, "", fetchErr
+		return nil, fetchErr
 	}
 	ts.statsCollector.Add(j.WorkerID, stats.TwitterProfiles, uint(len(followers)))
-	return followers, nextCursor, nil
+	return followers, nil
 }
 
 func (ts *TwitterScraper) GetFollowing(j types.Job, baseDir, username string, count int) ([]*twitterscraper.Profile, error) {
@@ -1329,7 +1329,8 @@ func defaultStrategyFallback(j types.Job, ts *TwitterScraper, jobArgs *args.Twit
 		following, err := ts.GetFollowing(j, ts.configuration.DataDir, jobArgs.Query, jobArgs.MaxResults)
 		return processResponse(following, "", err)
 	case teetypes.CapGetFollowers:
-		return retryWithCursorAndQuery(j, ts.configuration.DataDir, jobArgs.Query, jobArgs.MaxResults, jobArgs.NextCursor, ts.GetFollowers)
+		followers, err := ts.GetFollowers(j, ts.configuration.DataDir, jobArgs.Query, jobArgs.MaxResults)
+		return processResponse(followers, "", err)
 	case teetypes.CapGetSpace:
 		space, err := ts.GetSpace(j, ts.configuration.DataDir, jobArgs.Query)
 		return processResponse(space, "", err)
