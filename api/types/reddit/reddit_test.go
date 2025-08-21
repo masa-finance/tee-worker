@@ -137,7 +137,7 @@ var _ = Describe("Response", func() {
 			}
 			_, err := json.Marshal(&resp)
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("unknown Reddit response type: unknown"))
+			Expect(err.Error()).To(ContainSubstring("unknown Reddit response type during marshal: unknown"))
 		})
 
 		It("should marshal to null if TypeSwitch is nil", func() {

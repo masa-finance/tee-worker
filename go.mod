@@ -22,7 +22,7 @@ require (
 replace github.com/imperatrona/twitter-scraper => github.com/masa-finance/twitter-scraper v1.0.2
 
 // FIXME: Remove once the correct version of tee-types is tagged
-replace github.com/masa-finance/tee-types => github.com/masa-finance/tee-types v1.1.8-0.20250821113038-3a5a22710aa3
+replace github.com/masa-finance/tee-types => github.com/masa-finance/tee-types v1.1.8-0.20250821165509-06dd40db19ea
 
 require (
 	github.com/AlexEidt/Vidio v1.5.1 // indirect

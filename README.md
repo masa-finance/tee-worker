@@ -272,6 +272,40 @@ There are four different types of Reddit searches:
 }
 ```
 
+**`searchposts`** - Search Reddit posts
+
+``` json
+{
+  "type": "reddit",
+  "arguments": {
+    "type": "searchposts",
+    "queries": [
+      "NASA",
+      "European Space Agency"
+    ],
+    "max_items": 100,
+    "max_results": 10,
+    "max_posts": 5
+  }
+}
+```
+
+**`searchcommunities`** - Search Reddit posts
+
+``` json
+{
+  "type": "reddit",
+  "arguments": {
+    "type": "searchposts",
+    "queries": [
+      "Artificial Intelligence"
+    ],
+    "max_items": 100,
+    "max_results": 10,
+  }
+}
+```
+
 #### Twitter Job Types
 
 Twitter scraping is available through four job types:
