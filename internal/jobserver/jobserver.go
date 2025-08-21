@@ -100,7 +100,7 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 			w: jobs.NewTelemetryJob(jc, s),
 		},
 		teetypes.TiktokJob: {
-			w: jobs.NewTikTokTranscriber(jc, s),
+			w: jobs.NewTikTokScraper(jc, s),
 		},
 	}
 	// Validate that all workers were initialized successfully

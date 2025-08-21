@@ -24,12 +24,14 @@ const (
 	TwitterErrors              StatType = "twitter_errors"
 	TwitterAuthErrors          StatType = "twitter_auth_errors"
 	TwitterRateErrors          StatType = "twitter_ratelimit_errors"
-	TwitterXSearchQueries      StatType = "twitterx_search"
+	TwitterXSearchQueries      StatType = "twitterx_search" // TODO: investigate if this is needed or used...
 	WebSuccess                 StatType = "web_success"
 	WebErrors                  StatType = "web_errors"
 	WebInvalid                 StatType = "web_invalid"
 	TikTokTranscriptionSuccess StatType = "tiktok_transcription_success"
 	TikTokTranscriptionErrors  StatType = "tiktok_transcription_errors"
+	TikTokVideos               StatType = "tiktok_returned_videos"
+	TikTokErrors               StatType = "tiktok_errors"
 	// TODO: Should we add stats for calls to each of the Twitter capabilities to decouple business / scoring logic?
 )
 

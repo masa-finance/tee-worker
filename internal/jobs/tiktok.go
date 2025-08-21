@@ -13,6 +13,8 @@ import (
 	teetypes "github.com/masa-finance/tee-types/types"
 	"github.com/masa-finance/tee-worker/api/types"
 	"github.com/masa-finance/tee-worker/internal/jobs/stats"
+	"github.com/masa-finance/tee-worker/internal/jobs/tiktokapify"
+	"github.com/masa-finance/tee-worker/pkg/client"
 	"github.com/sirupsen/logrus"
 )
 
@@ -27,6 +29,7 @@ type TikTokTranscriptionConfiguration struct {
 	APIReferer            string `json:"tiktok_api_referer,omitempty"`
 	APIUserAgent          string `json:"tiktok_api_user_agent,omitempty"`
 	DefaultLanguage       string `json:"tiktok_default_language,omitempty"` // e.g., "eng-US"
+	ApifyApiKey           string `json:"apify_api_key,omitempty"`
 }
 
 // TikTokTranscriber is the main job struct for handling TikTok transcriptions.
@@ -38,8 +41,13 @@ type TikTokTranscriber struct {
 
 // GetStructuredCapabilities returns the structured capabilities supported by the TikTok transcriber
 func (t *TikTokTranscriber) GetStructuredCapabilities() teetypes.WorkerCapabilities {
+	caps := make([]teetypes.Capability, 0, len(teetypes.AlwaysAvailableTiktokCaps)+len(teetypes.TiktokSearchCaps))
+	caps = append(caps, teetypes.AlwaysAvailableTiktokCaps...)
+	if t.configuration.ApifyApiKey != "" {
+		caps = append(caps, teetypes.TiktokSearchCaps...)
+	}
 	return teetypes.WorkerCapabilities{
-		teetypes.TiktokJob: teetypes.AlwaysAvailableTiktokCaps,
+		teetypes.TiktokJob: caps,
 	}
 }
 
@@ -55,36 +63,40 @@ func NewTikTokTranscriber(jc types.JobConfiguration, statsCollector *stats.Stats
 
 	// Get configurable values from job configuration
 	if err := jc.Unmarshal(&config); err != nil {
-		logrus.WithError(err).Debug("TikTokTranscriber: Could not unmarshal job configuration, using all defaults")
+		logrus.WithError(err).Warn("failed to unmarshal TikTokTranscriptionConfiguration from JobConfiguration, using defaults where applicable")
+	}
+	// Ensure Apify key aligns with Twitter's pattern (explicit getter wins)
+	config.ApifyApiKey = jc.GetString("apify_api_key", config.ApifyApiKey)
+	if config.ApifyApiKey != "" {
+		if c, err := tiktokapify.NewTikTokApifyClient(config.ApifyApiKey); err != nil {
+			logrus.Errorf("Failed to create Apify client at startup: %v", err)
+		} else if err := c.ValidateApiKey(); err != nil {
+			logrus.Errorf("Apify API key validation failed at startup: %v", err)
+		} else {
+			logrus.Infof("Apify API key validated successfully at startup")
+		}
 	}
 
-	// Set defaults for configurable values if not provided
+	// Note: APIUserAgent is optional, it can be set later or use a default
+	if config.APIUserAgent == "" {
+		config.APIUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+	}
+
+	// If a default language is set in the configuration, use it
 	if config.DefaultLanguage == "" {
 		config.DefaultLanguage = "eng-US"
-	}
-
-	if config.APIUserAgent == "" {
-		config.APIUserAgent = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Mobile Safari/537.36"
-	}
-
-	// Log the actual configuration values being used
-	logrus.WithFields(logrus.Fields{
-		"transcription_endpoint": config.TranscriptionEndpoint,
-		"api_origin":             config.APIOrigin,
-		"api_referer":            config.APIReferer,
-		"api_user_agent":         config.APIUserAgent,
-		"default_language":       config.DefaultLanguage,
-	}).Info("TikTokTranscriber initialized with configuration")
-
-	httpClient := &http.Client{
-		Timeout: 30 * time.Second, // Sensible default timeout
 	}
 
 	return &TikTokTranscriber{
 		configuration: config,
 		stats:         statsCollector,
-		httpClient:    httpClient,
+		httpClient:    &http.Client{Timeout: 30 * time.Second},
 	}
+}
+
+// NewTikTokScraper is an alias constructor to align with Twitter's naming pattern
+func NewTikTokScraper(jc types.JobConfiguration, statsCollector *stats.StatsCollector) *TikTokTranscriber {
+	return NewTikTokTranscriber(jc, statsCollector)
 }
 
 // APIResponse is used to unmarshal the JSON response from the transcription API.
@@ -97,6 +109,35 @@ type APIResponse struct {
 
 // ExecuteJob processes a single TikTok transcription job.
 func (ttt *TikTokTranscriber) ExecuteJob(j types.Job) (types.JobResult, error) {
+	logrus.WithField("job_uuid", j.UUID).Info("Starting ExecuteJob for TikTok job")
+
+	// Use the centralized type-safe unmarshaller
+	jobArgs, err := teeargs.UnmarshalJobArguments(teetypes.JobType(j.Type), map[string]any(j.Arguments))
+	if err != nil {
+		return types.JobResult{Error: "Failed to unmarshal job arguments"}, fmt.Errorf("unmarshal job arguments: %w", err)
+	}
+
+	// Branch by argument type (transcription vs search)
+	if transcriptionArgs, ok := teeargs.AsTikTokTranscriptionArguments(jobArgs); ok {
+		return ttt.executeTranscription(j, transcriptionArgs)
+	}
+	if searchByQueryArgs, ok := teeargs.AsTikTokSearchByQueryArguments(jobArgs); ok {
+		return ttt.executeSearchByQuery(j, searchByQueryArgs)
+	}
+	if searchByTrendingArgs, ok := teeargs.AsTikTokSearchByTrendingArguments(jobArgs); ok {
+		return ttt.executeSearchByTrending(j, searchByTrendingArgs)
+	}
+
+	// Fallback: treat as searchbyquery (default capability)
+	searchByQueryArgs, ok := teeargs.AsTikTokSearchByQueryArguments(jobArgs)
+	if !ok {
+		return types.JobResult{Error: "invalid argument type for TikTok job"}, fmt.Errorf("invalid argument type")
+	}
+	return ttt.executeSearchByQuery(j, searchByQueryArgs)
+}
+
+// executeTranscription calls the external transcription service and returns a normalized result
+func (ttt *TikTokTranscriber) executeTranscription(j types.Job, a *teeargs.TikTokTranscriptionArguments) (types.JobResult, error) {
 	logrus.WithField("job_uuid", j.UUID).Info("Starting ExecuteJob for TikTok transcription")
 
 	if ttt.configuration.TranscriptionEndpoint == "" {
@@ -111,7 +152,7 @@ func (ttt *TikTokTranscriber) ExecuteJob(j types.Job) (types.JobResult, error) {
 	}
 
 	// Type assert to TikTok arguments
-	tiktokArgs, ok := teeargs.AsTikTokArguments(jobArgs)
+	tiktokArgs, ok := teeargs.AsTikTokTranscriptionArguments(jobArgs)
 	if !ok {
 		return types.JobResult{Error: "invalid argument type for TikTok job"}, fmt.Errorf("invalid argument type")
 	}
@@ -258,6 +299,76 @@ func (ttt *TikTokTranscriber) ExecuteJob(j types.Job) (types.JobResult, error) {
 	}).Info("Successfully processed TikTok transcription job")
 	ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionSuccess, 1)
 	return types.JobResult{Data: jsonData}, nil
+}
+
+// executeSearchByQuery runs the epctex/tiktok-search-scraper actor and returns results
+func (ttt *TikTokTranscriber) executeSearchByQuery(j types.Job, a *teeargs.TikTokSearchByQueryArguments) (types.JobResult, error) {
+	if ttt.configuration.ApifyApiKey == "" {
+		ttt.stats.Add(j.WorkerID, stats.TikTokErrors, 1)
+		return types.JobResult{Error: "Apify API key not configured for searchbyquery"}, fmt.Errorf("missing Apify API key")
+	}
+
+	c, err := tiktokapify.NewTikTokApifyClient(ttt.configuration.ApifyApiKey)
+	if err != nil {
+		ttt.stats.Add(j.WorkerID, stats.TikTokErrors, 1)
+		return types.JobResult{Error: "Failed to create Apify client"}, fmt.Errorf("apify client: %w", err)
+	}
+
+	limit := a.MaxItems
+	if limit <= 0 {
+		limit = 20
+	}
+
+	items, next, err := c.SearchByQuery(*a, client.EmptyCursor, limit)
+	if err != nil {
+		ttt.stats.Add(j.WorkerID, stats.TikTokErrors, 1)
+		return types.JobResult{Error: err.Error()}, err
+	}
+
+	data, err := json.Marshal(items)
+	if err != nil {
+		// Do not increment error stats for marshal errors; not the worker's fault
+		return types.JobResult{Error: "Failed to marshal results"}, fmt.Errorf("marshal results: %w", err)
+	}
+
+	// Increment returned videos based on the number of items
+	ttt.stats.Add(j.WorkerID, stats.TikTokVideos, uint(len(items)))
+	return types.JobResult{Data: data, NextCursor: next.String()}, nil
+}
+
+// executeSearchByTrending runs the lexis-solutions/tiktok-trending-videos-scraper actor and returns results
+func (ttt *TikTokTranscriber) executeSearchByTrending(j types.Job, a *teeargs.TikTokSearchByTrendingArguments) (types.JobResult, error) {
+	if ttt.configuration.ApifyApiKey == "" {
+		ttt.stats.Add(j.WorkerID, stats.TikTokErrors, 1)
+		return types.JobResult{Error: "Apify API key not configured for searchbytrending"}, fmt.Errorf("missing Apify API key")
+	}
+
+	c, err := tiktokapify.NewTikTokApifyClient(ttt.configuration.ApifyApiKey)
+	if err != nil {
+		ttt.stats.Add(j.WorkerID, stats.TikTokErrors, 1)
+		return types.JobResult{Error: "Failed to create Apify client"}, fmt.Errorf("apify client: %w", err)
+	}
+
+	limit := a.MaxItems
+	if limit <= 0 {
+		limit = 20
+	}
+
+	items, next, err := c.SearchByTrending(*a, client.EmptyCursor, limit)
+	if err != nil {
+		ttt.stats.Add(j.WorkerID, stats.TikTokErrors, 1)
+		return types.JobResult{Error: err.Error()}, err
+	}
+
+	data, err := json.Marshal(items)
+	if err != nil {
+		// Do not increment error stats for marshal errors; not the worker's fault
+		return types.JobResult{Error: "Failed to marshal results"}, fmt.Errorf("marshal results: %w", err)
+	}
+
+	// Increment returned videos based on the number of items
+	ttt.stats.Add(j.WorkerID, stats.TikTokVideos, uint(len(items)))
+	return types.JobResult{Data: data, NextCursor: next.String()}, nil
 }
 
 // convertVTTToPlainText parses a VTT string and extracts the dialogue lines.
