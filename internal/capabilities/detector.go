@@ -4,6 +4,7 @@ import (
 	"slices"
 	"strings"
 
+	util "github.com/masa-finance/tee-types/pkg/util"
 	teetypes "github.com/masa-finance/tee-types/types"
 	"github.com/masa-finance/tee-worker/api/types"
 	"github.com/masa-finance/tee-worker/internal/jobs/twitter"
@@ -63,13 +64,9 @@ func DetectCapabilities(jc types.JobConfiguration, jobServer JobServerInterface)
 		capabilities[teetypes.TwitterApifyJob] = teetypes.TwitterApifyCaps
 		// Merge TikTok search caps with any existing (keep transcription)
 		existing := capabilities[teetypes.TiktokJob]
-		merged := append([]teetypes.Capability{}, existing...)
-		for _, c := range teetypes.TiktokSearchCaps {
-			if !slices.Contains(merged, c) {
-				merged = append(merged, c)
-			}
-		}
-		capabilities[teetypes.TiktokJob] = merged
+		s := util.NewSet(existing...)
+		s.Add(teetypes.TiktokSearchCaps...)
+		capabilities[teetypes.TiktokJob] = s.Items()
 	}
 
 	// Add general TwitterJob capability if any Twitter auth is available
