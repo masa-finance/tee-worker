@@ -47,7 +47,6 @@ var _ = Describe("TikTok", func() {
 			jobArguments := map[string]interface{}{
 				"type":      teetypes.CapTranscription,
 				"video_url": videoURL,
-				"language":  "eng-US",
 				// default language is eng-US from tee types
 			}
 
