@@ -41,8 +41,10 @@ type RedditScraper struct {
 }
 
 func NewRedditScraper(jc types.JobConfiguration, statsCollector *stats.StatsCollector) *RedditScraper {
+	config := jc.GetRedditConfig()
+	logrus.Info("Reddit scraper via Apify initialized")
 	return &RedditScraper{
-		configuration:  jc.GetRedditConfig(),
+		configuration:  config,
 		statsCollector: statsCollector,
 		capabilities:   teetypes.RedditCaps,
 	}

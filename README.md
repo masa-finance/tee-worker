@@ -119,7 +119,7 @@ SIG=$(curl -s localhost:8080/job/generate \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${API_KEY}" \
   -d '{
-    "type": "web-scraper",
+    "type": "web",
     "arguments": {
       "url": "https://example.com",
       "depth": 1

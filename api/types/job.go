@@ -31,6 +31,10 @@ type Job struct {
 	Timeout      time.Duration    `json:"timeout"`
 }
 
+func (j Job) String() string {
+	return fmt.Sprintf("UUID: %s Type: %s Arguments: %s", j.UUID, j.Type, j.Arguments)
+}
+
 var letterRunes = []rune("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()_+")
 
 func randStringRunes(n int) string {
