@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -137,93 +138,167 @@ func (ttt *TikTokTranscriber) ExecuteJob(j types.Job) (types.JobResult, error) {
 
 // executeTranscription calls the external transcription service and returns a normalized result
 func (ttt *TikTokTranscriber) executeTranscription(j types.Job, a *teeargs.TikTokTranscriptionArguments) (types.JobResult, error) {
+	logrus.WithField("job_uuid", j.UUID).Info("Starting ExecuteJob for TikTok transcription")
+
 	if ttt.configuration.TranscriptionEndpoint == "" {
 		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1)
 		return types.JobResult{Error: "TikTok transcription endpoint is not configured for the worker"}, fmt.Errorf("tiktok transcription endpoint not configured")
 	}
 
-	reqBody := map[string]any{
-		"url": a.GetVideoURL(),
-	}
-	if a.HasLanguagePreference() {
-		reqBody["language"] = a.GetLanguageCode()
+	// Use the centralized type-safe unmarshaller
+	jobArgs, err := teeargs.UnmarshalJobArguments(teetypes.JobType(j.Type), map[string]any(j.Arguments))
+	if err != nil {
+		return types.JobResult{Error: "Failed to unmarshal job arguments"}, fmt.Errorf("unmarshal job arguments: %w", err)
 	}
 
-	payload, _ := json.Marshal(reqBody)
-	req, err := http.NewRequest(http.MethodPost, ttt.configuration.TranscriptionEndpoint, bytes.NewReader(payload))
-	if err != nil {
-		return types.JobResult{Error: "Failed to create request"}, fmt.Errorf("create request: %w", err)
+	// Type assert to TikTok arguments
+	tiktokArgs, ok := teeargs.AsTikTokTranscriptionArguments(jobArgs)
+	if !ok {
+		return types.JobResult{Error: "invalid argument type for TikTok job"}, fmt.Errorf("invalid argument type")
 	}
+
+	// Use interface methods; no need to downcast
+	logrus.WithField("job_uuid", j.UUID).Infof("TikTok arguments validated: video_url=%s, language=%s, has_language_preference=%t",
+		tiktokArgs.GetVideoURL(), tiktokArgs.GetLanguageCode(), tiktokArgs.HasLanguagePreference())
+
+	// VideoURL validation is now handled by the unmarshaller, but we check again for safety
+	if tiktokArgs.GetVideoURL() == "" {
+		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1)
+		return types.JobResult{Error: "VideoURL is required"}, fmt.Errorf("videoURL is required")
+	}
+
+	// Use the enhanced language selection logic
+	selectedLanguageKey := tiktokArgs.GetLanguageCode() // This handles defaults automatically
+	if tiktokArgs.HasLanguagePreference() {
+		logrus.WithField("job_uuid", j.UUID).Infof("Using custom language preference: %s", selectedLanguageKey)
+	} else {
+		logrus.WithField("job_uuid", j.UUID).Infof("Using default language: %s", selectedLanguageKey)
+	}
+
+	// Sub-Step 3.1: Call TikTok Transcription API
+	apiRequestBody := map[string]string{"url": tiktokArgs.GetVideoURL()}
+	jsonBody, err := json.Marshal(apiRequestBody)
+	if err != nil {
+		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1)
+		return types.JobResult{Error: "Failed to marshal API request body"}, fmt.Errorf("marshal API request body: %w", err)
+	}
+
+	req, err := http.NewRequest("POST", ttt.configuration.TranscriptionEndpoint, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1)
+		return types.JobResult{Error: "Failed to create API request"}, fmt.Errorf("create API request: %w", err)
+	}
+
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "application/json")
 	if ttt.configuration.APIOrigin != "" {
 		req.Header.Set("Origin", ttt.configuration.APIOrigin)
 	}
 	if ttt.configuration.APIReferer != "" {
 		req.Header.Set("Referer", ttt.configuration.APIReferer)
 	}
-	if ttt.configuration.APIUserAgent != "" {
-		req.Header.Set("User-Agent", ttt.configuration.APIUserAgent)
-	}
+	// User-Agent is set from config or default in NewTikTokTranscriber
+	req.Header.Set("User-Agent", ttt.configuration.APIUserAgent)
 
-	resp, err := ttt.httpClient.Do(req)
+	logrus.WithFields(logrus.Fields{
+		"job_uuid":     j.UUID,
+		"url":          tiktokArgs.GetVideoURL(),
+		"method":       "POST",
+		"api_endpoint": ttt.configuration.TranscriptionEndpoint,
+	}).Info("Calling TikTok Transcription API")
+
+	apiResp, err := ttt.httpClient.Do(req)
 	if err != nil {
 		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1)
-		return types.JobResult{Error: "Failed to call transcription endpoint"}, fmt.Errorf("http call: %w", err)
+		return types.JobResult{Error: "API request failed"}, fmt.Errorf("API request execution: %w", err)
 	}
-	defer resp.Body.Close()
+	defer apiResp.Body.Close()
 
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+	if apiResp.StatusCode != http.StatusOK {
+		// Try to read body for more error details from API
+		bodyBytes, _ := io.ReadAll(apiResp.Body)
+		errMsg := fmt.Sprintf("API request failed with status code %d. Response: %s", apiResp.StatusCode, string(bodyBytes))
+		logrus.WithField("job_uuid", j.UUID).Error(errMsg)
 		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1)
-		return types.JobResult{Error: fmt.Sprintf("transcription endpoint returned status %d", resp.StatusCode)}, fmt.Errorf("unexpected status %d", resp.StatusCode)
-	}
-
-	var apiResp APIResponse
-	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
-		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1)
-		return types.JobResult{Error: "Failed to parse response"}, fmt.Errorf("decode response: %w", err)
-	}
-	if apiResp.Error != "" {
-		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1)
-		return types.JobResult{Error: apiResp.Error}, fmt.Errorf("api error: %s", apiResp.Error)
+		return types.JobResult{Error: errMsg}, fmt.Errorf(errMsg)
 	}
 
-	// Pick transcript language
-	chosenLang := a.GetLanguageCode()
-	transcriptVTT, ok := apiResp.Transcripts[chosenLang]
-	if !ok {
-		for lang, v := range apiResp.Transcripts {
-			chosenLang = lang
-			transcriptVTT = v
-			break
-		}
-	}
-	if transcriptVTT == "" {
+	var parsedAPIResponse APIResponse
+	if err := json.NewDecoder(apiResp.Body).Decode(&parsedAPIResponse); err != nil {
 		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1)
-		return types.JobResult{Error: "no transcripts available in response"}, fmt.Errorf("no transcripts available")
+		return types.JobResult{Error: "Failed to parse API response"}, fmt.Errorf("parse API response: %w", err)
 	}
 
-	text, err := convertVTTToPlainText(transcriptVTT)
+	if parsedAPIResponse.Error != "" {
+		errMsg := fmt.Sprintf("API returned an error: %s", parsedAPIResponse.Error)
+		logrus.WithField("job_uuid", j.UUID).Error(errMsg)
+		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1)
+		return types.JobResult{Error: errMsg}, fmt.Errorf(errMsg)
+	}
+
+	// Sub-Step 3.2: Extract Transcription and Metadata
+	if len(parsedAPIResponse.Transcripts) == 0 {
+		errMsg := "No transcripts found in API response"
+		logrus.WithField("job_uuid", j.UUID).Warn(errMsg)
+		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1) // Or a different stat for "no_transcript_found"
+		return types.JobResult{Error: errMsg}, fmt.Errorf(errMsg)
+	}
+
+	vttText := ""
+
+	// Directly use the requested/default language; if missing, return an error
+	if transcript, ok := parsedAPIResponse.Transcripts[selectedLanguageKey]; ok && strings.TrimSpace(transcript) != "" {
+		vttText = transcript
+	} else {
+		errMsg := fmt.Sprintf("Transcript for requested language %s not found in API response", selectedLanguageKey)
+		logrus.WithFields(logrus.Fields{
+			"job_uuid":       j.UUID,
+			"requested_lang": selectedLanguageKey,
+		}).Error(errMsg)
+		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1)
+		return types.JobResult{Error: errMsg}, fmt.Errorf(errMsg)
+	}
+
+	if vttText == "" {
+		errMsg := "Suitable transcript could not be extracted from API response"
+		logrus.WithField("job_uuid", j.UUID).Error(errMsg)
+		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1)
+		return types.JobResult{Error: errMsg}, fmt.Errorf(errMsg)
+	}
+
+	logrus.Debugf("Job %s: Raw VTT content for language %s:\n%s", j.UUID, selectedLanguageKey, vttText)
+
+	// Convert VTT to Plain Text
+	plainTextTranscription, err := convertVTTToPlainText(vttText)
+	if err != nil {
+		// This error is more about our parsing than the API
+		errMsg := fmt.Sprintf("Failed to convert VTT to plain text: %v", err)
+		logrus.WithField("job_uuid", j.UUID).Error(errMsg)
+		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1)
+		return types.JobResult{Error: errMsg}, fmt.Errorf(errMsg)
+	}
+
+	// Process Result & Return
+	resultData := teetypes.TikTokTranscriptionResult{
+		TranscriptionText: plainTextTranscription,
+		DetectedLanguage:  selectedLanguageKey,
+		VideoTitle:        parsedAPIResponse.VideoTitle,
+		OriginalURL:       tiktokArgs.GetVideoURL(),
+		ThumbnailURL:      parsedAPIResponse.ThumbnailURL,
+	}
+
+	jsonData, err := json.Marshal(resultData)
 	if err != nil {
 		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1)
-		return types.JobResult{Error: "failed to parse transcript"}, fmt.Errorf("parse vtt: %w", err)
+		return types.JobResult{Error: "Failed to marshal result data"}, fmt.Errorf("marshal result data: %w", err)
 	}
 
-	result := teetypes.TikTokTranscriptionResult{
-		TranscriptionText: text,
-		DetectedLanguage:  chosenLang,
-		VideoTitle:        apiResp.VideoTitle,
-		OriginalURL:       a.GetVideoURL(),
-		ThumbnailURL:      apiResp.ThumbnailURL,
-	}
-
-	data, err := json.Marshal(result)
-	if err != nil {
-		return types.JobResult{Error: "failed to marshal result"}, fmt.Errorf("marshal result: %w", err)
-	}
-
+	logrus.WithFields(logrus.Fields{
+		"job_uuid":          j.UUID,
+		"video_title":       resultData.VideoTitle,
+		"detected_language": resultData.DetectedLanguage,
+	}).Info("Successfully processed TikTok transcription job")
 	ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionSuccess, 1)
-	return types.JobResult{Data: data}, nil
+	return types.JobResult{Data: jsonData}, nil
 }
 
 // executeSearchByQuery runs the epctex/tiktok-search-scraper actor and returns results
