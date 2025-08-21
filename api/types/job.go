@@ -202,3 +202,16 @@ func (jc JobConfiguration) GetTwitterConfig() TwitterScraperConfig {
 		SkipLoginVerification: jc.GetBool("skip_login_verification", false),
 	}
 }
+
+// RedditConfig represents the configuration needed for Reddit scraping via Apify
+type RedditConfig struct {
+	ApifyApiKey string
+}
+
+// GetRedditConfig constructs a RedditConfig directly from the JobConfiguration
+// This eliminates the need for JSON marshaling/unmarshaling
+func (jc JobConfiguration) GetRedditConfig() RedditConfig {
+	return RedditConfig{
+		ApifyApiKey: jc.GetString("apify_api_key", ""),
+	}
+}

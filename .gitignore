@@ -74,9 +74,13 @@ snippets.txt
 dist/
 bp-todo.md
 
+# Test files
 .masa/.env
+.masa/*
+
 # TEE
 tee/private.pem
-.aider*
 
-.masa/*
+# LLML
+.aider*
+GEMINI.md
