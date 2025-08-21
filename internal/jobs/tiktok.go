@@ -188,58 +188,22 @@ func (ttt *TikTokTranscriber) executeTranscription(j types.Job, a *teeargs.TikTo
 		return types.JobResult{Error: apiResp.Error}, fmt.Errorf("api error: %s", apiResp.Error)
 	}
 
-	// Sub-Step 3.2: Extract Transcription and Metadata
-	if len(parsedAPIResponse.Transcripts) == 0 {
-		errMsg := "No transcripts found in API response"
-		logrus.WithField("job_uuid", j.UUID).Warn(errMsg)
-		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1) // Or a different stat for "no_transcript_found"
-		return types.JobResult{Error: errMsg}, fmt.Errorf(errMsg)
+	// Pick transcript language
+	chosenLang := a.GetLanguageCode()
+	transcriptVTT, ok := apiResp.Transcripts[chosenLang]
+	if !ok {
+		for lang, v := range apiResp.Transcripts {
+			chosenLang = lang
+			transcriptVTT = v
+			break
+		}
 	}
-
-	vttText := ""
-
-	// Directly use the requested/default language; if missing, return an error
-	if transcript, ok := parsedAPIResponse.Transcripts[selectedLanguageKey]; ok && strings.TrimSpace(transcript) != "" {
-		vttText = transcript
-	} else {
-		errMsg := fmt.Sprintf("Transcript for requested language %s not found in API response", selectedLanguageKey)
-		logrus.WithFields(logrus.Fields{
-			"job_uuid":       j.UUID,
-			"requested_lang": selectedLanguageKey,
-		}).Error(errMsg)
-		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1)
-		return types.JobResult{Error: errMsg}, fmt.Errorf(errMsg)
-	}
-
-	if vttText == "" {
-		errMsg := "Suitable transcript could not be extracted from API response"
-		logrus.WithField("job_uuid", j.UUID).Error(errMsg)
+	if transcriptVTT == "" {
 		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1)
 		return types.JobResult{Error: "no transcripts available in response"}, fmt.Errorf("no transcripts available")
 	}
 
-	logrus.Debugf("Job %s: Raw VTT content for language %s:\n%s", j.UUID, selectedLanguageKey, vttText)
-
-	// Convert VTT to Plain Text
-	plainTextTranscription, err := convertVTTToPlainText(vttText)
-	if err != nil {
-		// This error is more about our parsing than the API
-		errMsg := fmt.Sprintf("Failed to convert VTT to plain text: %v", err)
-		logrus.WithField("job_uuid", j.UUID).Error(errMsg)
-		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1)
-		return types.JobResult{Error: errMsg}, fmt.Errorf(errMsg)
-	}
-
-	// Process Result & Return
-	resultData := teetypes.TikTokTranscriptionResult{
-		TranscriptionText: plainTextTranscription,
-		DetectedLanguage:  selectedLanguageKey,
-		VideoTitle:        parsedAPIResponse.VideoTitle,
-		OriginalURL:       tiktokArgs.GetVideoURL(),
-		ThumbnailURL:      parsedAPIResponse.ThumbnailURL,
-	}
-
-	jsonData, err := json.Marshal(resultData)
+	text, err := convertVTTToPlainText(transcriptVTT)
 	if err != nil {
 		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1)
 		return types.JobResult{Error: "failed to parse transcript"}, fmt.Errorf("parse vtt: %w", err)
