@@ -13,7 +13,7 @@ import (
 var _ = Describe("Response", func() {
 	Context("Unmarshalling JSON", func() {
 		It("should correctly unmarshal a UserResponse", func() {
-			jsonData := `{"type": "user", "id": "u1", "username": "testuser"}`
+			jsonData := `{"dataType": "user", "id": "u1", "username": "testuser"}`
 			var resp reddit.Response
 			err := json.Unmarshal([]byte(jsonData), &resp)
 			Expect(err).NotTo(HaveOccurred())
@@ -26,7 +26,7 @@ var _ = Describe("Response", func() {
 		})
 
 		It("should correctly unmarshal a PostResponse", func() {
-			jsonData := `{"type": "post", "id": "p1", "title": "Test Post"}`
+			jsonData := `{"dataType": "post", "id": "p1", "title": "Test Post"}`
 			var resp reddit.Response
 			err := json.Unmarshal([]byte(jsonData), &resp)
 			Expect(err).NotTo(HaveOccurred())
@@ -39,7 +39,7 @@ var _ = Describe("Response", func() {
 		})
 
 		It("should correctly unmarshal a CommentResponse", func() {
-			jsonData := `{"type": "comment", "id": "c1", "body": "Test Comment"}`
+			jsonData := `{"dataType": "comment", "id": "c1", "body": "Test Comment"}`
 			var resp reddit.Response
 			err := json.Unmarshal([]byte(jsonData), &resp)
 			Expect(err).NotTo(HaveOccurred())
@@ -52,7 +52,7 @@ var _ = Describe("Response", func() {
 		})
 
 		It("should correctly unmarshal a CommunityResponse", func() {
-			jsonData := `{"type": "community", "id": "co1", "name": "Test Community"}`
+			jsonData := `{"dataType": "community", "id": "co1", "name": "Test Community"}`
 			var resp reddit.Response
 			err := json.Unmarshal([]byte(jsonData), &resp)
 			Expect(err).NotTo(HaveOccurred())
@@ -65,11 +65,11 @@ var _ = Describe("Response", func() {
 		})
 
 		It("should return an error for an unknown type", func() {
-			jsonData := `{"type": "unknown", "id": "u1"}`
+			jsonData := `{"dataType": "unknown", "id": "u1"}`
 			var resp reddit.Response
 			err := json.Unmarshal([]byte(jsonData), &resp)
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("unknown Reddit response type: unknown"))
+			Expect(err.Error()).To(ContainSubstring("unknown Reddit response type during unmarshal: unknown"))
 		})
 
 		It("should return an error for invalid JSON", func() {
