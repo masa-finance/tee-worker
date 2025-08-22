@@ -7,6 +7,7 @@ import (
 	teetypes "github.com/masa-finance/tee-types/types"
 	"github.com/masa-finance/tee-worker/api/types"
 	"github.com/masa-finance/tee-worker/internal/jobs/twitter"
+	"maps"
 )
 
 // JobServerInterface defines the methods we need from JobServer to avoid circular dependencies
@@ -27,9 +28,7 @@ func DetectCapabilities(jc types.JobConfiguration, jobServer JobServerInterface)
 	capabilities := make(teetypes.WorkerCapabilities)
 
 	// Start with always available capabilities
-	for jobType, caps := range teetypes.AlwaysAvailableCapabilities {
-		capabilities[jobType] = caps
-	}
+	maps.Copy(capabilities, teetypes.AlwaysAvailableCapabilities)
 
 	// Check what Twitter authentication methods are available
 	accounts := jc.GetStringSlice("twitter_accounts", nil)
@@ -61,6 +60,7 @@ func DetectCapabilities(jc types.JobConfiguration, jobServer JobServerInterface)
 	// Add Apify-specific capabilities based on available API key
 	if hasApifyKey {
 		capabilities[teetypes.TwitterApifyJob] = teetypes.TwitterApifyCaps
+		capabilities[teetypes.RedditJob] = teetypes.RedditCaps
 	}
 
 	// Add general TwitterJob capability if any Twitter auth is available

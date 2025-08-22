@@ -53,7 +53,8 @@ var _ = Describe("Jobserver", func() {
 			Arguments: map[string]interface{}{
 				"url": "google",
 			},
-			Nonce: "1234567890",
+			Nonce:    "1234567890",
+			WorkerID: "miner3",
 		})
 
 		Expect(uuid).To(BeEmpty())
@@ -82,7 +83,8 @@ var _ = Describe("Jobserver", func() {
 			Arguments: map[string]interface{}{
 				"url": "google",
 			},
-			Nonce: "1234567890",
+			Nonce:    "1234567890",
+			WorkerID: "miner3",
 		})
 
 		Expect(uuid).ToNot(BeEmpty())

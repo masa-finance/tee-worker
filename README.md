@@ -80,28 +80,32 @@ The worker automatically detects and exposes capabilities based on available con
    - **Sub-capabilities**: `["transcription"]`
    - **Requirements**: None (always available)
 
+3. **`reddit`** - Reddit scraping services
+   - **Sub-capabilities**: `["scrapeurls","searchposts","searchusers","searchcommunities"]`
+   - **Requirements**: `APIFY_API_KEY` environment variable
+
 **Twitter Services (Configuration-Dependent):**
 
-3. **`twitter-credential`** - Twitter scraping with credentials
+4. **`twitter-credential`** - Twitter scraping with credentials
    - **Sub-capabilities**: `["searchbyquery", "searchbyfullarchive", "searchbyprofile", "getbyid", "getreplies", "getretweeters", "gettweets", "getmedia", "gethometweets", "getforyoutweets", "getprofilebyid", "gettrends", "getfollowing", "getfollowers", "getspace"]`
    - **Requirements**: `TWITTER_ACCOUNTS` environment variable
 
-4. **`twitter-api`** - Twitter scraping with API keys
+5. **`twitter-api`** - Twitter scraping with API keys
    - **Sub-capabilities**: `["searchbyquery", "getbyid", "getprofilebyid"]` (basic), plus `["searchbyfullarchive"]` for elevated API keys
    - **Requirements**: `TWITTER_API_KEYS` environment variable
 
-5. **`twitter`** - General Twitter scraping (uses best available auth)
+6. **`twitter`** - General Twitter scraping (uses best available auth)
    - **Sub-capabilities**: Dynamic based on available authentication (combines capabilities from credential, API, and Apify depending on what's configured)
    - **Requirements**: Either `TWITTER_ACCOUNTS`, `TWITTER_API_KEYS`, or `APIFY_API_KEY`
    - **Priority**: For follower/following operations: Apify > Credentials. For search operations: Credentials > API.
 
-6. **`twitter-apify`** - Twitter scraping using Apify's API (requires `APIFY_API_KEY`)
+7. **`twitter-apify`** - Twitter scraping using Apify's API (requires `APIFY_API_KEY`)
    - **Sub-capabilities**: `["getfollowers", "getfollowing"]`
    - **Requirements**: `APIFY_API_KEY` environment variable
 
 **Stats Service (Always Available):**
 
-7. **`telemetry`** - Worker monitoring and stats
+8. **`telemetry`** - Worker monitoring and stats
    - **Sub-capabilities**: `["telemetry"]`
    - **Requirements**: None (always available)
 
@@ -119,7 +123,7 @@ SIG=$(curl -s localhost:8080/job/generate \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${API_KEY}" \
   -d '{
-    "type": "web-scraper",
+    "type": "web",
     "arguments": {
       "url": "https://example.com",
       "depth": 1
@@ -197,6 +201,107 @@ Transcribes TikTok videos to text.
     "type": "transcription",
     "video_url": "https://www.tiktok.com/@coachty23/video/7502100651397172526",
     "language": "eng-US"
+  }
+}
+```
+
+#### Reddit Job Types
+
+There are four different types of Reddit searches:
+
+- `scrapeurls`: Gets the content of one or more Reddit URLs
+- `searchposts`: Searches posts and comments
+- `searchusers`: Searches user profiles
+- `searchcommunities`: Searches communities
+
+**Parameters** (all are optional except where noted)
+
+- `urls` (array of object with `url` and `query` keys, required for `scrapeurls`): Each element contains a Reddit URL to scrape together with the method (which by default will be `"GET"`).
+- `queries` (array of string, required for all job types except `scrapeurls`): Each element is a string to search for. 
+- `sort` (string) What to order by. Possible values are `"relevance"`, `"hot"`, `"top"`, `"new"`, `"rising"` and `"comments"`.
+- `include_nsfw` (boolean): Whether to include content tagged NSFW. Default is `false`.
+- `skip_posts`: (boolean): If `true`, `searchusers` will not return user posts. Default is `false`.
+- `after`: (string, ISO8601 timestamp): Only return entries created after this date/time.
+- `max_items` (nonnegative integer): How many items to load in the server cache (page through them using the cursor). Default is 10.
+- `max_results` (nonnegative integer): How many results to return per page. Default is 10.
+- `max_posts` (nonnegative integer): How many results to return per page. Default is 10.
+- `max_comments` (nonnegative integer): How many results to return per page maximum. Default is 10.
+- `max_communities` (nonnegative integer): How many results to return per page maximum. Default is 2.
+- `max_users` (nonnegative integer): How many users to return per page maximum. Default is 2.
+- `next_cursor` (string, optional): Pagination cursor.
+
+##### Reddit Search Operations
+
+**`scrapeurls`** - Scrape Reddit URLs
+
+``` json
+{
+  "type": "reddit",
+  "arguments": {
+    "type": "scrapeurls",
+    "urls": [
+      {
+        "url": "https://reddit.com/r/ArtificialIntelligence",
+        "method": "GET"
+      },
+      {
+        "url": "https://reddit.com/u/TheTelegraph"
+      }
+    ],
+    "sort": "new",
+    "include_nsfw": true,
+    "max_items": 100
+  }
+}
+```
+
+**`searchusers`** - Search Reddit users
+
+``` json
+{
+  "type": "reddit",
+  "arguments": {
+    "type": "searchusers",
+    "queries": [
+      "NASA",
+      "European Space Agency"
+    ],
+    "sort": "relevance",
+    "skip_posts": true,
+  }
+}
+```
+
+**`searchposts`** - Search Reddit posts
+
+``` json
+{
+  "type": "reddit",
+  "arguments": {
+    "type": "searchposts",
+    "queries": [
+      "NASA",
+      "European Space Agency"
+    ],
+    "max_items": 100,
+    "max_results": 10,
+    "max_posts": 5
+  }
+}
+```
+
+**`searchcommunities`** - Search Reddit posts
+
+``` json
+{
+  "type": "reddit",
+  "arguments": {
+    "type": "searchcommunities",
+    "queries": [
+      "Artificial Intelligence"
+    ],
+    "max_items": 100,
+    "max_results": 10,
   }
 }
 ```

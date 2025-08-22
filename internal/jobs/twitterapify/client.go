@@ -18,15 +18,15 @@ const (
 type FollowerActorRunRequest struct {
 	UserNames     []string `json:"user_names"`
 	UserIds       []string `json:"user_ids"`
-	MaxFollowers  int      `json:"maxFollowers"`
-	MaxFollowings int      `json:"maxFollowings"`
+	MaxFollowers  uint     `json:"maxFollowers"`
+	MaxFollowings uint     `json:"maxFollowings"`
 	GetFollowers  bool     `json:"getFollowers"`
 	GetFollowing  bool     `json:"getFollowing"`
 }
 
 // TwitterApifyClient wraps the generic Apify client for Twitter-specific operations
 type TwitterApifyClient struct {
-	apifyClient *client.ApifyClient
+	apifyClient client.Apify
 }
 
 // NewTwitterApifyClient creates a new Twitter Apify client
@@ -47,8 +47,8 @@ func (c *TwitterApifyClient) ValidateApiKey() error {
 }
 
 // GetFollowers retrieves followers for a username using Apify
-func (c *TwitterApifyClient) GetFollowers(username string, maxResults int, cursor client.Cursor) ([]*teetypes.ProfileResultApify, client.Cursor, error) {
-	minimum := 200
+func (c *TwitterApifyClient) GetFollowers(username string, maxResults uint, cursor client.Cursor) ([]*teetypes.ProfileResultApify, client.Cursor, error) {
+	minimum := uint(200)
 
 	// Ensure minimum of 200 as required by the actor
 	maxFollowers := util.Max(maxResults, minimum)
@@ -66,8 +66,8 @@ func (c *TwitterApifyClient) GetFollowers(username string, maxResults int, curso
 }
 
 // GetFollowing retrieves following for a username using Apify
-func (c *TwitterApifyClient) GetFollowing(username string, cursor client.Cursor, maxResults int) ([]*teetypes.ProfileResultApify, client.Cursor, error) {
-	minimum := 200
+func (c *TwitterApifyClient) GetFollowing(username string, cursor client.Cursor, maxResults uint) ([]*teetypes.ProfileResultApify, client.Cursor, error) {
+	minimum := uint(200)
 
 	// Ensure minimum of 200 as required by the actor
 	maxFollowings := util.Max(maxResults, minimum)
@@ -85,7 +85,7 @@ func (c *TwitterApifyClient) GetFollowing(username string, cursor client.Cursor,
 }
 
 // getProfiles runs the actor and retrieves profiles from the dataset
-func (c *TwitterApifyClient) getProfiles(input FollowerActorRunRequest, cursor client.Cursor, limit int) ([]*teetypes.ProfileResultApify, client.Cursor, error) {
+func (c *TwitterApifyClient) getProfiles(input FollowerActorRunRequest, cursor client.Cursor, limit uint) ([]*teetypes.ProfileResultApify, client.Cursor, error) {
 	dataset, nextCursor, err := c.apifyClient.RunActorAndGetResponse(TwitterFollowerActorID, input, cursor, limit)
 	if err != nil {
 		return nil, client.EmptyCursor, err

@@ -24,6 +24,12 @@ const (
 	ActorStatusAborted   = "ABORTED"
 )
 
+// Apify provides an interface for interacting with the Apify API.
+type Apify interface {
+	RunActorAndGetResponse(actorId string, input any, cursor Cursor, limit uint) (*DatasetResponse, Cursor, error)
+	ValidateApiKey() error
+}
+
 // ApifyClient represents a client for the Apify API
 type ApifyClient struct {
 	apiToken string
@@ -40,19 +46,22 @@ type ActorRunResponse struct {
 	} `json:"data"`
 }
 
+// ApifyDatasetData holds the items from an Apify dataset
+type ApifyDatasetData struct {
+	Items  []json.RawMessage `json:"items"`
+	Count  uint              `json:"count"`
+	Offset uint              `json:"offset"`
+	Limit  uint              `json:"limit"`
+}
+
 // DatasetResponse represents the response from getting dataset items
 type DatasetResponse struct {
-	Data struct {
-		Items  []json.RawMessage `json:"items"`
-		Count  int               `json:"count"`
-		Offset int               `json:"offset"`
-		Limit  int               `json:"limit"`
-	} `json:"data"`
+	Data ApifyDatasetData `json:"data"`
 }
 
 // CursorData represents the pagination data stored in cursor
 type CursorData struct {
-	Offset int `json:"offset"`
+	Offset uint `json:"offset"`
 }
 
 // Cursor represents an encoded CursorData
@@ -66,7 +75,7 @@ func (c Cursor) String() string {
 }
 
 // NewApifyClient creates a new Apify client with functional options
-func NewApifyClient(apiToken string, opts ...Option) (*ApifyClient, error) {
+func NewApifyClient(apiToken string, opts ...Option) (Apify, error) {
 	logrus.Info("Creating new ApifyClient with API token")
 
 	options, err := NewOptions(opts...)
@@ -87,7 +96,7 @@ func (c *ApifyClient) HTTPClient() *http.Client {
 }
 
 // RunActor runs an actor with the given input
-func (c *ApifyClient) RunActor(actorId string, input interface{}) (*ActorRunResponse, error) {
+func (c *ApifyClient) RunActor(actorId string, input any) (*ActorRunResponse, error) {
 	url := fmt.Sprintf("%s/acts/%s/runs?token=%s", c.baseUrl, actorId, c.apiToken)
 	logrus.Infof("Running actor %s", actorId)
 
@@ -184,7 +193,7 @@ func (c *ApifyClient) GetActorRun(runId string) (*ActorRunResponse, error) {
 }
 
 // GetDatasetItems gets items from a dataset with pagination
-func (c *ApifyClient) GetDatasetItems(datasetId string, offset, limit int) (*DatasetResponse, error) {
+func (c *ApifyClient) GetDatasetItems(datasetId string, offset, limit uint) (*DatasetResponse, error) {
 	url := fmt.Sprintf("%s/datasets/%s/items?token=%s&offset=%d&limit=%d",
 		c.baseUrl, datasetId, c.apiToken, offset, limit)
 	logrus.Debugf("Getting dataset items: %s (offset: %d, limit: %d)", datasetId, offset, limit)
@@ -226,14 +235,9 @@ func (c *ApifyClient) GetDatasetItems(datasetId string, offset, limit int) (*Dat
 
 	// Create a DatasetResponse object with the items and estimated pagination info
 	datasetResp := &DatasetResponse{
-		Data: struct {
-			Items  []json.RawMessage `json:"items"`
-			Count  int               `json:"count"`
-			Offset int               `json:"offset"`
-			Limit  int               `json:"limit"`
-		}{
+		Data: ApifyDatasetData{
 			Items:  items,
-			Count:  len(items),
+			Count:  uint(len(items)),
 			Offset: offset,
 			Limit:  limit,
 		},
@@ -286,8 +290,8 @@ var (
 )
 
 // runActorAndGetProfiles runs the actor and retrieves profiles from the dataset
-func (c *ApifyClient) RunActorAndGetResponse(actorId string, input any, cursor Cursor, limit int) (*DatasetResponse, Cursor, error) {
-	var offset int
+func (c *ApifyClient) RunActorAndGetResponse(actorId string, input any, cursor Cursor, limit uint) (*DatasetResponse, Cursor, error) {
+	var offset uint
 	if cursor != EmptyCursor {
 		offset = parseCursor(cursor)
 	}
@@ -339,12 +343,13 @@ PollLoop:
 
 	// 4. Generate next cursor if more data may be available
 	var nextCursor Cursor
-	if len(dataset.Data.Items) == limit {
-		nextCursor = generateCursor(offset + len(dataset.Data.Items))
-		logrus.Debugf("Generated next cursor for offset %d", offset+len(dataset.Data.Items))
+	if uint(len(dataset.Data.Items)) == limit {
+		nextOffset := offset + uint(len(dataset.Data.Items))
+		nextCursor = generateCursor(nextOffset)
+		logrus.Debugf("Generated next cursor for offset %d", nextOffset)
 	}
 
-	if len(dataset.Data.Items) == limit {
+	if uint(len(dataset.Data.Items)) == limit {
 		logrus.Infof("Successfully retrieved %d profiles; more may be available", len(dataset.Data.Items))
 	} else {
 		logrus.Infof("Successfully retrieved %d profiles", len(dataset.Data.Items))
@@ -353,7 +358,7 @@ PollLoop:
 }
 
 // parseCursor decodes a base64 cursor to get the offset
-func parseCursor(cursor Cursor) int {
+func parseCursor(cursor Cursor) uint {
 	if cursor == "" {
 		return 0
 	}
@@ -374,7 +379,7 @@ func parseCursor(cursor Cursor) int {
 }
 
 // generateCursor encodes an offset as a base64 cursor
-func generateCursor(offset int) Cursor {
+func generateCursor(offset uint) Cursor {
 	cursorData := CursorData{Offset: offset}
 	data, err := json.Marshal(cursorData)
 	if err != nil {
