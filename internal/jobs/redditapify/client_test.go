@@ -15,8 +15,6 @@ import (
 	teetypes "github.com/masa-finance/tee-types/types"
 )
 
-// FIXME: Really test with a live API key
-// FIXME: Fix documentation
 // MockApifyClient is a mock implementation of the ApifyClient.
 type MockApifyClient struct {
 	RunActorAndGetResponseFunc func(actorID string, input any, cursor client.Cursor, limit uint) (*client.DatasetResponse, client.Cursor, error)

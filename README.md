@@ -296,7 +296,7 @@ There are four different types of Reddit searches:
 {
   "type": "reddit",
   "arguments": {
-    "type": "searchposts",
+    "type": "searchcommunities",
     "queries": [
       "Artificial Intelligence"
     ],

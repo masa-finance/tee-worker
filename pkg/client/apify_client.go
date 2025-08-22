@@ -235,12 +235,7 @@ func (c *ApifyClient) GetDatasetItems(datasetId string, offset, limit uint) (*Da
 
 	// Create a DatasetResponse object with the items and estimated pagination info
 	datasetResp := &DatasetResponse{
-		Data: struct {
-			Items  []json.RawMessage `json:"items"`
-			Count  uint              `json:"count"`
-			Offset uint              `json:"offset"`
-			Limit  uint              `json:"limit"`
-		}{
+		Data: ApifyDatasetData{
 			Items:  items,
 			Count:  uint(len(items)),
 			Offset: offset,

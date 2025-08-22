@@ -59,7 +59,7 @@ func (r *RedditScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 		return types.JobResult{Error: msg.Error()}, msg
 	}
 
-	// Type assert to TikTok arguments
+	// Type assert to Reddit arguments
 	redditArgs, ok := jobArgs.(*teeargs.RedditArguments)
 	if !ok {
 		return types.JobResult{Error: "invalid argument type for Reddit job"}, errors.New("invalid argument type")
