@@ -16,7 +16,6 @@ import (
 type StatType string
 
 const (
-	// FIXME: Add Reddit stats!!!
 	TwitterScrapes             StatType = "twitter_scrapes"
 	TwitterTweets              StatType = "twitter_returned_tweets"
 	TwitterProfiles            StatType = "twitter_returned_profiles"

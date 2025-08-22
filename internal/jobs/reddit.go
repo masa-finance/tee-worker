@@ -19,7 +19,6 @@ import (
 	teetypes "github.com/masa-finance/tee-types/types"
 )
 
-// FIXME: Add stats!!!
 // RedditApifyClient defines the interface for the Reddit Apify client.
 // This allows for mocking in tests.
 type RedditApifyClient interface {
