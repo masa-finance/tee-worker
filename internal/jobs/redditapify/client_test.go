@@ -48,7 +48,7 @@ var _ = Describe("RedditApifyClient", func() {
 			return mockClient, nil
 		}
 		var err error
-		redditClient, err = redditapify.NewClient("test-token")
+		redditClient, err = redditapify.NewClient("test-token", nil)
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -72,7 +72,7 @@ var _ = Describe("RedditApifyClient", func() {
 				return &client.DatasetResponse{Data: client.ApifyDatasetData{Items: []json.RawMessage{}}}, "next", nil
 			}
 
-			_, _, err := redditClient.ScrapeUrls(urls, after, args, "", 100)
+			_, _, err := redditClient.ScrapeUrls("", urls, after, args, "", 100)
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})
@@ -96,7 +96,7 @@ var _ = Describe("RedditApifyClient", func() {
 				return &client.DatasetResponse{Data: client.ApifyDatasetData{Items: []json.RawMessage{}}}, "next", nil
 			}
 
-			_, _, err := redditClient.SearchPosts(queries, after, args, "", 100)
+			_, _, err := redditClient.SearchPosts("", queries, after, args, "", 100)
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})
@@ -116,7 +116,7 @@ var _ = Describe("RedditApifyClient", func() {
 				return &client.DatasetResponse{Data: client.ApifyDatasetData{Items: []json.RawMessage{}}}, "next", nil
 			}
 
-			_, _, err := redditClient.SearchCommunities(queries, args, "", 100)
+			_, _, err := redditClient.SearchCommunities("", queries, args, "", 100)
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})
@@ -137,7 +137,7 @@ var _ = Describe("RedditApifyClient", func() {
 				return &client.DatasetResponse{Data: client.ApifyDatasetData{Items: []json.RawMessage{}}}, "next", nil
 			}
 
-			_, _, err := redditClient.SearchUsers(queries, true, args, "", 100)
+			_, _, err := redditClient.SearchUsers("", queries, true, args, "", 100)
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})
@@ -148,7 +148,7 @@ var _ = Describe("RedditApifyClient", func() {
 			mockClient.RunActorAndGetResponseFunc = func(actorID string, input any, cursor client.Cursor, limit uint) (*client.DatasetResponse, client.Cursor, error) {
 				return nil, "", expectedErr
 			}
-			_, _, err := redditClient.SearchUsers([]string{"test"}, false, redditapify.CommonArgs{}, "", 10)
+			_, _, err := redditClient.SearchUsers("", []string{"test"}, false, redditapify.CommonArgs{}, "", 10)
 			Expect(err).To(MatchError(expectedErr))
 		})
 
@@ -165,7 +165,7 @@ var _ = Describe("RedditApifyClient", func() {
 
 			// This is a bit of a hack to test the private queryReddit method
 			// We call a public method that uses it
-			profiles, _, err := redditClient.SearchUsers([]string{"test"}, false, redditapify.CommonArgs{}, "", 10)
+			profiles, _, err := redditClient.SearchUsers("", []string{"test"}, false, redditapify.CommonArgs{}, "", 10)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(profiles).To(BeEmpty()) // The invalid item should be skipped
 		})
@@ -181,7 +181,7 @@ var _ = Describe("RedditApifyClient", func() {
 				return dataset, "next", nil
 			}
 
-			profiles, cursor, err := redditClient.SearchUsers([]string{"test"}, false, redditapify.CommonArgs{}, "", 10)
+			profiles, cursor, err := redditClient.SearchUsers("", []string{"test"}, false, redditapify.CommonArgs{}, "", 10)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(cursor).To(Equal(client.Cursor("next")))
 			Expect(profiles).To(HaveLen(1))

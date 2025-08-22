@@ -19,19 +19,20 @@ import (
 	teetypes "github.com/masa-finance/tee-types/types"
 )
 
+// FIXME: Add stats!!!
 // RedditApifyClient defines the interface for the Reddit Apify client.
 // This allows for mocking in tests.
 type RedditApifyClient interface {
-	ScrapeUrls(urls []teetypes.RedditStartURL, after time.Time, args redditapify.CommonArgs, cursor client.Cursor, maxResults uint) ([]*reddit.Response, client.Cursor, error)
-	SearchPosts(queries []string, after time.Time, args redditapify.CommonArgs, cursor client.Cursor, maxResults uint) ([]*reddit.Response, client.Cursor, error)
-	SearchCommunities(queries []string, args redditapify.CommonArgs, cursor client.Cursor, maxResults uint) ([]*reddit.Response, client.Cursor, error)
-	SearchUsers(queries []string, skipPosts bool, args redditapify.CommonArgs, cursor client.Cursor, maxResults uint) ([]*reddit.Response, client.Cursor, error)
+	ScrapeUrls(workerID string, urls []teetypes.RedditStartURL, after time.Time, args redditapify.CommonArgs, cursor client.Cursor, maxResults uint) ([]*reddit.Response, client.Cursor, error)
+	SearchPosts(workerID string, queries []string, after time.Time, args redditapify.CommonArgs, cursor client.Cursor, maxResults uint) ([]*reddit.Response, client.Cursor, error)
+	SearchCommunities(workerID string, queries []string, args redditapify.CommonArgs, cursor client.Cursor, maxResults uint) ([]*reddit.Response, client.Cursor, error)
+	SearchUsers(workerID string, queries []string, skipPosts bool, args redditapify.CommonArgs, cursor client.Cursor, maxResults uint) ([]*reddit.Response, client.Cursor, error)
 }
 
 // NewRedditApifyClient is a function variable that can be replaced in tests.
 // It defaults to the actual implementation.
-var NewRedditApifyClient = func(apiKey string) (RedditApifyClient, error) {
-	return redditapify.NewClient(apiKey)
+var NewRedditApifyClient = func(apiKey string, statsCollector *stats.StatsCollector) (RedditApifyClient, error) {
+	return redditapify.NewClient(apiKey, statsCollector)
 }
 
 type RedditScraper struct {
@@ -66,7 +67,7 @@ func (r *RedditScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 	}
 	logrus.Debugf("reddit job args: %+v", *redditArgs)
 
-	redditClient, err := NewRedditApifyClient(r.configuration.ApifyApiKey)
+	redditClient, err := NewRedditApifyClient(r.configuration.ApifyApiKey, r.statsCollector)
 	if err != nil {
 		return types.JobResult{Error: "error while scraping Reddit"}, fmt.Errorf("error creating Reddit Apify client: %w", err)
 	}
@@ -76,19 +77,19 @@ func (r *RedditScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 
 	switch redditArgs.QueryType {
 	case teetypes.RedditScrapeUrls:
-		resp, cursor, err := redditClient.ScrapeUrls(redditArgs.URLs, redditArgs.After, commonArgs, client.Cursor(redditArgs.NextCursor), redditArgs.MaxResults)
+		resp, cursor, err := redditClient.ScrapeUrls(j.WorkerID, redditArgs.URLs, redditArgs.After, commonArgs, client.Cursor(redditArgs.NextCursor), redditArgs.MaxResults)
 		return processRedditResponse(j, resp, cursor, err)
 
 	case teetypes.RedditSearchUsers:
-		resp, cursor, err := redditClient.SearchUsers(redditArgs.Queries, redditArgs.SkipPosts, commonArgs, client.Cursor(redditArgs.NextCursor), redditArgs.MaxResults)
+		resp, cursor, err := redditClient.SearchUsers(j.WorkerID, redditArgs.Queries, redditArgs.SkipPosts, commonArgs, client.Cursor(redditArgs.NextCursor), redditArgs.MaxResults)
 		return processRedditResponse(j, resp, cursor, err)
 
 	case teetypes.RedditSearchPosts:
-		resp, cursor, err := redditClient.SearchPosts(redditArgs.Queries, redditArgs.After, commonArgs, client.Cursor(redditArgs.NextCursor), redditArgs.MaxResults)
+		resp, cursor, err := redditClient.SearchPosts(j.WorkerID, redditArgs.Queries, redditArgs.After, commonArgs, client.Cursor(redditArgs.NextCursor), redditArgs.MaxResults)
 		return processRedditResponse(j, resp, cursor, err)
 
 	case teetypes.RedditSearchCommunities:
-		resp, cursor, err := redditClient.SearchCommunities(redditArgs.Queries, commonArgs, client.Cursor(redditArgs.NextCursor), redditArgs.MaxResults)
+		resp, cursor, err := redditClient.SearchCommunities(j.WorkerID, redditArgs.Queries, commonArgs, client.Cursor(redditArgs.NextCursor), redditArgs.MaxResults)
 		return processRedditResponse(j, resp, cursor, err)
 
 	default:
