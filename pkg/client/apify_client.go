@@ -32,9 +32,9 @@ type Apify interface {
 
 // ApifyClient represents a client for the Apify API
 type ApifyClient struct {
-	apiToken string
-	baseUrl  string
-	options  *Options
+	apiToken    string
+	baseUrl     string
+	httpOptions *Options
 }
 
 // ActorRunResponse represents the response from running an actor
@@ -84,15 +84,15 @@ func NewApifyClient(apiToken string, opts ...Option) (Apify, error) {
 	}
 
 	return &ApifyClient{
-		apiToken: apiToken,
-		baseUrl:  apifyBaseURL,
-		options:  options,
+		apiToken:    apiToken,
+		baseUrl:     apifyBaseURL,
+		httpOptions: options,
 	}, nil
 }
 
 // HTTPClient exposes the configured http client
 func (c *ApifyClient) HTTPClient() *http.Client {
-	return c.options.HttpClient
+	return c.httpOptions.HttpClient
 }
 
 // RunActor runs an actor with the given input
@@ -118,7 +118,7 @@ func (c *ApifyClient) RunActor(actorId string, input any) (*ActorRunResponse, er
 	req.Header.Add("Content-Type", "application/json")
 
 	// Make the request
-	resp, err := c.options.HttpClient.Do(req)
+	resp, err := c.httpOptions.HttpClient.Do(req)
 	if err != nil {
 		logrus.Errorf("error making POST request: %v", err)
 		return nil, fmt.Errorf("error making POST request: %w", err)
@@ -162,7 +162,7 @@ func (c *ApifyClient) GetActorRun(runId string) (*ActorRunResponse, error) {
 	}
 
 	// Make the request
-	resp, err := c.options.HttpClient.Do(req)
+	resp, err := c.httpOptions.HttpClient.Do(req)
 	if err != nil {
 		logrus.Errorf("error making GET request: %v", err)
 		return nil, fmt.Errorf("error making GET request: %w", err)
@@ -206,7 +206,7 @@ func (c *ApifyClient) GetDatasetItems(datasetId string, offset, limit uint) (*Da
 	}
 
 	// Make the request
-	resp, err := c.options.HttpClient.Do(req)
+	resp, err := c.httpOptions.HttpClient.Do(req)
 	if err != nil {
 		logrus.Errorf("error making GET request: %v", err)
 		return nil, fmt.Errorf("error making GET request: %w", err)
@@ -261,7 +261,7 @@ func (c *ApifyClient) ValidateApiKey() error {
 	}
 
 	// Make the request
-	resp, err := c.options.HttpClient.Do(req)
+	resp, err := c.httpOptions.HttpClient.Do(req)
 	if err != nil {
 		logrus.Errorf("error making auth test request: %v", err)
 		return fmt.Errorf("error making auth test request: %w", err)

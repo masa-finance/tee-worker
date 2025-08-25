@@ -8,6 +8,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/masa-finance/tee-worker/api/types/reddit"
+	"github.com/masa-finance/tee-worker/internal/jobs/stats"
 	"github.com/masa-finance/tee-worker/pkg/client"
 
 	teeargs "github.com/masa-finance/tee-types/args"
@@ -15,7 +16,7 @@ import (
 )
 
 const (
-	RedditActorID = "trudax~reddit-scraper"
+	RedditActorID = "trudax~reddit-scraper" // must rent this actor from apify explicitly
 )
 
 // CommonArgs holds the parameters that all Reddit searches support, in a single struct
@@ -75,7 +76,8 @@ type RedditActorRequest struct {
 
 // RedditApifyClient wraps the generic Apify client for Reddit-specific operations
 type RedditApifyClient struct {
-	apifyClient client.Apify
+	apifyClient    client.Apify
+	statsCollector *stats.StatsCollector
 }
 
 // NewInternalClient is a function variable that can be replaced in tests.
@@ -85,14 +87,15 @@ var NewInternalClient = func(apiKey string) (client.Apify, error) {
 }
 
 // NewClient creates a new Reddit Apify client
-func NewClient(apiToken string) (*RedditApifyClient, error) {
+func NewClient(apiToken string, statsCollector *stats.StatsCollector) (*RedditApifyClient, error) {
 	apifyClient, err := NewInternalClient(apiToken)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create apify client: %w", err)
 	}
 
 	return &RedditApifyClient{
-		apifyClient: apifyClient,
+		apifyClient:    apifyClient,
+		statsCollector: statsCollector,
 	}, nil
 }
 
@@ -102,7 +105,7 @@ func (c *RedditApifyClient) ValidateApiKey() error {
 }
 
 // ScrapeUrls scrapes Reddit URLs
-func (c *RedditApifyClient) ScrapeUrls(urls []teetypes.RedditStartURL, after time.Time, args CommonArgs, cursor client.Cursor, maxResults uint) ([]*reddit.Response, client.Cursor, error) {
+func (c *RedditApifyClient) ScrapeUrls(workerID string, urls []teetypes.RedditStartURL, after time.Time, args CommonArgs, cursor client.Cursor, maxResults uint) ([]*reddit.Response, client.Cursor, error) {
 	input := args.ToActorRequest()
 	input.StartUrls = urls
 	input.PostDateLimit = &after
@@ -113,11 +116,11 @@ func (c *RedditApifyClient) ScrapeUrls(urls []teetypes.RedditStartURL, after tim
 	input.SearchCommunities = true
 	input.SkipUserPosts = input.MaxPostCount == 0
 
-	return c.queryReddit(input, cursor, maxResults)
+	return c.queryReddit(workerID, input, cursor, maxResults)
 }
 
 // SearchPosts searches Reddit posts
-func (c *RedditApifyClient) SearchPosts(queries []string, after time.Time, args CommonArgs, cursor client.Cursor, maxResults uint) ([]*reddit.Response, client.Cursor, error) {
+func (c *RedditApifyClient) SearchPosts(workerID string, queries []string, after time.Time, args CommonArgs, cursor client.Cursor, maxResults uint) ([]*reddit.Response, client.Cursor, error) {
 	input := args.ToActorRequest()
 	input.Searches = queries
 	input.StartUrls = nil
@@ -127,22 +130,22 @@ func (c *RedditApifyClient) SearchPosts(queries []string, after time.Time, args 
 	input.SearchPosts = true
 	input.SkipComments = input.MaxComments == 0
 
-	return c.queryReddit(input, cursor, maxResults)
+	return c.queryReddit(workerID, input, cursor, maxResults)
 }
 
 // SearchCommunities searches Reddit communities
-func (c *RedditApifyClient) SearchCommunities(queries []string, args CommonArgs, cursor client.Cursor, maxResults uint) ([]*reddit.Response, client.Cursor, error) {
+func (c *RedditApifyClient) SearchCommunities(workerID string, queries []string, args CommonArgs, cursor client.Cursor, maxResults uint) ([]*reddit.Response, client.Cursor, error) {
 	input := args.ToActorRequest()
 	input.Searches = queries
 	input.StartUrls = nil
 	input.Type = "communities"
 	input.SearchCommunities = true
 
-	return c.queryReddit(input, cursor, maxResults)
+	return c.queryReddit(workerID, input, cursor, maxResults)
 }
 
 // SearchUsers searches Reddit users
-func (c *RedditApifyClient) SearchUsers(queries []string, skipPosts bool, args CommonArgs, cursor client.Cursor, maxResults uint) ([]*reddit.Response, client.Cursor, error) {
+func (c *RedditApifyClient) SearchUsers(workerID string, queries []string, skipPosts bool, args CommonArgs, cursor client.Cursor, maxResults uint) ([]*reddit.Response, client.Cursor, error) {
 	input := args.ToActorRequest()
 	input.Searches = queries
 	input.StartUrls = nil
@@ -150,13 +153,20 @@ func (c *RedditApifyClient) SearchUsers(queries []string, skipPosts bool, args C
 	input.Type = "users"
 	input.SearchUsers = true
 
-	return c.queryReddit(input, cursor, maxResults)
+	return c.queryReddit(workerID, input, cursor, maxResults)
 }
 
 // getProfiles runs the actor and retrieves profiles from the dataset
-func (c *RedditApifyClient) queryReddit(input RedditActorRequest, cursor client.Cursor, limit uint) ([]*reddit.Response, client.Cursor, error) {
+func (c *RedditApifyClient) queryReddit(workerID string, input RedditActorRequest, cursor client.Cursor, limit uint) ([]*reddit.Response, client.Cursor, error) {
+	if c.statsCollector != nil {
+		c.statsCollector.Add(workerID, stats.RedditQueries, 1)
+	}
+
 	dataset, nextCursor, err := c.apifyClient.RunActorAndGetResponse(RedditActorID, input, cursor, limit)
 	if err != nil {
+		if c.statsCollector != nil {
+			c.statsCollector.Add(workerID, stats.RedditErrors, 1)
+		}
 		return nil, client.EmptyCursor, err
 	}
 
@@ -168,6 +178,10 @@ func (c *RedditApifyClient) queryReddit(input RedditActorRequest, cursor client.
 			continue
 		}
 		response = append(response, &resp)
+	}
+
+	if c.statsCollector != nil {
+		c.statsCollector.Add(workerID, stats.RedditReturnedItems, uint(len(response)))
 	}
 
 	return response, nextCursor, nil

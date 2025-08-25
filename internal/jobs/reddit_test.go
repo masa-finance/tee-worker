@@ -27,7 +27,7 @@ type MockRedditApifyClient struct {
 	SearchUsersFunc       func(queries []string, skipPosts bool, args redditapify.CommonArgs, cursor client.Cursor, maxResults uint) ([]*reddit.Response, client.Cursor, error)
 }
 
-func (m *MockRedditApifyClient) ScrapeUrls(urls []teetypes.RedditStartURL, after time.Time, args redditapify.CommonArgs, cursor client.Cursor, maxResults uint) ([]*reddit.Response, client.Cursor, error) {
+func (m *MockRedditApifyClient) ScrapeUrls(_ string, urls []teetypes.RedditStartURL, after time.Time, args redditapify.CommonArgs, cursor client.Cursor, maxResults uint) ([]*reddit.Response, client.Cursor, error) {
 	if m != nil && m.ScrapeUrlsFunc != nil {
 		res, cursor, err := m.ScrapeUrlsFunc(urls, after, args, cursor, maxResults)
 		for i, r := range res {
@@ -38,21 +38,21 @@ func (m *MockRedditApifyClient) ScrapeUrls(urls []teetypes.RedditStartURL, after
 	return nil, "", nil
 }
 
-func (m *MockRedditApifyClient) SearchPosts(queries []string, after time.Time, args redditapify.CommonArgs, cursor client.Cursor, maxResults uint) ([]*reddit.Response, client.Cursor, error) {
+func (m *MockRedditApifyClient) SearchPosts(_ string, queries []string, after time.Time, args redditapify.CommonArgs, cursor client.Cursor, maxResults uint) ([]*reddit.Response, client.Cursor, error) {
 	if m != nil && m.SearchPostsFunc != nil {
 		return m.SearchPostsFunc(queries, after, args, cursor, maxResults)
 	}
 	return nil, "", nil
 }
 
-func (m *MockRedditApifyClient) SearchCommunities(queries []string, args redditapify.CommonArgs, cursor client.Cursor, maxResults uint) ([]*reddit.Response, client.Cursor, error) {
+func (m *MockRedditApifyClient) SearchCommunities(_ string, queries []string, args redditapify.CommonArgs, cursor client.Cursor, maxResults uint) ([]*reddit.Response, client.Cursor, error) {
 	if m != nil && m.SearchCommunitiesFunc != nil {
 		return m.SearchCommunitiesFunc(queries, args, cursor, maxResults)
 	}
 	return nil, "", nil
 }
 
-func (m *MockRedditApifyClient) SearchUsers(queries []string, skipPosts bool, args redditapify.CommonArgs, cursor client.Cursor, maxResults uint) ([]*reddit.Response, client.Cursor, error) {
+func (m *MockRedditApifyClient) SearchUsers(_ string, queries []string, skipPosts bool, args redditapify.CommonArgs, cursor client.Cursor, maxResults uint) ([]*reddit.Response, client.Cursor, error) {
 	if m != nil && m.SearchUsersFunc != nil {
 		return m.SearchUsersFunc(queries, skipPosts, args, cursor, maxResults)
 	}
@@ -76,7 +76,7 @@ var _ = Describe("RedditScraper", func() {
 		mockClient = &MockRedditApifyClient{}
 
 		// Replace the client creation function with one that returns the mock
-		jobs.NewRedditApifyClient = func(apiKey string) (jobs.RedditApifyClient, error) {
+		jobs.NewRedditApifyClient = func(apiKey string, _ *stats.StatsCollector) (jobs.RedditApifyClient, error) {
 			return mockClient, nil
 		}
 
@@ -216,7 +216,7 @@ var _ = Describe("RedditScraper", func() {
 		})
 
 		It("should handle errors when creating the client", func() {
-			jobs.NewRedditApifyClient = func(apiKey string) (jobs.RedditApifyClient, error) {
+			jobs.NewRedditApifyClient = func(apiKey string, _ *stats.StatsCollector) (jobs.RedditApifyClient, error) {
 				return nil, errors.New("client creation failed")
 			}
 			job.Arguments = map[string]any{

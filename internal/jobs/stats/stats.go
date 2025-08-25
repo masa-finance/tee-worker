@@ -30,6 +30,9 @@ const (
 	WebInvalid                 StatType = "web_invalid"
 	TikTokTranscriptionSuccess StatType = "tiktok_transcription_success"
 	TikTokTranscriptionErrors  StatType = "tiktok_transcription_errors"
+	RedditReturnedItems        StatType = "reddit_returned_items"
+	RedditQueries              StatType = "reddit_queries"
+	RedditErrors               StatType = "reddit_errors"
 	// TODO: Should we add stats for calls to each of the Twitter capabilities to decouple business / scoring logic?
 )
 
