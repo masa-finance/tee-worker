@@ -108,8 +108,10 @@ func (c *RedditApifyClient) ValidateApiKey() error {
 func (c *RedditApifyClient) ScrapeUrls(workerID string, urls []teetypes.RedditStartURL, after time.Time, args CommonArgs, cursor client.Cursor, maxResults uint) ([]*reddit.Response, client.Cursor, error) {
 	input := args.ToActorRequest()
 	input.StartUrls = urls
-	input.PostDateLimit = &after
 	input.Searches = nil
+	if after.IsZero() {
+		input.PostDateLimit = &after
+	}
 	input.SearchUsers = true
 	input.SearchComments = true
 	input.SearchPosts = true
@@ -124,6 +126,9 @@ func (c *RedditApifyClient) SearchPosts(workerID string, queries []string, after
 	input := args.ToActorRequest()
 	input.Searches = queries
 	input.StartUrls = nil
+	if after.IsZero() {
+		input.PostDateLimit = &after
+	}
 	input.PostDateLimit = &after
 	input.Type = "posts"
 
