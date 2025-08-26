@@ -354,7 +354,7 @@ func (ttt *TikTokTranscriber) executeSearchByTrending(j types.Job, a *teeargs.Ti
 		limit = 20
 	}
 
-	items, next, err := c.SearchByTrending(*a, client.EmptyCursor, limit)
+	items, next, err := c.SearchByTrending(*a, client.EmptyCursor, uint(limit))
 	if err != nil {
 		ttt.stats.Add(j.WorkerID, stats.TikTokErrors, 1)
 		return types.JobResult{Error: err.Error()}, err
