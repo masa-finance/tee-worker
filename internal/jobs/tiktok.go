@@ -319,6 +319,7 @@ func (ttt *TikTokTranscriber) executeSearchByQuery(j types.Job, a *teeargs.TikTo
 
 	// Increment returned videos based on the number of items
 	ttt.stats.Add(j.WorkerID, stats.TikTokVideos, uint(len(items)))
+	ttt.stats.Add(j.WorkerID, stats.TikTokQueries, 1)
 	return types.JobResult{Data: data, NextCursor: next.String()}, nil
 }
 
@@ -349,6 +350,7 @@ func (ttt *TikTokTranscriber) executeSearchByTrending(j types.Job, a *teeargs.Ti
 
 	// Increment returned videos based on the number of items
 	ttt.stats.Add(j.WorkerID, stats.TikTokVideos, uint(len(items)))
+	ttt.stats.Add(j.WorkerID, stats.TikTokQueries, 1)
 	return types.JobResult{Data: data, NextCursor: next.String()}, nil
 }
 
