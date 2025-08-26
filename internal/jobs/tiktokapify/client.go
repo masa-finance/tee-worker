@@ -15,6 +15,21 @@ const (
 	TrendingActorID = "lexis-solutions~tiktok-trending-videos-scraper" // must rent this actor from apify explicitly
 )
 
+type TikTokSearchByQueryRequest struct {
+	SearchTerms []string       `json:"search"`
+	StartUrls   []string       `json:"startUrls"`
+	MaxItems    uint           `json:"maxItems"`
+	EndPage     uint           `json:"endPage"`
+	Proxy       map[string]any `json:"proxy"`
+}
+
+type TikTokSearchByTrendingRequest struct {
+	CountryCode string `json:"countryCode"`
+	SortBy      string `json:"sortBy"`
+	MaxItems    uint   `json:"maxItems"`
+	Period      string `json:"period"`
+}
+
 type TikTokApifyClient struct {
 	apify client.Apify
 }
@@ -44,12 +59,24 @@ func (c *TikTokApifyClient) SearchByQuery(input teeargs.TikTokSearchByQueryArgum
 		searchTerms = []string{}
 	}
 
-	apifyInput := map[string]any{
-		"search":    searchTerms,
-		"startUrls": startUrls,
-		"maxItems":  input.MaxItems,
-		"endPage":   input.EndPage,
-		"proxy":     map[string]any{"useApifyProxy": true},
+	// Create structured request using the TikTokSearchByQueryRequest struct
+	request := TikTokSearchByQueryRequest{
+		SearchTerms: searchTerms,
+		StartUrls:   startUrls,
+		MaxItems:    input.MaxItems,
+		EndPage:     input.EndPage,
+		Proxy:       map[string]any{"useApifyProxy": true},
+	}
+
+	// Convert struct to map[string]any for Apify client
+	requestBytes, err := json.Marshal(request)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	var apifyInput map[string]any
+	if err := json.Unmarshal(requestBytes, &apifyInput); err != nil {
+		return nil, "", fmt.Errorf("failed to unmarshal to map: %w", err)
 	}
 
 	dataset, next, err := c.apify.RunActorAndGetResponse(SearchActorID, apifyInput, cursor, limit)
@@ -61,7 +88,7 @@ func (c *TikTokApifyClient) SearchByQuery(input teeargs.TikTokSearchByQueryArgum
 	for _, raw := range dataset.Data.Items {
 		var item teetypes.TikTokSearchByQueryResult
 		if err := json.Unmarshal(raw, &item); err != nil {
-			// If structure differs for some items, skip
+			// Skip any items whose structure doesn't match
 			continue
 		}
 		results = append(results, &item)
@@ -71,11 +98,21 @@ func (c *TikTokApifyClient) SearchByQuery(input teeargs.TikTokSearchByQueryArgum
 
 // SearchByTrending runs the trending actor and returns typed results
 func (c *TikTokApifyClient) SearchByTrending(input teeargs.TikTokSearchByTrendingArguments, cursor client.Cursor, limit uint) ([]*teetypes.TikTokSearchByTrending, client.Cursor, error) {
-	apifyInput := map[string]any{
-		"countryCode": input.CountryCode,
-		"sortBy":      input.SortBy,
-		"maxItems":    input.MaxItems,
-		"period":      input.Period,
+	request := TikTokSearchByTrendingRequest{
+		CountryCode: input.CountryCode,
+		SortBy:      input.SortBy,
+		MaxItems:    uint(input.MaxItems),
+		Period:      input.Period,
+	}
+
+	requestBytes, err := json.Marshal(request)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	var apifyInput map[string]any
+	if err := json.Unmarshal(requestBytes, &apifyInput); err != nil {
+		return nil, "", fmt.Errorf("failed to unmarshal to map: %w", err)
 	}
 
 	dataset, next, err := c.apify.RunActorAndGetResponse(TrendingActorID, apifyInput, cursor, limit)
