@@ -111,3 +111,16 @@ func processRedditResponse(j types.Job, resp []*reddit.Response, cursor client.C
 		NextCursor: cursor.String(),
 	}, nil
 }
+
+// GetStructuredCapabilities returns the structured capabilities supported by this Twitter scraper
+// based on the available credentials and API keys
+func (rs *RedditScraper) GetStructuredCapabilities() teetypes.WorkerCapabilities {
+	capabilities := make(teetypes.WorkerCapabilities)
+
+	// Add Apify-specific capabilities based on available API key
+	if rs.configuration.ApifyApiKey != "" {
+		capabilities[teetypes.RedditJob] = teetypes.RedditCaps
+	}
+
+	return capabilities
+}

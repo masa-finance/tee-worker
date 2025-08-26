@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	teetypes "github.com/masa-finance/tee-types/types"
 	"github.com/masa-finance/tee-worker/api/types"
 	"github.com/sirupsen/logrus"
 )
@@ -25,6 +26,7 @@ func (js *JobServer) worker(c context.Context) {
 }
 
 type worker interface {
+	GetStructuredCapabilities() teetypes.WorkerCapabilities
 	ExecuteJob(j types.Job) (types.JobResult, error)
 }
 
