@@ -147,6 +147,7 @@ func (ts *TwitterScraper) getApiScraper(j types.Job) (*twitterx.TwitterXScraper,
 
 // getApifyScraper returns an Apify client
 func (ts *TwitterScraper) getApifyScraper(j types.Job) (*twitterapify.TwitterApifyClient, error) {
+	// TODO: We should verify whether each of the actors is actually available through this API key
 	if ts.configuration.ApifyApiKey == "" {
 		ts.statsCollector.Add(j.WorkerID, stats.TwitterAuthErrors, 1)
 		return nil, fmt.Errorf("no Apify API key available")
@@ -980,6 +981,7 @@ func NewTwitterScraper(jc types.JobConfiguration, c *stats.StatsCollector) *Twit
 	accountManager.DetectAllApiKeyTypes()
 
 	// Validate Apify API key at startup if provided (similar to API key detection)
+	// TODO: We should verify whether each of the actors is actually available through this API key
 	if config.ApifyApiKey != "" {
 		apifyScraper, err := twitterapify.NewTwitterApifyClient(config.ApifyApiKey)
 		if err != nil {
@@ -1058,6 +1060,7 @@ func (ts *TwitterScraper) GetStructuredCapabilities() teetypes.WorkerCapabilitie
 	}
 
 	// Add Apify-specific capabilities based on available API key
+	// TODO: We should verify whether each of the actors is actually available through this API key
 	if ts.configuration.ApifyApiKey != "" {
 		capabilities[teetypes.TwitterApifyJob] = teetypes.TwitterApifyCaps
 	}
@@ -1181,6 +1184,7 @@ func (s *DefaultScrapeStrategy) Execute(j types.Job, ts *TwitterScraper, jobArgs
 	switch capability {
 	case teetypes.CapGetFollowers, teetypes.CapGetFollowing:
 		// Priority: Apify > Credentials for general TwitterJob
+		// TODO: We should verify whether each of the actors is actually available through this API key
 		if ts.configuration.ApifyApiKey != "" {
 			// Use Apify strategy
 			apifyStrategy := &ApifyScrapeStrategy{}
