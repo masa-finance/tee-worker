@@ -612,7 +612,7 @@ func main() {
 
     // Step 1: Create the job request
     job := types.Job{
-        Type: "web-scraper",
+        Type: "web",
         Arguments: map[string]interface{}{
             "url": "https://google.com",
             "depth": 1,
