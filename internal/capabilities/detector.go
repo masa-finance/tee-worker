@@ -4,6 +4,8 @@ import (
 	"slices"
 	"strings"
 
+	"maps"
+
 	util "github.com/masa-finance/tee-types/pkg/util"
 	teetypes "github.com/masa-finance/tee-types/types"
 	"github.com/masa-finance/tee-worker/api/types"
@@ -28,9 +30,7 @@ func DetectCapabilities(jc types.JobConfiguration, jobServer JobServerInterface)
 	capabilities := make(teetypes.WorkerCapabilities)
 
 	// Start with always available capabilities
-	for jobType, caps := range teetypes.AlwaysAvailableCapabilities {
-		capabilities[jobType] = caps
-	}
+	maps.Copy(capabilities, teetypes.AlwaysAvailableCapabilities)
 
 	// Check what Twitter authentication methods are available
 	accounts := jc.GetStringSlice("twitter_accounts", nil)
@@ -62,11 +62,14 @@ func DetectCapabilities(jc types.JobConfiguration, jobServer JobServerInterface)
 	// Add Apify-specific capabilities based on available API key
 	if hasApifyKey {
 		capabilities[teetypes.TwitterApifyJob] = teetypes.TwitterApifyCaps
-		// Merge TikTok search caps with any existing (keep transcription)
+		capabilities[teetypes.RedditJob] = teetypes.RedditCaps
+
+		// Merge TikTok search caps with any existing
 		existing := capabilities[teetypes.TiktokJob]
 		s := util.NewSet(existing...)
 		s.Add(teetypes.TiktokSearchCaps...)
 		capabilities[teetypes.TiktokJob] = s.Items()
+
 	}
 
 	// Add general TwitterJob capability if any Twitter auth is available

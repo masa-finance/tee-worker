@@ -108,7 +108,7 @@ func result(c echo.Context) error {
 
 	result, err := payload.Unseal()
 	if err != nil {
-		logrus.Errorf("Error while binding for getting result: %s", err)
+		logrus.Errorf("Error while unsealing payload for getting result: %s", err)
 		return c.JSON(http.StatusInternalServerError, types.JobError{Error: err.Error()})
 	}
 

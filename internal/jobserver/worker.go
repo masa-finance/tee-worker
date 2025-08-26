@@ -46,7 +46,10 @@ func (js *JobServer) doWork(j types.Job) error {
 
 	result, err := w.w.ExecuteJob(j)
 	if err != nil {
-		result.Error = err.Error()
+		logrus.Infof("Error executing job type %s: %s", j.Type, err.Error())
+		if len(result.Error) == 0 {
+			result.Error = err.Error()
+		}
 	}
 
 	result.Job = j

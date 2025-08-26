@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/masa-finance/tee-types/args"
 	teeargs "github.com/masa-finance/tee-types/args"
 	teetypes "github.com/masa-finance/tee-types/types"
 
@@ -266,7 +265,7 @@ func (ts *TwitterScraper) queryTweetsWithCredentials(j types.Job, baseDir string
 	return ts.scrapeTweetsWithCredentials(j, query, count, scraper, account)
 }
 
-func (ts *TwitterScraper) queryTweetsWithApiKey(j types.Job, baseQueryEndpoint string, baseDir string, query string, count int) ([]*teetypes.TweetResult, error) {
+func (ts *TwitterScraper) queryTweetsWithApiKey(j types.Job, baseQueryEndpoint string, query string, count int) ([]*teetypes.TweetResult, error) {
 	twitterXScraper, apiKey, err := ts.getApiScraper(j)
 	if err != nil {
 		return nil, err
@@ -392,12 +391,6 @@ EndLoop:
 	logrus.Infof("Scraped %d tweets (target: %d) using API key for query: %s", len(tweets), count, query)
 	ts.statsCollector.Add(j.WorkerID, stats.TwitterTweets, uint(len(tweets)))
 	return tweets, nil
-}
-
-func (ts *TwitterScraper) scrapeTweetsWithApiKey(j types.Job, baseQueryEndpoint string, query string, count int, apiKey *twitter.TwitterApiKey) ([]*teetypes.TweetResult, error) {
-	apiClient := client.NewTwitterXClient(apiKey.Key)
-	twitterXScraper := twitterx.NewTwitterXScraper(apiClient)
-	return ts.scrapeTweets(j, baseQueryEndpoint, query, count, twitterXScraper, apiKey)
 }
 
 func (ts *TwitterScraper) ScrapeTweetByID(j types.Job, baseDir string, tweetID string) (*teetypes.TweetResult, error) {
@@ -880,7 +873,7 @@ func (ts *TwitterScraper) GetFollowing(j types.Job, baseDir, username string, co
 }
 
 // getFollowersApify retrieves followers using Apify
-func (ts *TwitterScraper) getFollowersApify(j types.Job, username string, maxResults int, cursor client.Cursor) ([]*teetypes.ProfileResultApify, client.Cursor, error) {
+func (ts *TwitterScraper) getFollowersApify(j types.Job, username string, maxResults uint, cursor client.Cursor) ([]*teetypes.ProfileResultApify, client.Cursor, error) {
 	apifyScraper, err := ts.getApifyScraper(j)
 	if err != nil {
 		return nil, "", err
@@ -898,7 +891,7 @@ func (ts *TwitterScraper) getFollowersApify(j types.Job, username string, maxRes
 }
 
 // getFollowingApify retrieves following using Apify
-func (ts *TwitterScraper) getFollowingApify(j types.Job, username string, maxResults int, cursor client.Cursor) ([]*teetypes.ProfileResultApify, client.Cursor, error) {
+func (ts *TwitterScraper) getFollowingApify(j types.Job, username string, maxResults uint, cursor client.Cursor) ([]*teetypes.ProfileResultApify, client.Cursor, error) {
 	apifyScraper, err := ts.getApifyScraper(j)
 	if err != nil {
 		return nil, "", err
@@ -1101,7 +1094,7 @@ func (ts *TwitterScraper) GetStructuredCapabilities() teetypes.WorkerCapabilitie
 }
 
 type TwitterScrapeStrategy interface {
-	Execute(j types.Job, ts *TwitterScraper, jobArgs *args.TwitterSearchArguments) (types.JobResult, error)
+	Execute(j types.Job, ts *TwitterScraper, jobArgs *teeargs.TwitterSearchArguments) (types.JobResult, error)
 }
 
 func getScrapeStrategy(jobType teetypes.JobType) TwitterScrapeStrategy {
@@ -1119,7 +1112,7 @@ func getScrapeStrategy(jobType teetypes.JobType) TwitterScrapeStrategy {
 
 type CredentialScrapeStrategy struct{}
 
-func (s *CredentialScrapeStrategy) Execute(j types.Job, ts *TwitterScraper, jobArgs *args.TwitterSearchArguments) (types.JobResult, error) {
+func (s *CredentialScrapeStrategy) Execute(j types.Job, ts *TwitterScraper, jobArgs *teeargs.TwitterSearchArguments) (types.JobResult, error) {
 	capability := jobArgs.GetCapability()
 	switch capability {
 	case teetypes.CapSearchByQuery:
@@ -1136,14 +1129,14 @@ func (s *CredentialScrapeStrategy) Execute(j types.Job, ts *TwitterScraper, jobA
 
 type ApiKeyScrapeStrategy struct{}
 
-func (s *ApiKeyScrapeStrategy) Execute(j types.Job, ts *TwitterScraper, jobArgs *args.TwitterSearchArguments) (types.JobResult, error) {
+func (s *ApiKeyScrapeStrategy) Execute(j types.Job, ts *TwitterScraper, jobArgs *teeargs.TwitterSearchArguments) (types.JobResult, error) {
 	capability := jobArgs.GetCapability()
 	switch capability {
 	case teetypes.CapSearchByQuery:
-		tweets, err := ts.queryTweetsWithApiKey(j, twitterx.TweetsSearchRecent, ts.configuration.DataDir, jobArgs.Query, jobArgs.MaxResults)
+		tweets, err := ts.queryTweetsWithApiKey(j, twitterx.TweetsSearchRecent, jobArgs.Query, jobArgs.MaxResults)
 		return processResponse(tweets, "", err)
 	case teetypes.CapSearchByFullArchive:
-		tweets, err := ts.queryTweetsWithApiKey(j, twitterx.TweetsAll, ts.configuration.DataDir, jobArgs.Query, jobArgs.MaxResults)
+		tweets, err := ts.queryTweetsWithApiKey(j, twitterx.TweetsAll, jobArgs.Query, jobArgs.MaxResults)
 		return processResponse(tweets, "", err)
 	case teetypes.CapGetProfileById:
 		_, apiKey, err := ts.getApiScraper(j)
@@ -1166,14 +1159,14 @@ func (s *ApiKeyScrapeStrategy) Execute(j types.Job, ts *TwitterScraper, jobArgs 
 
 type ApifyScrapeStrategy struct{}
 
-func (s *ApifyScrapeStrategy) Execute(j types.Job, ts *TwitterScraper, jobArgs *args.TwitterSearchArguments) (types.JobResult, error) {
+func (s *ApifyScrapeStrategy) Execute(j types.Job, ts *TwitterScraper, jobArgs *teeargs.TwitterSearchArguments) (types.JobResult, error) {
 	capability := teetypes.Capability(jobArgs.QueryType)
 	switch capability {
 	case teetypes.CapGetFollowers:
-		followers, nextCursor, err := ts.getFollowersApify(j, jobArgs.Query, jobArgs.MaxResults, client.Cursor(jobArgs.NextCursor))
+		followers, nextCursor, err := ts.getFollowersApify(j, jobArgs.Query, uint(jobArgs.MaxResults), client.Cursor(jobArgs.NextCursor))
 		return processResponse(followers, nextCursor.String(), err)
 	case teetypes.CapGetFollowing:
-		following, nextCursor, err := ts.getFollowingApify(j, jobArgs.Query, jobArgs.MaxResults, client.Cursor(jobArgs.NextCursor))
+		following, nextCursor, err := ts.getFollowingApify(j, jobArgs.Query, uint(jobArgs.MaxResults), client.Cursor(jobArgs.NextCursor))
 		return processResponse(following, nextCursor.String(), err)
 	default:
 		return types.JobResult{Error: fmt.Sprintf("unsupported capability %s for Apify job", capability)}, fmt.Errorf("unsupported capability %s for Apify job", capability)
@@ -1183,7 +1176,7 @@ func (s *ApifyScrapeStrategy) Execute(j types.Job, ts *TwitterScraper, jobArgs *
 type DefaultScrapeStrategy struct{}
 
 // FIXED: Now using validated QueryType from centralized unmarshaller (addresses the TODO comment)
-func (s *DefaultScrapeStrategy) Execute(j types.Job, ts *TwitterScraper, jobArgs *args.TwitterSearchArguments) (types.JobResult, error) {
+func (s *DefaultScrapeStrategy) Execute(j types.Job, ts *TwitterScraper, jobArgs *teeargs.TwitterSearchArguments) (types.JobResult, error) {
 	capability := teetypes.Capability(jobArgs.QueryType)
 	switch capability {
 	case teetypes.CapGetFollowers, teetypes.CapGetFollowing:
@@ -1290,7 +1283,7 @@ func processResponse(response any, nextCursor string, err error) (types.JobResul
 	return types.JobResult{Data: dat, NextCursor: nextCursor}, nil
 }
 
-func defaultStrategyFallback(j types.Job, ts *TwitterScraper, jobArgs *args.TwitterSearchArguments) (types.JobResult, error) {
+func defaultStrategyFallback(j types.Job, ts *TwitterScraper, jobArgs *teeargs.TwitterSearchArguments) (types.JobResult, error) {
 	capability := jobArgs.GetCapability()
 	switch capability {
 	case teetypes.CapSearchByProfile:

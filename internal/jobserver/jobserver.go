@@ -96,11 +96,14 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 		teetypes.TwitterApifyJob: {
 			w: jobs.NewTwitterScraper(jc, s), // Register Apify job type with Twitter scraper
 		},
-		teetypes.TelemetryJob: {
-			w: jobs.NewTelemetryJob(jc, s),
-		},
 		teetypes.TiktokJob: {
 			w: jobs.NewTikTokScraper(jc, s),
+		},
+		teetypes.RedditJob: {
+			w: jobs.NewRedditScraper(jc, s),
+		},
+		teetypes.TelemetryJob: {
+			w: jobs.NewTelemetryJob(jc, s),
 		},
 	}
 	// Validate that all workers were initialized successfully

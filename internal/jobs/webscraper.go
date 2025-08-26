@@ -49,7 +49,7 @@ func (ws *WebScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 	// Step 1: Use centralized type-safe unmarshaller
 	jobArgs, err := teeargs.UnmarshalJobArguments(teetypes.JobType(j.Type), map[string]any(j.Arguments))
 	if err != nil {
-		logrus.Errorf("Failed to unmarshal job arguments: %v", err)
+		logrus.Warnf("Failed to unmarshal job arguments: %v", err)
 		ws.stats.Add(j.WorkerID, stats.WebInvalid, 1)
 		return types.JobResult{Error: fmt.Sprintf("Invalid arguments: %v", err)}, nil
 	}
@@ -60,16 +60,15 @@ func (ws *WebScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 		logrus.Errorf("Expected Web arguments for job ID %s, type %s", j.UUID, j.Type)
 		return types.JobResult{Error: "invalid argument type for Web job"}, nil
 	}
-	logrus.Infof("Job arguments unmarshaled and validated successfully: %+v", args)
+	logrus.Debugf("Job arguments unmarshaled and validated successfully: %+v", args)
 
 	// Step 2: Validate URL against blacklist
-	logrus.Info("Validating URL against blacklist")
+	logrus.Debug("Validating URL against blacklist")
 	for _, u := range ws.configuration.Blacklist {
 		logrus.Debugf("Checking if URL contains blacklisted term: %s", u)
 		if strings.Contains(args.URL, u) {
 			logrus.Warnf("URL %s is blacklisted due to term: %s", args.URL, u)
 			ws.stats.Add(j.WorkerID, stats.WebInvalid, 1)
-			logrus.Errorf("Blacklisted URL: %s", args.URL)
 			return types.JobResult{
 				Error: fmt.Sprintf("URL blacklisted: %s", args.URL),
 			}, nil
@@ -78,20 +77,20 @@ func (ws *WebScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 	logrus.Infof("URL %s passed blacklist validation", args.URL)
 
 	// Step 3: Use enhanced methods for cleaner logic and validation
-	logrus.Infof("Initiating web scraping for URL: %s (max_depth: %d, has_selector: %t, is_deep_scrape: %t)",
+	logrus.Debugf("Initiating web scraping for URL: %s (max_depth: %d, has_selector: %t, is_deep_scrape: %t)",
 		args.URL, args.GetEffectiveMaxDepth(), args.HasSelector(), args.IsDeepScrape())
 
 	// Perform web scraping using the effective max depth
 	result, err := scrapeWeb([]string{args.URL}, args.GetEffectiveMaxDepth())
 	if err != nil {
-		logrus.Errorf("Web scraping failed for URL %s: %v", args.URL, err)
+		logrus.Warnf("Web scraping failed for URL %s: %v", args.URL, err)
 		ws.stats.Add(j.WorkerID, stats.WebErrors, 1)
 		return types.JobResult{Error: err.Error()}, err
 	}
-	logrus.Infof("Web scraping succeeded for URL %s: %v", args.URL, result)
+	logrus.Debugf("Web scraping succeeded for URL %s: %v", args.URL, string(result))
 
 	// Step 4: Process result and return
-	logrus.Info("Updating statistics for successful web scraping")
+	logrus.Debugf("Updating statistics for successful web scraping")
 	ws.stats.Add(j.WorkerID, stats.WebSuccess, 1)
 	logrus.Infof("Returning web scraping result for URL %s", args.URL)
 	return types.JobResult{

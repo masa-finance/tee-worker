@@ -31,6 +31,10 @@ type Job struct {
 	Timeout      time.Duration    `json:"timeout"`
 }
 
+func (j Job) String() string {
+	return fmt.Sprintf("UUID: %s Type: %s Arguments: %s", j.UUID, j.Type, j.Arguments)
+}
+
 var letterRunes = []rune("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()_+")
 
 func randStringRunes(n int) string {
@@ -200,5 +204,18 @@ func (jc JobConfiguration) GetTwitterConfig() TwitterScraperConfig {
 		ApifyApiKey:           jc.GetString("apify_api_key", ""),
 		DataDir:               jc.GetString("data_dir", ""),
 		SkipLoginVerification: jc.GetBool("skip_login_verification", false),
+	}
+}
+
+// RedditConfig represents the configuration needed for Reddit scraping via Apify
+type RedditConfig struct {
+	ApifyApiKey string
+}
+
+// GetRedditConfig constructs a RedditConfig directly from the JobConfiguration
+// This eliminates the need for JSON marshaling/unmarshaling
+func (jc JobConfiguration) GetRedditConfig() RedditConfig {
+	return RedditConfig{
+		ApifyApiKey: jc.GetString("apify_api_key", ""),
 	}
 }
