@@ -151,26 +151,19 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 	return js
 }
 
-// CapabilityProvider is an interface for workers that can report their capabilities
-type CapabilityProvider interface {
-	GetStructuredCapabilities() teetypes.WorkerCapabilities
-}
-
 // GetWorkerCapabilities returns the structured capabilities for all registered workers
 func (js *JobServer) GetWorkerCapabilities() teetypes.WorkerCapabilities {
 	// Use a map to deduplicate capabilities by job type
 	jobTypeCapMap := make(map[teetypes.JobType]map[teetypes.Capability]struct{})
 
 	for _, workerEntry := range js.jobWorkers {
-		if provider, ok := workerEntry.w.(CapabilityProvider); ok {
-			workerCapabilities := provider.GetStructuredCapabilities()
-			for jobType, capabilities := range workerCapabilities {
-				if _, exists := jobTypeCapMap[jobType]; !exists {
-					jobTypeCapMap[jobType] = make(map[teetypes.Capability]struct{})
-				}
-				for _, capability := range capabilities {
-					jobTypeCapMap[jobType][capability] = struct{}{}
-				}
+		workerCapabilities := workerEntry.w.GetStructuredCapabilities()
+		for jobType, capabilities := range workerCapabilities {
+			if _, exists := jobTypeCapMap[jobType]; !exists {
+				jobTypeCapMap[jobType] = make(map[teetypes.Capability]struct{})
+			}
+			for _, capability := range capabilities {
+				jobTypeCapMap[jobType][capability] = struct{}{}
 			}
 		}
 	}

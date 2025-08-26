@@ -58,6 +58,7 @@ func DetectCapabilities(jc types.JobConfiguration, jobServer JobServerInterface)
 	}
 
 	// Add Apify-specific capabilities based on available API key
+	// TODO: We should verify whether each of the actors is actually available through this API key
 	if hasApifyKey {
 		capabilities[teetypes.TwitterApifyJob] = teetypes.TwitterApifyCaps
 		capabilities[teetypes.RedditJob] = teetypes.RedditCaps

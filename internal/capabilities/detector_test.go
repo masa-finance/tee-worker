@@ -125,12 +125,6 @@ func TestDetectCapabilities(t *testing.T) {
 	}
 }
 
-// Helper function to check if a job type exists in capabilities
-func hasJobType(capabilities teetypes.WorkerCapabilities, jobName string) bool {
-	_, exists := capabilities[teetypes.JobType(jobName)]
-	return exists
-}
-
 func TestDetectCapabilities_ScraperTypes(t *testing.T) {
 	tests := []struct {
 		name         string
