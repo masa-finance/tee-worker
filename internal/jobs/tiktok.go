@@ -118,18 +118,18 @@ func (ttt *TikTokTranscriber) ExecuteJob(j types.Job) (types.JobResult, error) {
 	}
 
 	// Branch by argument type (transcription vs search)
-	if transcriptionArgs, ok := teeargs.AsTikTokTranscriptionArguments(jobArgs); ok {
+	if transcriptionArgs, ok := jobArgs.(*teeargs.TikTokTranscriptionArguments); ok {
 		return ttt.executeTranscription(j, transcriptionArgs)
 	}
-	if searchByQueryArgs, ok := teeargs.AsTikTokSearchByQueryArguments(jobArgs); ok {
+	if searchByQueryArgs, ok := jobArgs.(*teeargs.TikTokSearchByQueryArguments); ok {
 		return ttt.executeSearchByQuery(j, searchByQueryArgs)
 	}
-	if searchByTrendingArgs, ok := teeargs.AsTikTokSearchByTrendingArguments(jobArgs); ok {
+	if searchByTrendingArgs, ok := jobArgs.(*teeargs.TikTokSearchByTrendingArguments); ok {
 		return ttt.executeSearchByTrending(j, searchByTrendingArgs)
 	}
 
 	// Fallback: treat as searchbyquery (default capability)
-	searchByQueryArgs, ok := teeargs.AsTikTokSearchByQueryArguments(jobArgs)
+	searchByQueryArgs, ok := jobArgs.(*teeargs.TikTokSearchByQueryArguments)
 	if !ok {
 		return types.JobResult{Error: "invalid argument type for TikTok job"}, fmt.Errorf("invalid argument type")
 	}
@@ -152,7 +152,7 @@ func (ttt *TikTokTranscriber) executeTranscription(j types.Job, a *teeargs.TikTo
 	}
 
 	// Type assert to TikTok arguments
-	tiktokArgs, ok := teeargs.AsTikTokTranscriptionArguments(jobArgs)
+	tiktokArgs, ok := jobArgs.(*teeargs.TikTokTranscriptionArguments)
 	if !ok {
 		return types.JobResult{Error: "invalid argument type for TikTok job"}, fmt.Errorf("invalid argument type")
 	}

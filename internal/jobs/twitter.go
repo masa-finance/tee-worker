@@ -1347,7 +1347,7 @@ func (ts *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 	}
 
 	// Type assert to Twitter arguments
-	twitterArgs, ok := teeargs.AsTwitterArguments(jobArgs)
+	twitterArgs, ok := jobArgs.(*teeargs.TwitterSearchArguments)
 	if !ok {
 		logrus.Errorf("Expected Twitter arguments for job ID %s, type %s", j.UUID, j.Type)
 		return types.JobResult{Error: "invalid argument type for Twitter job"}, fmt.Errorf("invalid argument type")
@@ -1358,8 +1358,8 @@ func (ts *TwitterScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 
 	strategy := getScrapeStrategy(j.Type)
 
-	// Convert to concrete type for direct usage
-	args := twitterArgs.(*teeargs.TwitterSearchArguments)
+	// Use the already cast concrete type directly
+	args := twitterArgs
 
 	jobResult, err := strategy.Execute(j, ts, args)
 	if err != nil {

@@ -16,7 +16,7 @@ const (
 )
 
 type TikTokApifyClient struct {
-	apify *client.ApifyClient
+	apify client.Apify
 }
 
 func NewTikTokApifyClient(apiToken string) (*TikTokApifyClient, error) {
@@ -33,7 +33,7 @@ func (c *TikTokApifyClient) ValidateApiKey() error {
 }
 
 // SearchByQuery runs the search actor and returns typed results
-func (c *TikTokApifyClient) SearchByQuery(input teeargs.TikTokSearchByQueryArguments, cursor client.Cursor, limit int) ([]*teetypes.TikTokSearchByQueryResult, client.Cursor, error) {
+func (c *TikTokApifyClient) SearchByQuery(input teeargs.TikTokSearchByQueryArguments, cursor client.Cursor, limit uint) ([]*teetypes.TikTokSearchByQueryResult, client.Cursor, error) {
 	// Map snake_case fields to Apify actor's expected camelCase input
 	startUrls := input.StartUrls
 	if startUrls == nil {
@@ -49,9 +49,7 @@ func (c *TikTokApifyClient) SearchByQuery(input teeargs.TikTokSearchByQueryArgum
 		"startUrls": startUrls,
 		"maxItems":  input.MaxItems,
 		"endPage":   input.EndPage,
-	}
-	if input.Proxy != nil {
-		apifyInput["proxy"] = map[string]any{"useApifyProxy": input.Proxy.UseApifyProxy}
+		"proxy":     map[string]any{"useApifyProxy": true},
 	}
 
 	dataset, next, err := c.apify.RunActorAndGetResponse(SearchActorID, apifyInput, cursor, limit)
@@ -72,7 +70,7 @@ func (c *TikTokApifyClient) SearchByQuery(input teeargs.TikTokSearchByQueryArgum
 }
 
 // SearchByTrending runs the trending actor and returns typed results
-func (c *TikTokApifyClient) SearchByTrending(input teeargs.TikTokSearchByTrendingArguments, cursor client.Cursor, limit int) ([]*teetypes.TikTokSearchByTrending, client.Cursor, error) {
+func (c *TikTokApifyClient) SearchByTrending(input teeargs.TikTokSearchByTrendingArguments, cursor client.Cursor, limit uint) ([]*teetypes.TikTokSearchByTrending, client.Cursor, error) {
 	apifyInput := map[string]any{
 		"countryCode": input.CountryCode,
 		"sortBy":      input.SortBy,
