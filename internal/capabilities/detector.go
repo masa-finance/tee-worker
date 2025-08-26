@@ -10,6 +10,8 @@ import (
 	teetypes "github.com/masa-finance/tee-types/types"
 	"github.com/masa-finance/tee-worker/api/types"
 	"github.com/masa-finance/tee-worker/internal/jobs/twitter"
+	"github.com/masa-finance/tee-worker/pkg/client"
+	"github.com/sirupsen/logrus"
 )
 
 // JobServerInterface defines the methods we need from JobServer to avoid circular dependencies
@@ -39,7 +41,7 @@ func DetectCapabilities(jc types.JobConfiguration, jobServer JobServerInterface)
 
 	hasAccounts := len(accounts) > 0
 	hasApiKeys := len(apiKeys) > 0
-	hasApifyKey := apifyApiKey != ""
+	hasApifyKey := hasValidApifyKey(apifyApiKey)
 
 	// Add Twitter-specific capabilities based on available authentication
 	if hasAccounts {
@@ -131,4 +133,26 @@ func parseApiKeys(apiKeys []string) []*twitter.TwitterApiKey {
 		}
 	}
 	return result
+}
+
+// hasValidApifyKey checks if the provided Apify API key is valid by attempting to validate it
+func hasValidApifyKey(apifyApiKey string) bool {
+	if apifyApiKey == "" {
+		return false
+	}
+
+	// Create temporary Apify client and validate the key
+	apifyClient, err := client.NewApifyClient(apifyApiKey)
+	if err != nil {
+		logrus.Errorf("Failed to create Apify client during capability detection: %v", err)
+		return false
+	}
+
+	if err := apifyClient.ValidateApiKey(); err != nil {
+		logrus.Errorf("Apify API key validation failed during capability detection: %v", err)
+		return false
+	}
+
+	logrus.Infof("Apify API key validated successfully during capability detection")
+	return true
 }

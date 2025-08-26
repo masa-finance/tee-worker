@@ -65,17 +65,8 @@ func NewTikTokTranscriber(jc types.JobConfiguration, statsCollector *stats.Stats
 	if err := jc.Unmarshal(&config); err != nil {
 		logrus.WithError(err).Warn("failed to unmarshal TikTokTranscriptionConfiguration from JobConfiguration, using defaults where applicable")
 	}
-	// Ensure Apify key aligns with Twitter's pattern (explicit getter wins)
+	// Get Apify key from configuration (validation now handled at startup by capability detection)
 	config.ApifyApiKey = jc.GetString("apify_api_key", config.ApifyApiKey)
-	if config.ApifyApiKey != "" {
-		if c, err := tiktokapify.NewTikTokApifyClient(config.ApifyApiKey); err != nil {
-			logrus.Errorf("Failed to create Apify client at startup: %v", err)
-		} else if err := c.ValidateApiKey(); err != nil {
-			logrus.Errorf("Apify API key validation failed at startup: %v", err)
-		} else {
-			logrus.Infof("Apify API key validated successfully at startup")
-		}
-	}
 
 	// Note: APIUserAgent is optional, it can be set later or use a default
 	if config.APIUserAgent == "" {

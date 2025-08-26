@@ -1,6 +1,7 @@
 package capabilities_test
 
 import (
+	"os"
 	"slices"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -150,14 +151,19 @@ var _ = Describe("DetectCapabilities", func() {
 	})
 
 	Context("Apify Integration", func() {
-		It("should add enhanced capabilities when Apify API key is provided", func() {
+		It("should add enhanced capabilities when valid Apify API key is provided", func() {
+			apifyKey := os.Getenv("APIFY_API_KEY")
+			if apifyKey == "" {
+				Skip("APIFY_API_KEY is not set")
+			}
+
 			jc := types.JobConfiguration{
-				"apify_api_key": "dummy",
+				"apify_api_key": apifyKey,
 			}
 
 			caps := DetectCapabilities(jc, nil)
 
-			// TikTok should gain search capabilities
+			// TikTok should gain search capabilities with valid key
 			tiktokCaps, ok := caps[teetypes.TiktokJob]
 			Expect(ok).To(BeTrue(), "expected tiktok capabilities to be present")
 			Expect(tiktokCaps).To(ContainElement(teetypes.CapSearchByQuery), "expected tiktok to include CapSearchByQuery capability")
@@ -168,6 +174,10 @@ var _ = Describe("DetectCapabilities", func() {
 			Expect(ok).To(BeTrue(), "expected twitter-apify capabilities to be present")
 			Expect(twitterApifyCaps).To(ContainElement(teetypes.CapGetFollowers), "expected twitter-apify to include CapGetFollowers capability")
 			Expect(twitterApifyCaps).To(ContainElement(teetypes.CapGetFollowing), "expected twitter-apify to include CapGetFollowing capability")
+
+			// Reddit should be present
+			_, hasReddit := caps[teetypes.RedditJob]
+			Expect(hasReddit).To(BeTrue(), "expected reddit capabilities to be present")
 		})
 	})
 })

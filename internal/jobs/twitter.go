@@ -980,18 +980,7 @@ func NewTwitterScraper(jc types.JobConfiguration, c *stats.StatsCollector) *Twit
 	accountManager.DetectAllApiKeyTypes()
 
 	// Validate Apify API key at startup if provided (similar to API key detection)
-	if config.ApifyApiKey != "" {
-		apifyScraper, err := twitterapify.NewTwitterApifyClient(config.ApifyApiKey)
-		if err != nil {
-			logrus.Errorf("Failed to create Apify scraper at startup: %v", err)
-			// Don't fail startup, just log the error - the key might work later or be temporary
-		} else if err := apifyScraper.ValidateApiKey(); err != nil {
-			logrus.Errorf("Apify API key validation failed at startup: %v", err)
-			// Don't fail startup, just log the error - the key might work later or be temporary
-		} else {
-			logrus.Infof("Apify API key validated successfully at startup")
-		}
-	}
+	// Apify API key validation now handled at startup by capability detection
 
 	if os.Getenv("TWITTER_SKIP_LOGIN_VERIFICATION") == "true" {
 		config.SkipLoginVerification = true
