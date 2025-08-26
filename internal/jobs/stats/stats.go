@@ -32,6 +32,7 @@ const (
 	TikTokTranscriptionErrors  StatType = "tiktok_transcription_errors"
 	TikTokVideos               StatType = "tiktok_returned_videos"
 	TikTokErrors               StatType = "tiktok_errors"
+	TikTokAuthErrors           StatType = "tiktok_auth_errors"
 	RedditReturnedItems        StatType = "reddit_returned_items"
 	RedditQueries              StatType = "reddit_queries"
 	RedditErrors               StatType = "reddit_errors"

@@ -303,14 +303,9 @@ func (ttt *TikTokTranscriber) executeTranscription(j types.Job, a *teeargs.TikTo
 
 // executeSearchByQuery runs the epctex/tiktok-search-scraper actor and returns results
 func (ttt *TikTokTranscriber) executeSearchByQuery(j types.Job, a *teeargs.TikTokSearchByQueryArguments) (types.JobResult, error) {
-	if ttt.configuration.ApifyApiKey == "" {
-		ttt.stats.Add(j.WorkerID, stats.TikTokErrors, 1)
-		return types.JobResult{Error: "Apify API key not configured for searchbyquery"}, fmt.Errorf("missing Apify API key")
-	}
-
 	c, err := tiktokapify.NewTikTokApifyClient(ttt.configuration.ApifyApiKey)
 	if err != nil {
-		ttt.stats.Add(j.WorkerID, stats.TikTokErrors, 1)
+		ttt.stats.Add(j.WorkerID, stats.TikTokAuthErrors, 1)
 		return types.JobResult{Error: "Failed to create Apify client"}, fmt.Errorf("apify client: %w", err)
 	}
 
@@ -338,14 +333,9 @@ func (ttt *TikTokTranscriber) executeSearchByQuery(j types.Job, a *teeargs.TikTo
 
 // executeSearchByTrending runs the lexis-solutions/tiktok-trending-videos-scraper actor and returns results
 func (ttt *TikTokTranscriber) executeSearchByTrending(j types.Job, a *teeargs.TikTokSearchByTrendingArguments) (types.JobResult, error) {
-	if ttt.configuration.ApifyApiKey == "" {
-		ttt.stats.Add(j.WorkerID, stats.TikTokErrors, 1)
-		return types.JobResult{Error: "Apify API key not configured for searchbytrending"}, fmt.Errorf("missing Apify API key")
-	}
-
 	c, err := tiktokapify.NewTikTokApifyClient(ttt.configuration.ApifyApiKey)
 	if err != nil {
-		ttt.stats.Add(j.WorkerID, stats.TikTokErrors, 1)
+		ttt.stats.Add(j.WorkerID, stats.TikTokAuthErrors, 1)
 		return types.JobResult{Error: "Failed to create Apify client"}, fmt.Errorf("apify client: %w", err)
 	}
 
