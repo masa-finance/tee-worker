@@ -4,46 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
-
-	"github.com/masa-finance/tee-types/pkg/util"
 )
-
-type QueryType string
-
-const (
-	ScrapeUrls        QueryType = "scrapeurls"
-	SearchPosts       QueryType = "searchposts"
-	SearchUsers       QueryType = "searchusers"
-	SearchCommunities QueryType = "searchcommunities"
-)
-
-var AllQueryTypes = util.NewSet(ScrapeUrls, SearchPosts, SearchUsers, SearchCommunities)
-
-type SortType string
-
-const (
-	SortRelevance SortType = "relevance"
-	SortHot       SortType = "hot"
-	SortTop       SortType = "top"
-	SortNew       SortType = "new"
-	SortRising    SortType = "rising"
-	SortComments  SortType = "comments"
-)
-
-var AllSortTypes = util.NewSet(
-	SortRelevance,
-	SortHot,
-	SortTop,
-	SortNew,
-	SortRising,
-	SortComments,
-)
-
-// StartURL represents a single start URL for the Apify Reddit scraper.
-type StartURL struct {
-	URL    string `json:"url"`
-	Method string `json:"method"`
-}
 
 type ResponseType string
 
