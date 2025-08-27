@@ -55,7 +55,7 @@ func (ws *WebScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 	}
 
 	// Type assert to Web arguments
-	args, ok := teeargs.AsWebArguments(jobArgs)
+	args, ok := jobArgs.(*teeargs.WebSearchArguments)
 	if !ok {
 		logrus.Errorf("Expected Web arguments for job ID %s, type %s", j.UUID, j.Type)
 		return types.JobResult{Error: "invalid argument type for Web job"}, nil

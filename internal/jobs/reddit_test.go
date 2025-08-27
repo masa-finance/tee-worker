@@ -97,7 +97,7 @@ var _ = Describe("RedditScraper", func() {
 		It("should call ScrapeUrls for the correct QueryType", func() {
 			job.Arguments = map[string]any{
 				"type": teetypes.RedditScrapeUrls,
-				"urls": []teetypes.RedditStartURL{{URL: "https://www.reddit.com/u/zaphod/", Method: "GET"}},
+				"urls": []string{"https://www.reddit.com/u/zaphod/"},
 			}
 
 			mockClient.ScrapeUrlsFunc = func(urls []teetypes.RedditStartURL, after time.Time, cArgs redditapify.CommonArgs, cursor client.Cursor, maxResults uint) ([]*reddit.Response, client.Cursor, error) {

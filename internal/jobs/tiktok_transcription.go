@@ -111,7 +111,7 @@ func (ttt *TikTokTranscriber) ExecuteJob(j types.Job) (types.JobResult, error) {
 	}
 
 	// Type assert to TikTok arguments
-	tiktokArgs, ok := teeargs.AsTikTokArguments(jobArgs)
+	tiktokArgs, ok := jobArgs.(*teeargs.TikTokTranscriptionArguments)
 	if !ok {
 		return types.JobResult{Error: "invalid argument type for TikTok job"}, fmt.Errorf("invalid argument type")
 	}

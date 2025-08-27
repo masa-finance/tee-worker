@@ -6,7 +6,6 @@ import (
 	"time"
 )
 
-// FIXME: These are duplicated here and in tee-types/types/reddit.go
 type ResponseType string
 
 const (
