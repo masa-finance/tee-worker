@@ -209,14 +209,16 @@ Transcribes TikTok videos to text.
 
 There are four different types of Reddit searches:
 
-- `scrapeurls`: Gets the content of one or more Reddit URLs
+- `scrapeurls`: Gets the content of one or more Reddit URLs. These must be post or comment URLs (no communities or users).
 - `searchposts`: Searches posts and comments
 - `searchusers`: Searches user profiles
 - `searchcommunities`: Searches communities
 
 **Parameters** (all are optional except where noted)
 
-- `urls` (array of object with `url` and `query` keys, required for `scrapeurls`): Each element contains a Reddit URL to scrape together with the method (which by default will be `"GET"`).
+**Note** Only one of `urls` and `queries` can be provided, depending on the query type.
+
+- `urls` (array of string, required for `scrapeurls`): Each element contains a Reddit URL to scrape. Only Reddit post and comment URLs are allowed (e.g. `https://reddit.com/r/<community>/comments/...`)
 - `queries` (array of string, required for all job types except `scrapeurls`): Each element is a string to search for. 
 - `sort` (string) What to order by. Possible values are `"relevance"`, `"hot"`, `"top"`, `"new"`, `"rising"` and `"comments"`.
 - `include_nsfw` (boolean): Whether to include content tagged NSFW. Default is `false`.
@@ -240,13 +242,7 @@ There are four different types of Reddit searches:
   "arguments": {
     "type": "scrapeurls",
     "urls": [
-      {
-        "url": "https://reddit.com/r/ArtificialIntelligence",
-        "method": "GET"
-      },
-      {
-        "url": "https://reddit.com/u/TheTelegraph"
-      }
+      "https://reddit.com/r/ArtificialIntelligence/comments/1n1dwzv/what_math_should_i_focus_on_for_ai_and_why/"
     ],
     "sort": "new",
     "include_nsfw": true,
