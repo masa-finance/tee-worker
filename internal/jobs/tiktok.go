@@ -111,20 +111,13 @@ func (ttt *TikTokTranscriber) ExecuteJob(j types.Job) (types.JobResult, error) {
 	// Branch by argument type (transcription vs search)
 	if transcriptionArgs, ok := jobArgs.(*teeargs.TikTokTranscriptionArguments); ok {
 		return ttt.executeTranscription(j, transcriptionArgs)
-	}
-	if searchByQueryArgs, ok := jobArgs.(*teeargs.TikTokSearchByQueryArguments); ok {
+	} else if searchByQueryArgs, ok := jobArgs.(*teeargs.TikTokSearchByQueryArguments); ok {
 		return ttt.executeSearchByQuery(j, searchByQueryArgs)
-	}
-	if searchByTrendingArgs, ok := jobArgs.(*teeargs.TikTokSearchByTrendingArguments); ok {
+	} else if searchByTrendingArgs, ok := jobArgs.(*teeargs.TikTokSearchByTrendingArguments); ok {
 		return ttt.executeSearchByTrending(j, searchByTrendingArgs)
-	}
-
-	// Fallback: treat as searchbyquery (default capability)
-	searchByQueryArgs, ok := jobArgs.(*teeargs.TikTokSearchByQueryArguments)
-	if !ok {
+	} else {
 		return types.JobResult{Error: "invalid argument type for TikTok job"}, fmt.Errorf("invalid argument type")
 	}
-	return ttt.executeSearchByQuery(j, searchByQueryArgs)
 }
 
 // executeTranscription calls the external transcription service and returns a normalized result
