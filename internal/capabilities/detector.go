@@ -4,10 +4,14 @@ import (
 	"slices"
 	"strings"
 
+	"maps"
+
+	util "github.com/masa-finance/tee-types/pkg/util"
 	teetypes "github.com/masa-finance/tee-types/types"
 	"github.com/masa-finance/tee-worker/api/types"
 	"github.com/masa-finance/tee-worker/internal/jobs/twitter"
-	"maps"
+	"github.com/masa-finance/tee-worker/pkg/client"
+	"github.com/sirupsen/logrus"
 )
 
 // JobServerInterface defines the methods we need from JobServer to avoid circular dependencies
@@ -37,7 +41,7 @@ func DetectCapabilities(jc types.JobConfiguration, jobServer JobServerInterface)
 
 	hasAccounts := len(accounts) > 0
 	hasApiKeys := len(apiKeys) > 0
-	hasApifyKey := apifyApiKey != ""
+	hasApifyKey := hasValidApifyKey(apifyApiKey)
 
 	// Add Twitter-specific capabilities based on available authentication
 	if hasAccounts {
@@ -62,9 +66,17 @@ func DetectCapabilities(jc types.JobConfiguration, jobServer JobServerInterface)
 	if hasApifyKey {
 		capabilities[teetypes.TwitterApifyJob] = teetypes.TwitterApifyCaps
 		capabilities[teetypes.RedditJob] = teetypes.RedditCaps
+
+		// Merge TikTok search caps with any existing
+		existing := capabilities[teetypes.TiktokJob]
+		s := util.NewSet(existing...)
+		s.Add(teetypes.TiktokSearchCaps...)
+		capabilities[teetypes.TiktokJob] = s.Items()
+
 	}
 
 	// Add general TwitterJob capability if any Twitter auth is available
+	// TODO: this will get cleaned up with unique twitter capabilities
 	if hasAccounts || hasApiKeys || hasApifyKey {
 		var twitterJobCaps []teetypes.Capability
 		// Use the most comprehensive capabilities available
@@ -122,4 +134,26 @@ func parseApiKeys(apiKeys []string) []*twitter.TwitterApiKey {
 		}
 	}
 	return result
+}
+
+// hasValidApifyKey checks if the provided Apify API key is valid by attempting to validate it
+func hasValidApifyKey(apifyApiKey string) bool {
+	if apifyApiKey == "" {
+		return false
+	}
+
+	// Create temporary Apify client and validate the key
+	apifyClient, err := client.NewApifyClient(apifyApiKey)
+	if err != nil {
+		logrus.Errorf("Failed to create Apify client during capability detection: %v", err)
+		return false
+	}
+
+	if err := apifyClient.ValidateApiKey(); err != nil {
+		logrus.Errorf("Apify API key validation failed during capability detection: %v", err)
+		return false
+	}
+
+	logrus.Infof("Apify API key validated successfully during capability detection")
+	return true
 }

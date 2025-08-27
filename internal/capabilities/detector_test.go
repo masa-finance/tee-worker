@@ -1,12 +1,15 @@
-package capabilities
+package capabilities_test
 
 import (
-	"reflect"
+	"os"
 	"slices"
-	"testing"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 
 	teetypes "github.com/masa-finance/tee-types/types"
 	"github.com/masa-finance/tee-worker/api/types"
+	. "github.com/masa-finance/tee-worker/internal/capabilities"
 )
 
 // MockJobServer implements JobServerInterface for testing
@@ -18,89 +21,10 @@ func (m *MockJobServer) GetWorkerCapabilities() teetypes.WorkerCapabilities {
 	return m.capabilities
 }
 
-func TestDetectCapabilities(t *testing.T) {
-	tests := []struct {
-		name      string
-		jc        types.JobConfiguration
-		jobServer JobServerInterface
-		expected  teetypes.WorkerCapabilities
-	}{
-		{
-			name: "With JobServer - gets capabilities from workers",
-			jc:   types.JobConfiguration{},
-			jobServer: &MockJobServer{
-				capabilities: teetypes.WorkerCapabilities{
-					teetypes.WebJob:       {teetypes.CapScraper},
-					teetypes.TelemetryJob: {teetypes.CapTelemetry},
-					teetypes.TiktokJob:    {teetypes.CapTranscription},
-					teetypes.TwitterJob:   {teetypes.CapSearchByQuery, teetypes.CapGetById, teetypes.CapGetProfileById},
-				},
-			},
-			expected: teetypes.WorkerCapabilities{
-				teetypes.WebJob:       {teetypes.CapScraper},
-				teetypes.TelemetryJob: {teetypes.CapTelemetry},
-				teetypes.TiktokJob:    {teetypes.CapTranscription},
-				teetypes.TwitterJob:   {teetypes.CapSearchByQuery, teetypes.CapGetById, teetypes.CapGetProfileById},
-			},
-		},
-		{
-			name:      "Without JobServer - basic capabilities only",
-			jc:        types.JobConfiguration{},
-			jobServer: nil,
-			expected: teetypes.WorkerCapabilities{
-				teetypes.WebJob:       {teetypes.CapScraper},
-				teetypes.TelemetryJob: {teetypes.CapTelemetry},
-				teetypes.TiktokJob:    {teetypes.CapTranscription},
-			},
-		},
-		{
-			name: "With Twitter accounts - adds credential capabilities",
-			jc: types.JobConfiguration{
-				"twitter_accounts": []string{"account1", "account2"},
-			},
-			jobServer: nil,
-			expected: teetypes.WorkerCapabilities{
-				teetypes.WebJob:               {teetypes.CapScraper},
-				teetypes.TelemetryJob:         {teetypes.CapTelemetry},
-				teetypes.TiktokJob:            {teetypes.CapTranscription},
-				teetypes.TwitterCredentialJob: teetypes.TwitterCredentialCaps,
-				teetypes.TwitterJob:           teetypes.TwitterCredentialCaps,
-			},
-		},
-		{
-			name: "With Twitter API keys - adds API capabilities",
-			jc: types.JobConfiguration{
-				"twitter_api_keys": []string{"key1", "key2"},
-			},
-			jobServer: nil,
-			expected: teetypes.WorkerCapabilities{
-				teetypes.WebJob:        {teetypes.CapScraper},
-				teetypes.TelemetryJob:  {teetypes.CapTelemetry},
-				teetypes.TiktokJob:     {teetypes.CapTranscription},
-				teetypes.TwitterApiJob: teetypes.TwitterAPICaps,
-				teetypes.TwitterJob:    teetypes.TwitterAPICaps,
-			},
-		},
-		{
-			name: "With mock elevated Twitter API keys - only basic capabilities detected",
-			jc: types.JobConfiguration{
-				"twitter_api_keys": []string{"Bearer abcd1234-ELEVATED"},
-			},
-			jobServer: nil,
-			expected: teetypes.WorkerCapabilities{
-				teetypes.WebJob:       {teetypes.CapScraper},
-				teetypes.TelemetryJob: {teetypes.CapTelemetry},
-				teetypes.TiktokJob:    {teetypes.CapTranscription},
-				// Note: Mock elevated keys will be detected as basic since we can't make real API calls in tests
-				teetypes.TwitterApiJob: teetypes.TwitterAPICaps,
-				teetypes.TwitterJob:    teetypes.TwitterAPICaps,
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := DetectCapabilities(tt.jc, tt.jobServer)
+var _ = Describe("DetectCapabilities", func() {
+	DescribeTable("capability detection scenarios",
+		func(jc types.JobConfiguration, jobServer JobServerInterface, expected teetypes.WorkerCapabilities) {
+			got := DetectCapabilities(jc, jobServer)
 
 			// Extract job type keys and sort for consistent comparison
 			gotKeys := make([]string, 0, len(got))
@@ -108,8 +32,8 @@ func TestDetectCapabilities(t *testing.T) {
 				gotKeys = append(gotKeys, jobType.String())
 			}
 
-			expectedKeys := make([]string, 0, len(tt.expected))
-			for jobType := range tt.expected {
+			expectedKeys := make([]string, 0, len(expected))
+			for jobType := range expected {
 				expectedKeys = append(expectedKeys, jobType.String())
 			}
 
@@ -118,59 +42,148 @@ func TestDetectCapabilities(t *testing.T) {
 			slices.Sort(expectedKeys)
 
 			// Compare the sorted slices
-			if !reflect.DeepEqual(gotKeys, expectedKeys) {
-				t.Errorf("DetectCapabilities() job types = %v, want %v", gotKeys, expectedKeys)
-			}
-		})
-	}
-}
-
-func TestDetectCapabilities_ScraperTypes(t *testing.T) {
-	tests := []struct {
-		name         string
-		jc           types.JobConfiguration
-		expectedKeys []string // scraper names we expect
-	}{
-		{
-			name:         "Basic scrapers only",
-			jc:           types.JobConfiguration{},
-			expectedKeys: []string{"web", "telemetry", "tiktok"},
+			Expect(gotKeys).To(Equal(expectedKeys))
 		},
-		{
-			name: "With Twitter accounts",
-			jc: types.JobConfiguration{
-				"twitter_accounts": []string{"user1:pass1"},
+		Entry("With JobServer - gets capabilities from workers",
+			types.JobConfiguration{},
+			&MockJobServer{
+				capabilities: teetypes.WorkerCapabilities{
+					teetypes.WebJob:       {teetypes.CapScraper},
+					teetypes.TelemetryJob: {teetypes.CapTelemetry},
+					teetypes.TiktokJob:    {teetypes.CapTranscription},
+					teetypes.TwitterJob:   {teetypes.CapSearchByQuery, teetypes.CapGetById, teetypes.CapGetProfileById},
+				},
 			},
-			expectedKeys: []string{"web", "telemetry", "tiktok", "twitter", "twitter-credential"},
-		},
-		{
-			name: "With Twitter API keys",
-			jc: types.JobConfiguration{
-				"twitter_api_keys": []string{"key1"},
+			teetypes.WorkerCapabilities{
+				teetypes.WebJob:       {teetypes.CapScraper},
+				teetypes.TelemetryJob: {teetypes.CapTelemetry},
+				teetypes.TiktokJob:    {teetypes.CapTranscription},
+				teetypes.TwitterJob:   {teetypes.CapSearchByQuery, teetypes.CapGetById, teetypes.CapGetProfileById},
 			},
-			expectedKeys: []string{"web", "telemetry", "tiktok", "twitter", "twitter-api"},
-		},
-	}
+		),
+		Entry("Without JobServer - basic capabilities only",
+			types.JobConfiguration{},
+			nil,
+			teetypes.WorkerCapabilities{
+				teetypes.WebJob:       {teetypes.CapScraper},
+				teetypes.TelemetryJob: {teetypes.CapTelemetry},
+				teetypes.TiktokJob:    {teetypes.CapTranscription},
+			},
+		),
+		Entry("With Twitter accounts - adds credential capabilities",
+			types.JobConfiguration{
+				"twitter_accounts": []string{"account1", "account2"},
+			},
+			nil,
+			teetypes.WorkerCapabilities{
+				teetypes.WebJob:               {teetypes.CapScraper},
+				teetypes.TelemetryJob:         {teetypes.CapTelemetry},
+				teetypes.TiktokJob:            {teetypes.CapTranscription},
+				teetypes.TwitterCredentialJob: teetypes.TwitterCredentialCaps,
+				teetypes.TwitterJob:           teetypes.TwitterCredentialCaps,
+			},
+		),
+		Entry("With Twitter API keys - adds API capabilities",
+			types.JobConfiguration{
+				"twitter_api_keys": []string{"key1", "key2"},
+			},
+			nil,
+			teetypes.WorkerCapabilities{
+				teetypes.WebJob:        {teetypes.CapScraper},
+				teetypes.TelemetryJob:  {teetypes.CapTelemetry},
+				teetypes.TiktokJob:     {teetypes.CapTranscription},
+				teetypes.TwitterApiJob: teetypes.TwitterAPICaps,
+				teetypes.TwitterJob:    teetypes.TwitterAPICaps,
+			},
+		),
+		Entry("With mock elevated Twitter API keys - only basic capabilities detected",
+			types.JobConfiguration{
+				"twitter_api_keys": []string{"Bearer abcd1234-ELEVATED"},
+			},
+			nil,
+			teetypes.WorkerCapabilities{
+				teetypes.WebJob:       {teetypes.CapScraper},
+				teetypes.TelemetryJob: {teetypes.CapTelemetry},
+				teetypes.TiktokJob:    {teetypes.CapTranscription},
+				// Note: Mock elevated keys will be detected as basic since we can't make real API calls in tests
+				teetypes.TwitterApiJob: teetypes.TwitterAPICaps,
+				teetypes.TwitterJob:    teetypes.TwitterAPICaps,
+			},
+		),
+	)
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			caps := DetectCapabilities(tt.jc, nil)
+	Context("Scraper Types", func() {
+		DescribeTable("scraper type detection",
+			func(jc types.JobConfiguration, expectedKeys []string) {
+				caps := DetectCapabilities(jc, nil)
 
-			jobNames := make([]string, 0, len(caps))
-			for jobType := range caps {
-				jobNames = append(jobNames, jobType.String())
+				jobNames := make([]string, 0, len(caps))
+				for jobType := range caps {
+					jobNames = append(jobNames, jobType.String())
+				}
+
+				// Sort both slices for comparison
+				slices.Sort(jobNames)
+				expectedSorted := make([]string, len(expectedKeys))
+				copy(expectedSorted, expectedKeys)
+				slices.Sort(expectedSorted)
+
+				// Compare the sorted slices
+				Expect(jobNames).To(Equal(expectedSorted))
+			},
+			Entry("Basic scrapers only",
+				types.JobConfiguration{},
+				[]string{"web", "telemetry", "tiktok"},
+			),
+			Entry("With Twitter accounts",
+				types.JobConfiguration{
+					"twitter_accounts": []string{"user1:pass1"},
+				},
+				[]string{"web", "telemetry", "tiktok", "twitter", "twitter-credential"},
+			),
+			Entry("With Twitter API keys",
+				types.JobConfiguration{
+					"twitter_api_keys": []string{"key1"},
+				},
+				[]string{"web", "telemetry", "tiktok", "twitter", "twitter-api"},
+			),
+		)
+	})
+
+	Context("Apify Integration", func() {
+		It("should add enhanced capabilities when valid Apify API key is provided", func() {
+			apifyKey := os.Getenv("APIFY_API_KEY")
+			if apifyKey == "" {
+				Skip("APIFY_API_KEY is not set")
 			}
 
-			// Sort both slices for comparison
-			slices.Sort(jobNames)
-			expectedSorted := make([]string, len(tt.expectedKeys))
-			copy(expectedSorted, tt.expectedKeys)
-			slices.Sort(expectedSorted)
-
-			// Compare the sorted slices
-			if !reflect.DeepEqual(jobNames, expectedSorted) {
-				t.Errorf("Expected capabilities %v, got %v", expectedSorted, jobNames)
+			jc := types.JobConfiguration{
+				"apify_api_key": apifyKey,
 			}
+
+			caps := DetectCapabilities(jc, nil)
+
+			// TikTok should gain search capabilities with valid key
+			tiktokCaps, ok := caps[teetypes.TiktokJob]
+			Expect(ok).To(BeTrue(), "expected tiktok capabilities to be present")
+			Expect(tiktokCaps).To(ContainElement(teetypes.CapSearchByQuery), "expected tiktok to include CapSearchByQuery capability")
+			Expect(tiktokCaps).To(ContainElement(teetypes.CapSearchByTrending), "expected tiktok to include CapSearchByTrending capability")
+
+			// Twitter-Apify job should be present with follower/following capabilities
+			twitterApifyCaps, ok := caps[teetypes.TwitterApifyJob]
+			Expect(ok).To(BeTrue(), "expected twitter-apify capabilities to be present")
+			Expect(twitterApifyCaps).To(ContainElement(teetypes.CapGetFollowers), "expected twitter-apify to include CapGetFollowers capability")
+			Expect(twitterApifyCaps).To(ContainElement(teetypes.CapGetFollowing), "expected twitter-apify to include CapGetFollowing capability")
+
+			// Reddit should be present
+			_, hasReddit := caps[teetypes.RedditJob]
+			Expect(hasReddit).To(BeTrue(), "expected reddit capabilities to be present")
 		})
-	}
+	})
+})
+
+// Helper function to check if a job type exists in capabilities
+func hasJobType(capabilities teetypes.WorkerCapabilities, jobName string) bool {
+	_, exists := capabilities[teetypes.JobType(jobName)]
+	return exists
 }

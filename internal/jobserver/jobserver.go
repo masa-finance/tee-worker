@@ -97,7 +97,7 @@ func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
 			w: jobs.NewTwitterScraper(jc, s), // Register Apify job type with Twitter scraper
 		},
 		teetypes.TiktokJob: {
-			w: jobs.NewTikTokTranscriber(jc, s),
+			w: jobs.NewTikTokScraper(jc, s),
 		},
 		teetypes.RedditJob: {
 			w: jobs.NewRedditScraper(jc, s),
