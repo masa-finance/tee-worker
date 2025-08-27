@@ -95,14 +95,17 @@ var _ = Describe("RedditScraper", func() {
 		})
 
 		It("should call ScrapeUrls for the correct QueryType", func() {
+			testUrls := []string{
+				"https://www.reddit.com/r/HHGTTG/comments/1jynlrz/the_entire_series_after_restaurant_at_the_end_of/",
+			}
 			job.Arguments = map[string]any{
 				"type": teetypes.RedditScrapeUrls,
-				"urls": []string{"https://www.reddit.com/u/zaphod/"},
+				"urls": testUrls,
 			}
 
 			mockClient.ScrapeUrlsFunc = func(urls []teetypes.RedditStartURL, after time.Time, cArgs redditapify.CommonArgs, cursor client.Cursor, maxResults uint) ([]*reddit.Response, client.Cursor, error) {
 				Expect(urls).To(HaveLen(1))
-				Expect(urls[0].URL).To(Equal("https://www.reddit.com/u/zaphod/"))
+				Expect(urls[0].URL).To(Equal(testUrls[0]))
 				return []*reddit.Response{{TypeSwitch: &reddit.TypeSwitch{Type: reddit.UserResponse}, User: &reddit.User{ID: "user1", DataType: string(reddit.UserResponse)}}}, "next", nil
 			}
 
