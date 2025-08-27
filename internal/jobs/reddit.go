@@ -76,7 +76,15 @@ func (r *RedditScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 
 	switch redditArgs.QueryType {
 	case teetypes.RedditScrapeUrls:
-		resp, cursor, err := redditClient.ScrapeUrls(j.WorkerID, redditArgs.URLs, redditArgs.After, commonArgs, client.Cursor(redditArgs.NextCursor), redditArgs.MaxResults)
+		urls := make([]teetypes.RedditStartURL, 0, len(redditArgs.URLs))
+		for _, u := range redditArgs.URLs {
+			urls = append(urls, teetypes.RedditStartURL{
+				URL:    u,
+				Method: "GET",
+			})
+		}
+
+		resp, cursor, err := redditClient.ScrapeUrls(j.WorkerID, urls, redditArgs.After, commonArgs, client.Cursor(redditArgs.NextCursor), redditArgs.MaxResults)
 		return processRedditResponse(j, resp, cursor, err)
 
 	case teetypes.RedditSearchUsers:
