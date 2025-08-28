@@ -143,7 +143,7 @@ func (c *RedditApifyClient) SearchCommunities(workerID string, queries []string,
 	input := args.ToActorRequest()
 	input.Searches = queries
 	input.StartUrls = nil
-	input.Type = "communities"
+	input.Type = "community"
 	input.SearchCommunities = true
 
 	return c.queryReddit(workerID, input, cursor, maxResults)
