@@ -8,7 +8,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	teetypes "github.com/masa-finance/tee-types/types"
-	"github.com/masa-finance/tee-worker/api/types"
+	"github.com/masa-finance/tee-worker/internal/config"
 	. "github.com/masa-finance/tee-worker/internal/capabilities"
 )
 
@@ -23,7 +23,7 @@ func (m *MockJobServer) GetWorkerCapabilities() teetypes.WorkerCapabilities {
 
 var _ = Describe("DetectCapabilities", func() {
 	DescribeTable("capability detection scenarios",
-		func(jc types.JobConfiguration, jobServer JobServerInterface, expected teetypes.WorkerCapabilities) {
+		func(jc config.JobConfiguration, jobServer JobServerInterface, expected teetypes.WorkerCapabilities) {
 			got := DetectCapabilities(jc, jobServer)
 
 			// Extract job type keys and sort for consistent comparison
@@ -45,7 +45,7 @@ var _ = Describe("DetectCapabilities", func() {
 			Expect(gotKeys).To(Equal(expectedKeys))
 		},
 		Entry("With JobServer - gets capabilities from workers",
-			types.JobConfiguration{},
+			config.JobConfiguration{},
 			&MockJobServer{
 				capabilities: teetypes.WorkerCapabilities{
 					teetypes.WebJob:       {teetypes.CapScraper},
@@ -62,7 +62,7 @@ var _ = Describe("DetectCapabilities", func() {
 			},
 		),
 		Entry("Without JobServer - basic capabilities only",
-			types.JobConfiguration{},
+			config.JobConfiguration{},
 			nil,
 			teetypes.WorkerCapabilities{
 				teetypes.WebJob:       {teetypes.CapScraper},
@@ -71,7 +71,7 @@ var _ = Describe("DetectCapabilities", func() {
 			},
 		),
 		Entry("With Twitter accounts - adds credential capabilities",
-			types.JobConfiguration{
+			config.JobConfiguration{
 				"twitter_accounts": []string{"account1", "account2"},
 			},
 			nil,
@@ -84,7 +84,7 @@ var _ = Describe("DetectCapabilities", func() {
 			},
 		),
 		Entry("With Twitter API keys - adds API capabilities",
-			types.JobConfiguration{
+			config.JobConfiguration{
 				"twitter_api_keys": []string{"key1", "key2"},
 			},
 			nil,
@@ -97,7 +97,7 @@ var _ = Describe("DetectCapabilities", func() {
 			},
 		),
 		Entry("With mock elevated Twitter API keys - only basic capabilities detected",
-			types.JobConfiguration{
+			config.JobConfiguration{
 				"twitter_api_keys": []string{"Bearer abcd1234-ELEVATED"},
 			},
 			nil,
@@ -114,7 +114,7 @@ var _ = Describe("DetectCapabilities", func() {
 
 	Context("Scraper Types", func() {
 		DescribeTable("scraper type detection",
-			func(jc types.JobConfiguration, expectedKeys []string) {
+			func(jc config.JobConfiguration, expectedKeys []string) {
 				caps := DetectCapabilities(jc, nil)
 
 				jobNames := make([]string, 0, len(caps))
@@ -132,17 +132,17 @@ var _ = Describe("DetectCapabilities", func() {
 				Expect(jobNames).To(Equal(expectedSorted))
 			},
 			Entry("Basic scrapers only",
-				types.JobConfiguration{},
+				config.JobConfiguration{},
 				[]string{"web", "telemetry", "tiktok"},
 			),
 			Entry("With Twitter accounts",
-				types.JobConfiguration{
+				config.JobConfiguration{
 					"twitter_accounts": []string{"user1:pass1"},
 				},
 				[]string{"web", "telemetry", "tiktok", "twitter", "twitter-credential"},
 			),
 			Entry("With Twitter API keys",
-				types.JobConfiguration{
+				config.JobConfiguration{
 					"twitter_api_keys": []string{"key1"},
 				},
 				[]string{"web", "telemetry", "tiktok", "twitter", "twitter-api"},
@@ -157,7 +157,7 @@ var _ = Describe("DetectCapabilities", func() {
 				Skip("APIFY_API_KEY is not set")
 			}
 
-			jc := types.JobConfiguration{
+			jc := config.JobConfiguration{
 				"apify_api_key": apifyKey,
 			}
 

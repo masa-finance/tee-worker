@@ -52,7 +52,7 @@ func (args *CommonArgs) ToActorRequest() RedditActorRequest {
 	}
 }
 
-// ApifyRedditQuery represents the query parameters for the Apify Reddit Scraper actor.
+// RedditActorRequest represents the query parameters for the Apify Reddit Scraper actor.
 // Based on the input schema of https://apify.com/trudax/reddit-scraper
 type RedditActorRequest struct {
 	Type                teetypes.RedditQueryType  `json:"type,omitempty"`

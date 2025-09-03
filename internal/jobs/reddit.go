@@ -11,6 +11,7 @@ import (
 
 	"github.com/masa-finance/tee-worker/api/types"
 	"github.com/masa-finance/tee-worker/api/types/reddit"
+	"github.com/masa-finance/tee-worker/internal/config"
 	"github.com/masa-finance/tee-worker/internal/jobs/redditapify"
 	"github.com/masa-finance/tee-worker/internal/jobs/stats"
 	"github.com/masa-finance/tee-worker/pkg/client"
@@ -35,12 +36,12 @@ var NewRedditApifyClient = func(apiKey string, statsCollector *stats.StatsCollec
 }
 
 type RedditScraper struct {
-	configuration  types.RedditConfig
+	configuration  config.RedditConfig
 	statsCollector *stats.StatsCollector
 	capabilities   []teetypes.Capability
 }
 
-func NewRedditScraper(jc types.JobConfiguration, statsCollector *stats.StatsCollector) *RedditScraper {
+func NewRedditScraper(jc config.JobConfiguration, statsCollector *stats.StatsCollector) *RedditScraper {
 	config := jc.GetRedditConfig()
 	logrus.Info("Reddit scraper via Apify initialized")
 	return &RedditScraper{

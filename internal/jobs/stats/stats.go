@@ -6,8 +6,8 @@ import (
 	"time"
 
 	teetypes "github.com/masa-finance/tee-types/types"
-	"github.com/masa-finance/tee-worker/api/types"
 	"github.com/masa-finance/tee-worker/internal/capabilities"
+	"github.com/masa-finance/tee-worker/internal/config"
 	"github.com/masa-finance/tee-worker/internal/versioning"
 	"github.com/sirupsen/logrus"
 )
@@ -65,11 +65,11 @@ type StatsCollector struct {
 	Stats            *Stats
 	Chan             chan AddStat
 	jobServer        capabilities.JobServerInterface
-	jobConfiguration types.JobConfiguration
+		jobConfiguration config.JobConfiguration
 }
 
 // StartCollector starts a goroutine that listens to a channel for AddStat messages and updates the stats accordingly.
-func StartCollector(bufSize uint, jc types.JobConfiguration) *StatsCollector {
+func StartCollector(bufSize uint, jc config.JobConfiguration) *StatsCollector {
 	logrus.Info("Starting stats collector")
 
 	s := Stats{

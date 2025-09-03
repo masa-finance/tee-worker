@@ -14,6 +14,7 @@ import (
 	"github.com/cenkalti/backoff"
 	"github.com/gocolly/colly"
 	"github.com/masa-finance/tee-worker/api/types"
+	"github.com/masa-finance/tee-worker/internal/config"
 	"github.com/masa-finance/tee-worker/internal/jobs/stats"
 	"github.com/sirupsen/logrus"
 )
@@ -27,7 +28,7 @@ type WebScraperConfiguration struct {
 	Blacklist []string `json:"webscraper_blacklist"`
 }
 
-func NewWebScraper(jc types.JobConfiguration, statsCollector *stats.StatsCollector) *WebScraper {
+func NewWebScraper(jc config.JobConfiguration, statsCollector *stats.StatsCollector) *WebScraper {
 	config := WebScraperConfiguration{}
 	jc.Unmarshal(&config)
 	return &WebScraper{

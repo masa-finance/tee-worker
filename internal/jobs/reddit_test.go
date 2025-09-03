@@ -11,6 +11,7 @@ import (
 
 	"github.com/masa-finance/tee-worker/api/types"
 	"github.com/masa-finance/tee-worker/api/types/reddit"
+	"github.com/masa-finance/tee-worker/internal/config"
 	"github.com/masa-finance/tee-worker/internal/jobs"
 	"github.com/masa-finance/tee-worker/internal/jobs/redditapify"
 	"github.com/masa-finance/tee-worker/internal/jobs/stats"
@@ -68,8 +69,8 @@ var _ = Describe("RedditScraper", func() {
 	)
 
 	BeforeEach(func() {
-		statsCollector = stats.StartCollector(128, types.JobConfiguration{})
-		cfg := types.JobConfiguration{
+		statsCollector = stats.StartCollector(128, config.JobConfiguration{})
+		cfg := config.JobConfiguration{
 			"apify_api_key": "test-key",
 		}
 		scraper = jobs.NewRedditScraper(cfg, statsCollector)

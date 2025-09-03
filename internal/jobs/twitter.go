@@ -16,6 +16,7 @@ import (
 	"github.com/masa-finance/tee-worker/pkg/client"
 
 	"github.com/masa-finance/tee-worker/api/types"
+	"github.com/masa-finance/tee-worker/internal/config"
 	"github.com/masa-finance/tee-worker/internal/jobs/stats"
 	"github.com/masa-finance/tee-worker/internal/jobs/twitter"
 	"github.com/masa-finance/tee-worker/internal/jobs/twitterapify"
@@ -965,13 +966,13 @@ func (ts *TwitterScraper) FetchForYouTweets(j types.Job, baseDir string, count i
 // Unified config: use types.TwitterScraperConfig directly
 
 type TwitterScraper struct {
-	configuration  types.TwitterScraperConfig
+	configuration  config.TwitterScraperConfig
 	accountManager *twitter.TwitterAccountManager
 	statsCollector *stats.StatsCollector
 	capabilities   map[teetypes.Capability]bool
 }
 
-func NewTwitterScraper(jc types.JobConfiguration, c *stats.StatsCollector) *TwitterScraper {
+func NewTwitterScraper(jc config.JobConfiguration, c *stats.StatsCollector) *TwitterScraper {
 	// Use direct config access instead of JSON marshaling/unmarshaling
 	config := jc.GetTwitterConfig()
 

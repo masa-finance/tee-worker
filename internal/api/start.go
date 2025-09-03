@@ -14,12 +14,12 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"
-	"github.com/masa-finance/tee-worker/api/types"
+	"github.com/masa-finance/tee-worker/internal/config"
 	"github.com/masa-finance/tee-worker/internal/jobserver"
 	"github.com/masa-finance/tee-worker/pkg/tee"
 )
 
-func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, config types.JobConfiguration) error {
+func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, config config.JobConfiguration) error {
 
 	// Echo instance
 	e := echo.New()

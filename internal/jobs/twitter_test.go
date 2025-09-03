@@ -15,6 +15,7 @@ import (
 
 	twitterscraper "github.com/imperatrona/twitter-scraper"
 	"github.com/masa-finance/tee-worker/api/types"
+	"github.com/masa-finance/tee-worker/internal/config"
 	. "github.com/masa-finance/tee-worker/internal/jobs"
 	"github.com/masa-finance/tee-worker/internal/jobs/stats"
 	"github.com/masa-finance/tee-worker/internal/jobs/twitterx"
@@ -79,7 +80,7 @@ var _ = Describe("Twitter Scraper", func() {
 
 		// Configure the stats collector with the same configuration that TwitterScraper needs
 		// This ensures capability detection works correctly
-		testConfig := types.JobConfiguration{
+		testConfig := config.JobConfiguration{
 			"twitter_accounts": twitterAccounts,
 			"twitter_api_keys": twitterApiKeys,
 			"data_dir":         tempDir,
@@ -100,7 +101,7 @@ var _ = Describe("Twitter Scraper", func() {
 			if len(twitterAccounts) == 0 {
 				Skip("TWITTER_ACCOUNTS is not set")
 			}
-			scraper := NewTwitterScraper(types.JobConfiguration{
+			scraper := NewTwitterScraper(config.JobConfiguration{
 				"twitter_accounts": twitterAccounts,
 				"data_dir":         tempDir,
 			}, statsCollector)
@@ -125,7 +126,7 @@ var _ = Describe("Twitter Scraper", func() {
 			if len(twitterApiKeys) == 0 {
 				Skip("TWITTER_API_KEYS is not set")
 			}
-			scraper := NewTwitterScraper(types.JobConfiguration{
+			scraper := NewTwitterScraper(config.JobConfiguration{
 				"twitter_api_keys": twitterApiKeys,
 				"data_dir":         tempDir,
 			}, statsCollector)
@@ -150,7 +151,7 @@ var _ = Describe("Twitter Scraper", func() {
 			if len(twitterApiKeys) == 0 {
 				Skip("TWITTER_API_KEYS is not set")
 			}
-			scraper := NewTwitterScraper(types.JobConfiguration{
+			scraper := NewTwitterScraper(config.JobConfiguration{
 				"twitter_api_keys": twitterApiKeys,
 				"data_dir":         tempDir,
 			}, statsCollector)
@@ -172,7 +173,7 @@ var _ = Describe("Twitter Scraper", func() {
 			if len(twitterAccounts) == 0 || len(twitterApiKeys) == 0 {
 				Skip("TWITTER_ACCOUNTS or TWITTER_API_KEYS is not set")
 			}
-			scraper := NewTwitterScraper(types.JobConfiguration{
+			scraper := NewTwitterScraper(config.JobConfiguration{
 				"twitter_accounts": twitterAccounts,
 				"twitter_api_keys": twitterApiKeys,
 				"data_dir":         tempDir,
@@ -195,7 +196,7 @@ var _ = Describe("Twitter Scraper", func() {
 		})
 
 		It("should error if neither credentials nor API key are present", func() {
-			scraper := NewTwitterScraper(types.JobConfiguration{
+			scraper := NewTwitterScraper(config.JobConfiguration{
 				"data_dir": tempDir,
 			}, statsCollector)
 			res, err := scraper.ExecuteJob(types.Job{
@@ -215,7 +216,7 @@ var _ = Describe("Twitter Scraper", func() {
 			if len(twitterApiKeys) == 0 {
 				Skip("TWITTER_API_KEYS is not set")
 			}
-			scraper := NewTwitterScraper(types.JobConfiguration{
+			scraper := NewTwitterScraper(config.JobConfiguration{
 				"twitter_api_keys": twitterApiKeys,
 				"data_dir":         tempDir,
 			}, statsCollector)
@@ -608,7 +609,7 @@ var _ = Describe("Twitter Scraper", func() {
 			if len(twitterApiKeys) == 0 {
 				Skip("TWITTER_API_KEYS is not set")
 			}
-			scraper := NewTwitterScraper(types.JobConfiguration{
+			scraper := NewTwitterScraper(config.JobConfiguration{
 				"twitter_api_keys": twitterApiKeys,
 				"data_dir":         tempDir,
 			}, statsCollector)
@@ -650,7 +651,7 @@ var _ = Describe("Twitter Scraper", func() {
 			if len(twitterApiKeys) == 0 {
 				Skip("TWITTER_API_KEYS is not set")
 			}
-			scraper := NewTwitterScraper(types.JobConfiguration{
+			scraper := NewTwitterScraper(config.JobConfiguration{
 				"twitter_api_keys": twitterApiKeys,
 				"data_dir":         tempDir,
 			}, statsCollector)
@@ -792,7 +793,7 @@ var _ = Describe("Twitter Scraper", func() {
 			if apifyApiKey == "" {
 				Skip("APIFY_API_KEY is not set")
 			}
-			scraper := NewTwitterScraper(types.JobConfiguration{
+			scraper := NewTwitterScraper(config.JobConfiguration{
 				"apify_api_key": apifyApiKey,
 				"data_dir":      tempDir,
 			}, statsCollector)
@@ -823,7 +824,7 @@ var _ = Describe("Twitter Scraper", func() {
 			if apifyApiKey == "" {
 				Skip("APIFY_API_KEY is not set")
 			}
-			scraper := NewTwitterScraper(types.JobConfiguration{
+			scraper := NewTwitterScraper(config.JobConfiguration{
 				"apify_api_key": apifyApiKey,
 				"data_dir":      tempDir,
 			}, statsCollector)
@@ -854,7 +855,7 @@ var _ = Describe("Twitter Scraper", func() {
 			if apifyApiKey == "" || len(twitterAccounts) == 0 {
 				Skip("APIFY_API_KEY or TWITTER_ACCOUNTS not set")
 			}
-			scraper := NewTwitterScraper(types.JobConfiguration{
+			scraper := NewTwitterScraper(config.JobConfiguration{
 				"apify_api_key":    apifyApiKey,
 				"twitter_accounts": twitterAccounts,
 				"data_dir":         tempDir,
