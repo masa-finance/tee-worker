@@ -66,6 +66,17 @@ func ReadConfig() JobConfiguration {
 	}
 	jc["stats_buf_size"] = uint(bufSize)
 
+	maxJobsStr := os.Getenv("STATS_BUF_SIZE")
+	if maxJobsStr == "" {
+		maxJobsStr = "10"
+	}
+	maxJobs, err := strconv.Atoi(maxJobsStr)
+	if err != nil {
+		logrus.Errorf("Error parsing MAX_JOBS %s. Setting to default.", err)
+		bufSize = 10
+	}
+	jc["max_jobs"] = uint(maxJobs)
+
 	listenAddress := os.Getenv("LISTEN_ADDRESS")
 	if listenAddress == "" {
 		listenAddress = defaultListenAddress

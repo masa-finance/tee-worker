@@ -4,9 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"os"
 	"runtime"
-	"strconv"
 	"strings"
 
 	"github.com/edgelesssys/ego/enclave"
@@ -24,9 +22,7 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 	// Echo instance
 	e := echo.New()
 
-	logLevel := os.Getenv("LOG_LEVEL")
-
-	maxJobs := os.Getenv("MAX_JOBS")
+	logLevel := config.GetString("log_level", "info")
 
 	switch strings.ToLower(logLevel) {
 	case "debug":
@@ -41,23 +37,10 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 		e.Logger.SetLevel(log.INFO)
 	}
 
-	var maxJobsInt int
-	if maxJobs != "" {
-		var err error
-		maxJobsInt, err = strconv.Atoi(maxJobs)
-		if err != nil {
-			e.Logger.Error("Failed to parse MAX_JOBS: ", err)
-			return err
-		}
-	}
-
-	if maxJobsInt == 0 {
-		maxJobsInt = 10
-		e.Logger.Warn("MAX_JOBS is not set, using default of 10")
-	}
+	maxJobs, _ := config.GetInt("max_jobs", 10)
 
 	// Jobserver instance
-	jobServer := jobserver.NewJobServer(maxJobsInt, config)
+	jobServer := jobserver.NewJobServer(maxJobs, config)
 
 	go jobServer.Run(ctx)
 
