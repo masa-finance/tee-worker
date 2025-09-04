@@ -23,19 +23,7 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 	e := echo.New()
 
 	logLevel := config.GetString("log_level", "info")
-
-	switch strings.ToLower(logLevel) {
-	case "debug":
-		e.Logger.SetLevel(log.DEBUG)
-	case "info":
-		e.Logger.SetLevel(log.INFO)
-	case "warn":
-		e.Logger.SetLevel(log.WARN)
-	case "error":
-		e.Logger.SetLevel(log.ERROR)
-	default:
-		e.Logger.SetLevel(log.INFO)
-	}
+	e.Logger.SetLevel(parseLogLevel(logLevel))
 
 	maxJobs, _ := config.GetInt("max_jobs", 10)
 
@@ -144,6 +132,22 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 	}
 
 	return nil
+}
+
+// parseLogLevel parses a logLevel into a log level appropriate for Echo. This is different from config.ParseLogLevel since that one uses a log level appropriate for logrus.
+func parseLogLevel(logLevel string) log.Lvl {
+	switch strings.ToLower(logLevel) {
+	case "debug":
+		return log.DEBUG
+	case "info":
+		return log.INFO
+	case "warn":
+		return log.WARN
+	case "error":
+		return log.ERROR
+	default:
+		return log.INFO
+	}
 }
 
 // enableProfiling enables pprof profiling

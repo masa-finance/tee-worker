@@ -32,8 +32,8 @@ func ReadConfig() JobConfiguration {
 	jc := JobConfiguration{}
 
 	logLevel := os.Getenv("LOG_LEVEL")
-	jc["log_level"] = strings.ToLower(logLevel)
 	level := ParseLogLevel(logLevel)
+	jc["log_level"] = level.String()
 	SetLogLevel(level)
 
 	dataDir := os.Getenv("DATA_DIR")
@@ -147,6 +147,8 @@ func ReadConfig() JobConfiguration {
 	} else {
 		jc["twitter_api_keys"] = []string{}
 	}
+
+	jc["twitter_skip_login_verification"] = os.Getenv("TWITTER_SKIP_LOGIN_VERIFICATION") == "true"
 
 	// Apify API key loading
 	apifyApiKey := os.Getenv("APIFY_API_KEY")

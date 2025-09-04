@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -981,9 +980,7 @@ func NewTwitterScraper(jc config.JobConfiguration, c *stats.StatsCollector) *Twi
 	accountManager := twitter.NewTwitterAccountManager(accounts, apiKeys)
 	accountManager.DetectAllApiKeyTypes()
 
-	if os.Getenv("TWITTER_SKIP_LOGIN_VERIFICATION") == "true" {
-		config.SkipLoginVerification = true
-	}
+	config.SkipLoginVerification = jc.GetBool("twitter_skip_login_verification", false)
 
 	return &TwitterScraper{
 		configuration:  config,
