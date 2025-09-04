@@ -12,6 +12,7 @@ import (
 
 	teetypes "github.com/masa-finance/tee-types/types"
 	"github.com/masa-finance/tee-worker/api/types"
+	"github.com/masa-finance/tee-worker/internal/config"
 	. "github.com/masa-finance/tee-worker/internal/jobs"
 	"github.com/masa-finance/tee-worker/internal/jobs/stats"
 	"github.com/sirupsen/logrus"
@@ -20,13 +21,13 @@ import (
 var _ = Describe("TikTok", func() {
 	var statsCollector *stats.StatsCollector
 	var tikTokTranscriber *TikTokTranscriber
-	var jobConfig types.JobConfiguration
+	var jobConfig config.JobConfiguration
 
 	BeforeEach(func() {
 		// Initialize a real stats collector, similar to webscraper_test.go
 		// Assuming stats.StartCollector is the correct way to get an instance
 		// The buffer size and jobConfig for stats can be minimal for tests.
-		jobConfigForStats := types.JobConfiguration{"stats_buf_size": uint(32)}
+		jobConfigForStats := config.JobConfiguration{"stats_buf_size": uint(32)}
 		statsCollector = stats.StartCollector(32, jobConfigForStats) // Use the actual StartCollector
 
 		// Ensure debug logging is enabled for the test run
@@ -34,7 +35,7 @@ var _ = Describe("TikTok", func() {
 
 		// Initialize JobConfiguration for the transcriber
 		// It will use hardcoded endpoint, but we can set other defaults if needed for tests
-		jobConfig = types.JobConfiguration{
+		jobConfig = config.JobConfiguration{
 			"tiktok_default_language": "eng-US", // Example default
 		}
 		tikTokTranscriber = NewTikTokTranscriber(jobConfig, statsCollector)
@@ -168,7 +169,7 @@ var _ = Describe("TikTok", func() {
 				Skip("APIFY_API_KEY is not set")
 			}
 
-			jobConfig := types.JobConfiguration{
+			jobConfig := config.JobConfiguration{
 				"apify_api_key": apifyKey,
 			}
 			t := NewTikTokTranscriber(jobConfig, statsCollector)
@@ -229,7 +230,7 @@ var _ = Describe("TikTok", func() {
 				Skip("APIFY_API_KEY is not set")
 			}
 
-			jobConfig := types.JobConfiguration{
+			jobConfig := config.JobConfiguration{
 				"apify_api_key": apifyKey,
 			}
 			t := NewTikTokTranscriber(jobConfig, statsCollector)
@@ -286,7 +287,7 @@ var _ = Describe("TikTok", func() {
 
 		It("should increment TikTokErrors when Apify key is missing", func() {
 			// No APIFY_API_KEY provided in config
-			jobConfig := types.JobConfiguration{}
+			jobConfig := config.JobConfiguration{}
 			t := NewTikTokTranscriber(jobConfig, statsCollector)
 
 			j := types.Job{

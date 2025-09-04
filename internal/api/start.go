@@ -4,9 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"os"
 	"runtime"
-	"strconv"
 	"strings"
 
 	"github.com/edgelesssys/ego/enclave"
@@ -14,50 +12,23 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"
-	"github.com/masa-finance/tee-worker/api/types"
+	"github.com/masa-finance/tee-worker/internal/config"
 	"github.com/masa-finance/tee-worker/internal/jobserver"
 	"github.com/masa-finance/tee-worker/pkg/tee"
 )
 
-func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, config types.JobConfiguration) error {
+func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, config config.JobConfiguration) error {
 
 	// Echo instance
 	e := echo.New()
 
-	logLevel := os.Getenv("LOG_LEVEL")
+	logLevel := config.GetString("log_level", "info")
+	e.Logger.SetLevel(parseLogLevel(logLevel))
 
-	maxJobs := os.Getenv("MAX_JOBS")
-
-	switch strings.ToLower(logLevel) {
-	case "debug":
-		e.Logger.SetLevel(log.DEBUG)
-	case "info":
-		e.Logger.SetLevel(log.INFO)
-	case "warn":
-		e.Logger.SetLevel(log.WARN)
-	case "error":
-		e.Logger.SetLevel(log.ERROR)
-	default:
-		e.Logger.SetLevel(log.INFO)
-	}
-
-	var maxJobsInt int
-	if maxJobs != "" {
-		var err error
-		maxJobsInt, err = strconv.Atoi(maxJobs)
-		if err != nil {
-			e.Logger.Error("Failed to parse MAX_JOBS: ", err)
-			return err
-		}
-	}
-
-	if maxJobsInt == 0 {
-		maxJobsInt = 10
-		e.Logger.Warn("MAX_JOBS is not set, using default of 10")
-	}
+	maxJobs, _ := config.GetInt("max_jobs", 10)
 
 	// Jobserver instance
-	jobServer := jobserver.NewJobServer(maxJobsInt, config)
+	jobServer := jobserver.NewJobServer(maxJobs, config)
 
 	go jobServer.Run(ctx)
 
@@ -161,6 +132,22 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 	}
 
 	return nil
+}
+
+// parseLogLevel parses a logLevel into a log level appropriate for Echo. This is different from config.ParseLogLevel since that one uses a log level appropriate for logrus.
+func parseLogLevel(logLevel string) log.Lvl {
+	switch strings.ToLower(logLevel) {
+	case "debug":
+		return log.DEBUG
+	case "info":
+		return log.INFO
+	case "warn":
+		return log.WARN
+	case "error":
+		return log.ERROR
+	default:
+		return log.INFO
+	}
 }
 
 // enableProfiling enables pprof profiling

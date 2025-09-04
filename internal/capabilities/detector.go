@@ -8,7 +8,7 @@ import (
 
 	util "github.com/masa-finance/tee-types/pkg/util"
 	teetypes "github.com/masa-finance/tee-types/types"
-	"github.com/masa-finance/tee-worker/api/types"
+	"github.com/masa-finance/tee-worker/internal/config"
 	"github.com/masa-finance/tee-worker/internal/jobs/twitter"
 	"github.com/masa-finance/tee-worker/pkg/client"
 	"github.com/sirupsen/logrus"
@@ -21,7 +21,7 @@ type JobServerInterface interface {
 
 // DetectCapabilities automatically detects available capabilities based on configuration
 // If jobServer is provided, it will use the actual worker capabilities
-func DetectCapabilities(jc types.JobConfiguration, jobServer JobServerInterface) teetypes.WorkerCapabilities {
+func DetectCapabilities(jc config.JobConfiguration, jobServer JobServerInterface) teetypes.WorkerCapabilities {
 	// If we have a JobServer, get capabilities directly from the workers
 	if jobServer != nil {
 		return jobServer.GetWorkerCapabilities()

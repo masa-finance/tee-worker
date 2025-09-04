@@ -12,6 +12,7 @@ import (
 	teeargs "github.com/masa-finance/tee-types/args"
 	teetypes "github.com/masa-finance/tee-types/types"
 	"github.com/masa-finance/tee-worker/api/types"
+	"github.com/masa-finance/tee-worker/internal/config"
 	"github.com/masa-finance/tee-worker/internal/jobs/stats"
 	"github.com/masa-finance/tee-worker/internal/jobs/tiktokapify"
 	"github.com/masa-finance/tee-worker/pkg/client"
@@ -53,7 +54,7 @@ func (t *TikTokTranscriber) GetStructuredCapabilities() teetypes.WorkerCapabilit
 
 // NewTikTokTranscriber creates and initializes a new TikTokTranscriber.
 // It sets default values for the API configuration.
-func NewTikTokTranscriber(jc types.JobConfiguration, statsCollector *stats.StatsCollector) *TikTokTranscriber {
+func NewTikTokTranscriber(jc config.JobConfiguration, statsCollector *stats.StatsCollector) *TikTokTranscriber {
 	config := TikTokTranscriptionConfiguration{}
 
 	// Set default values directly
@@ -86,7 +87,7 @@ func NewTikTokTranscriber(jc types.JobConfiguration, statsCollector *stats.Stats
 }
 
 // NewTikTokScraper is an alias constructor to align with Twitter's naming pattern
-func NewTikTokScraper(jc types.JobConfiguration, statsCollector *stats.StatsCollector) *TikTokTranscriber {
+func NewTikTokScraper(jc config.JobConfiguration, statsCollector *stats.StatsCollector) *TikTokTranscriber {
 	return NewTikTokTranscriber(jc, statsCollector)
 }
 

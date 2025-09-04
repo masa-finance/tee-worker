@@ -3,6 +3,7 @@ package jobs
 import (
 	teetypes "github.com/masa-finance/tee-types/types"
 	"github.com/masa-finance/tee-worker/api/types"
+	"github.com/masa-finance/tee-worker/internal/config"
 	"github.com/masa-finance/tee-worker/internal/jobs/stats"
 	"github.com/sirupsen/logrus"
 )
@@ -11,7 +12,7 @@ type TelemetryJob struct {
 	collector *stats.StatsCollector
 }
 
-func NewTelemetryJob(jc types.JobConfiguration, c *stats.StatsCollector) TelemetryJob {
+func NewTelemetryJob(jc config.JobConfiguration, c *stats.StatsCollector) TelemetryJob {
 	return TelemetryJob{collector: c}
 }
 

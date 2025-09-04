@@ -21,7 +21,7 @@ var _ = Describe("Jobserver", func() {
 	})
 
 	It("runs jobs", func() {
-		jobserver := NewJobServer(2, types.JobConfiguration{})
+		jobserver := NewJobServer(2, config.JobConfiguration{})
 
 		uuid, err := jobserver.AddJob(types.Job{
 			Type: teetypes.WebJob,
@@ -48,7 +48,7 @@ var _ = Describe("Jobserver", func() {
 	})
 	It("whitelists miners", func() {
 		config.MinersWhiteList = "miner1,miner2"
-		jobserver := NewJobServer(2, types.JobConfiguration{})
+		jobserver := NewJobServer(2, config.JobConfiguration{})
 
 		uuid, err := jobserver.AddJob(types.Job{
 			Type: teetypes.WebJob,
@@ -78,7 +78,7 @@ var _ = Describe("Jobserver", func() {
 		Expect(exists).ToNot(BeTrue())
 	})
 	It("won't execute same jobs twice", func() {
-		jobserver := NewJobServer(2, types.JobConfiguration{})
+		jobserver := NewJobServer(2, config.JobConfiguration{})
 
 		uuid, err := jobserver.AddJob(types.Job{
 			Type: teetypes.WebJob,

@@ -10,6 +10,7 @@ import (
 
 	teetypes "github.com/masa-finance/tee-types/types"
 	"github.com/masa-finance/tee-worker/api/types"
+	"github.com/masa-finance/tee-worker/internal/config"
 	. "github.com/masa-finance/tee-worker/internal/jobs"
 	"github.com/masa-finance/tee-worker/internal/jobs/stats"
 )
@@ -23,10 +24,10 @@ var _ = Describe("Telemetry Job", func() {
 		os.Setenv("LOG_LEVEL", "debug")
 
 		// Create a stats collector for the telemetry job
-		statsCollector = stats.StartCollector(128, types.JobConfiguration{})
+		statsCollector = stats.StartCollector(128, config.JobConfiguration{})
 
 		// Create the telemetry job
-		telemetryJob = NewTelemetryJob(types.JobConfiguration{}, statsCollector)
+		telemetryJob = NewTelemetryJob(config.JobConfiguration{}, statsCollector)
 	})
 
 	Context("Telemetry Data Fetching", func() {
@@ -82,7 +83,7 @@ var _ = Describe("Telemetry Job", func() {
 
 		It("should handle telemetry job without stats collector", func() {
 			// Create a telemetry job without a stats collector
-			telemetryJobNoStats := NewTelemetryJob(types.JobConfiguration{}, nil)
+			telemetryJobNoStats := NewTelemetryJob(config.JobConfiguration{}, nil)
 
 			job := types.Job{
 				Type:     teetypes.TelemetryJob,

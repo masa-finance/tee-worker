@@ -31,7 +31,6 @@ type worker interface {
 }
 
 func (js *JobServer) doWork(j types.Job) error {
-	// TODO: Add the job to the cache with the status set to Running
 	w, exists := js.jobWorkers[j.Type]
 
 	if !exists {
@@ -55,7 +54,6 @@ func (js *JobServer) doWork(j types.Job) error {
 	}
 
 	result.Job = j
-	// TODO: If we send the tweet results to the cache as they are generated, we don't need to set the data here, just set the status to Done
 	js.results.Set(j.UUID, result)
 
 	return nil

@@ -5,14 +5,14 @@ import (
 	"strings"
 
 	"github.com/labstack/echo/v4"
-	"github.com/masa-finance/tee-worker/api/types"
+	"github.com/masa-finance/tee-worker/internal/config"
 )
 
 const HealthCheckPath = "/healthz"
 const ReadinessCheckPath = "/readyz"
 
 // APIKeyAuthMiddleware returns an Echo middleware that checks for the API key in the request headers.
-func APIKeyAuthMiddleware(config types.JobConfiguration) echo.MiddlewareFunc {
+func APIKeyAuthMiddleware(config config.JobConfiguration) echo.MiddlewareFunc {
 	apiKey := config.GetString("api_key", "")
 	if apiKey == "" {
 		// No API key set; allow all requests (no-op)

@@ -8,6 +8,7 @@ import (
 
 	teetypes "github.com/masa-finance/tee-types/types"
 	"github.com/masa-finance/tee-worker/api/types"
+	"github.com/masa-finance/tee-worker/internal/config"
 	. "github.com/masa-finance/tee-worker/internal/jobs"
 	"github.com/masa-finance/tee-worker/internal/jobs/stats"
 )
@@ -16,11 +17,11 @@ var statsCollector *stats.StatsCollector
 
 var _ = Describe("Webscraper", func() {
 	BeforeEach(func() {
-		statsCollector = stats.StartCollector(128, types.JobConfiguration{})
+		statsCollector = stats.StartCollector(128, config.JobConfiguration{})
 	})
 
 	It("should scrape now", func() {
-		webScraper := NewWebScraper(types.JobConfiguration{}, statsCollector)
+		webScraper := NewWebScraper(config.JobConfiguration{}, statsCollector)
 
 		j := types.Job{
 			Type: teetypes.WebJob,
@@ -48,7 +49,7 @@ var _ = Describe("Webscraper", func() {
 	})
 
 	It("does not return data with invalid hosts", func() {
-		webScraper := NewWebScraper(types.JobConfiguration{}, statsCollector)
+		webScraper := NewWebScraper(config.JobConfiguration{}, statsCollector)
 
 		j := types.Job{
 			Type: teetypes.WebJob,
@@ -74,7 +75,7 @@ var _ = Describe("Webscraper", func() {
 	})
 
 	It("should allow to blacklist urls", func() {
-		webScraper := NewWebScraper(types.JobConfiguration{
+		webScraper := NewWebScraper(config.JobConfiguration{
 			"webscraper_blacklist": []string{"https://google.com"},
 		}, statsCollector)
 

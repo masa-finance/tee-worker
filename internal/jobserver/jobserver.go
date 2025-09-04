@@ -26,7 +26,7 @@ type JobServer struct {
 	workers int
 
 	results          *ResultCache
-	jobConfiguration types.JobConfiguration
+	jobConfiguration config.JobConfiguration
 
 	jobWorkers   map[teetypes.JobType]*jobWorkerEntry
 	executedJobs map[string]bool
@@ -37,7 +37,7 @@ type jobWorkerEntry struct {
 	sync.Mutex
 }
 
-func NewJobServer(workers int, jc types.JobConfiguration) *JobServer {
+func NewJobServer(workers int, jc config.JobConfiguration) *JobServer {
 	logrus.Info("Initializing JobServer...")
 
 	// Validate and set worker count
@@ -204,7 +204,7 @@ func (js *JobServer) AddJob(j types.Job) (string, error) {
 		var miners []string
 
 		// In standalone mode, we just whitelist ourselves
-		if config.StandaloneMode() {
+		if js.jobConfiguration.IsStandaloneMode() {
 			miners = []string{tee.WorkerID}
 		} else {
 			miners = strings.Split(config.MinersWhiteList, ",")

@@ -8,7 +8,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/masa-finance/tee-worker/api/types"
+	"github.com/masa-finance/tee-worker/internal/config"
 	. "github.com/masa-finance/tee-worker/internal/api"
 	"github.com/masa-finance/tee-worker/internal/jobserver"
 )
@@ -122,7 +122,7 @@ var _ = Describe("Health Checks", func() {
 
 		Context("when all checks pass", func() {
 			It("should return 200 OK", func() {
-				jobServer = jobserver.NewJobServer(10, types.JobConfiguration{})
+				jobServer = jobserver.NewJobServer(10, config.JobConfiguration{})
 
 				// Record mostly successes
 				for i := 0; i < 95; i++ {
@@ -165,7 +165,7 @@ var _ = Describe("Health Checks", func() {
 
 		Context("when error rate is high", func() {
 			It("should return 503 Service Unavailable", func() {
-				jobServer = jobserver.NewJobServer(10, types.JobConfiguration{})
+				jobServer = jobserver.NewJobServer(10, config.JobConfiguration{})
 
 				// Record mostly errors
 				for i := 0; i < 4; i++ {

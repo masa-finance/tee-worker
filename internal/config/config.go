@@ -1,6 +1,8 @@
 package config
 
 import (
+	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -8,7 +10,6 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
-	"github.com/masa-finance/tee-worker/api/types"
 	"github.com/sirupsen/logrus"
 )
 
@@ -19,26 +20,21 @@ var (
 	MinersWhiteList = ""
 )
 
-// TODO: Revamp the whole config, using a Map and having multiple global functions to get the config is not nice
-func init() {
-	switch strings.ToLower(os.Getenv("LOG_LEVEL")) {
-	case "debug":
-		logrus.SetLevel(logrus.DebugLevel)
-	case "info":
-		logrus.SetLevel(logrus.InfoLevel)
-	case "warn":
-		logrus.SetLevel(logrus.WarnLevel)
-	case "error":
-		logrus.SetLevel(logrus.ErrorLevel)
-	default:
-		logrus.SetLevel(logrus.InfoLevel)
-	}
-}
+const defaultDataDir = "/home/masa"
+const defaultListenAddress = ":8080"
 
-func ReadConfig() types.JobConfiguration {
+// TODO: Revamp this whole thing, a map[string]any is not really maintainable
+type JobConfiguration map[string]any
+
+func ReadConfig() JobConfiguration {
 	// The jobs will then unmarshal from this configuration to the specific configuration
 	// that is needed for the job
-	jc := types.JobConfiguration{}
+	jc := JobConfiguration{}
+
+	logLevel := os.Getenv("LOG_LEVEL")
+	level := ParseLogLevel(logLevel)
+	jc["log_level"] = level.String()
+	SetLogLevel(level)
 
 	dataDir := os.Getenv("DATA_DIR")
 	if dataDir == "" {
@@ -52,8 +48,42 @@ func ReadConfig() types.JobConfiguration {
 
 	// Read the env file
 	if err := godotenv.Load(filepath.Join(dataDir, ".env")); err != nil {
-		logrus.Warn("Failed reading env file! Loading from environment variables")
+		if os.Getenv("OE_SIMULATION") == "" {
+			fmt.Println("Failed reading env file!")
+			panic(err)
+		}
+		fmt.Println("Failed reading env file. Running in simulation mode, reading from environment variables")
 	}
+
+	bufSizeStr := os.Getenv("STATS_BUF_SIZE")
+	if bufSizeStr == "" {
+		bufSizeStr = "128"
+	}
+	bufSize, err := strconv.Atoi(bufSizeStr)
+	if err != nil {
+		logrus.Errorf("Error parsing STATS_BUF_SIZE: %s. Setting to default.", err)
+		bufSize = 128
+	}
+	jc["stats_buf_size"] = uint(bufSize)
+
+	maxJobsStr := os.Getenv("STATS_BUF_SIZE")
+	if maxJobsStr == "" {
+		maxJobsStr = "10"
+	}
+	maxJobs, err := strconv.Atoi(maxJobsStr)
+	if err != nil {
+		logrus.Errorf("Error parsing MAX_JOBS %s. Setting to default.", err)
+		bufSize = 10
+	}
+	jc["max_jobs"] = uint(maxJobs)
+
+	listenAddress := os.Getenv("LISTEN_ADDRESS")
+	if listenAddress == "" {
+		listenAddress = defaultListenAddress
+	}
+	jc["listen_address"] = listenAddress
+
+	jc["standalone_mode"] = os.Getenv("STANDALONE") == "true"
 
 	// Result cache config
 	resultCacheMaxSize := 1000
@@ -118,52 +148,171 @@ func ReadConfig() types.JobConfiguration {
 		jc["twitter_api_keys"] = []string{}
 	}
 
-	jc["stats_buf_size"] = StatsBufSize()
+	jc["twitter_skip_login_verification"] = os.Getenv("TWITTER_SKIP_LOGIN_VERIFICATION") == "true"
 
-	logLevel := os.Getenv("LOG_LEVEL")
-	jc["log_level"] = strings.ToLower(logLevel)
-	switch jc["log_level"] {
-	case "debug":
-		logrus.SetLevel(logrus.DebugLevel)
-	case "info":
-		logrus.SetLevel(logrus.InfoLevel)
-	case "warn":
-		logrus.SetLevel(logrus.WarnLevel)
-	case "error":
-		logrus.SetLevel(logrus.ErrorLevel)
-	default:
-		logrus.SetLevel(logrus.InfoLevel)
+	// Apify API key loading
+	apifyApiKey := os.Getenv("APIFY_API_KEY")
+	if apifyApiKey != "" {
+		logrus.Info("Apify API key found")
+		jc["apify_api_key"] = apifyApiKey
+	} else {
+		jc["apify_api_key"] = ""
 	}
+
+	tikTokLang := os.Getenv("TIKTOK_DEFAULT_LANGUAGE")
+	if tikTokLang == "" {
+		tikTokLang = "eng-US"
+		logrus.Info("TIKTOK_DEFAULT_LANGUAGE not set, using default: ", tikTokLang)
+	}
+	jc["tiktok_default_language"] = tikTokLang
+
+	// TikTok API Origin and Referer now use hardcoded defaults in NewTikTokTranscriber
+
+	if userAgent := os.Getenv("TIKTOK_API_USER_AGENT"); userAgent != "" {
+		jc["tiktok_api_user_agent"] = userAgent
+	} // Default for userAgent is set in NewTikTokTranscriber
 
 	jc["profiling_enabled"] = os.Getenv("ENABLE_PPROF") == "true"
 
 	return jc
 }
 
-// StatsBufSize returns the size of the stats channel buffer
-func StatsBufSize() uint {
-	bufSizeStr := os.Getenv("STATS_BUF_SIZE")
-	if bufSizeStr == "" {
-		bufSizeStr = "128"
-	}
-
-	bufSize, err := strconv.Atoi(bufSizeStr)
+// Unmarshal unmarshals the job configuration into the supplied interface.
+func (jc JobConfiguration) Unmarshal(v any) error {
+	data, err := json.Marshal(jc)
 	if err != nil {
-		logrus.Errorf("Error parsing STATS_BUF_SIZE: %s. Setting to default.", err)
-		bufSize = 128
+		return fmt.Errorf("error marshalling job configuration: %w", err)
 	}
-	return uint(bufSize)
-}
-
-func ListenAddress() string {
-	listenAddress := os.Getenv("LISTEN_ADDRESS")
-	if listenAddress == "" {
-		listenAddress = ":8080"
+	if err := json.Unmarshal(data, v); err != nil {
+		return fmt.Errorf("error unmarshalling job configuration: %w", err)
 	}
 
-	return listenAddress
+	return nil
 }
 
-func StandaloneMode() bool {
-	return os.Getenv("STANDALONE") == "true"
+func (jc JobConfiguration) DataDir() string {
+	return jc.GetString("data_dir", defaultDataDir)
+}
+
+func (jc JobConfiguration) ListenAddress() string {
+	return jc.GetString("listen_address", defaultListenAddress)
+}
+
+func (jc JobConfiguration) IsStandaloneMode() bool {
+	return jc.GetBool("standalone_mode", false)
+}
+
+// GetInt safely extracts an int from JobConfiguration, with a default fallback
+func (jc JobConfiguration) GetInt(key string, def int) (int, error) {
+	if v, ok := jc[key]; ok {
+		switch val := v.(type) {
+		case int:
+			return val, nil
+		case int64:
+			return int(val), nil
+		case float64:
+			return int(val), nil
+		case float32:
+			return int(val), nil
+		default:
+			return def, fmt.Errorf("value %v for key %q cannot be converted to int", val, key)
+		}
+	}
+	return def, nil
+}
+
+func (jc JobConfiguration) GetDuration(key string, defSecs int) time.Duration {
+	// Go does not allow generics in methods :-(
+	if v, ok := jc[key]; ok {
+		if val, ok := v.(time.Duration); ok {
+			return val
+		}
+	}
+	return time.Duration(defSecs) * time.Second
+}
+
+func (jc JobConfiguration) GetString(key string, def string) string {
+	if v, ok := jc[key]; ok {
+		if val, ok := v.(string); ok {
+			return val
+		}
+	}
+	return def
+}
+
+// GetStringSlice safely extracts a string slice from JobConfiguration, with a default fallback
+func (jc JobConfiguration) GetStringSlice(key string, def []string) []string {
+	if v, ok := jc[key]; ok {
+		if val, ok := v.([]string); ok {
+			return val
+		}
+	}
+	return def
+}
+
+// GetBool safely extracts a bool from JobConfiguration, with a default fallback
+func (jc JobConfiguration) GetBool(key string, def bool) bool {
+	if v, ok := jc[key]; ok {
+		if val, ok := v.(bool); ok {
+			return val
+		}
+	}
+	return def
+}
+
+// TwitterScraperConfig represents the configuration needed for Twitter scraping
+// This is defined here to avoid circular imports between api/types and internal/jobs
+type TwitterScraperConfig struct {
+	Accounts              []string
+	ApiKeys               []string
+	ApifyApiKey           string
+	DataDir               string
+	SkipLoginVerification bool
+}
+
+// GetTwitterConfig constructs a TwitterScraperConfig directly from the JobConfiguration
+// This eliminates the need for JSON marshaling/unmarshaling
+func (jc JobConfiguration) GetTwitterConfig() TwitterScraperConfig {
+	return TwitterScraperConfig{
+		Accounts:              jc.GetStringSlice("twitter_accounts", []string{}),
+		ApiKeys:               jc.GetStringSlice("twitter_api_keys", []string{}),
+		ApifyApiKey:           jc.GetString("apify_api_key", ""),
+		DataDir:               jc.GetString("data_dir", ""),
+		SkipLoginVerification: jc.GetBool("skip_login_verification", false),
+	}
+}
+
+// RedditConfig represents the configuration needed for Reddit scraping via Apify
+type RedditConfig struct {
+	ApifyApiKey string
+}
+
+// GetRedditConfig constructs a RedditConfig directly from the JobConfiguration
+// This eliminates the need for JSON marshaling/unmarshaling
+func (jc JobConfiguration) GetRedditConfig() RedditConfig {
+	return RedditConfig{
+		ApifyApiKey: jc.GetString("apify_api_key", ""),
+	}
+}
+
+// ParseLogLevel parses a string and returns the corresponding logrus.Level.
+func ParseLogLevel(logLevel string) logrus.Level {
+	switch strings.ToLower(logLevel) {
+	case "debug":
+		return logrus.DebugLevel
+	case "info":
+		return logrus.InfoLevel
+	case "warn":
+		return logrus.WarnLevel
+	case "error":
+		return logrus.ErrorLevel
+	default:
+		logrus.Error("Invalid log level", "level", logLevel, "setting_to", logrus.InfoLevel.String())
+		return logrus.InfoLevel
+	}
+}
+
+// SetLogLevel sets the log level for the application.
+func SetLogLevel(level logrus.Level) {
+	logrus.SetLevel(level)
 }

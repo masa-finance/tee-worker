@@ -13,6 +13,7 @@ import (
 	teetypes "github.com/masa-finance/tee-types/types"
 	"github.com/masa-finance/tee-worker/api/types"
 	. "github.com/masa-finance/tee-worker/internal/api"
+	"github.com/masa-finance/tee-worker/internal/config"
 	"github.com/masa-finance/tee-worker/pkg/client"
 )
 
@@ -33,7 +34,7 @@ var _ = Describe("API", func() {
 		logrus.SetLevel(logrus.DebugLevel)
 		go func() {
 			logrus.SetLevel(logrus.DebugLevel)
-			Start(ctx, "127.0.0.1:40912", "", true, types.JobConfiguration{})
+			Start(ctx, "127.0.0.1:40912", "", true, config.JobConfiguration{})
 		}()
 
 		// Wait for the server to start

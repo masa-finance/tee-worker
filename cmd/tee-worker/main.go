@@ -2,18 +2,18 @@ package main
 
 import (
 	"context"
+
 	"github.com/masa-finance/tee-worker/internal/api"
+	"github.com/masa-finance/tee-worker/internal/config"
 	"github.com/masa-finance/tee-worker/pkg/tee"
 	"github.com/sirupsen/logrus"
 )
 
 func main() {
-	jc := readConfig()
-	listenAddress := listenAddress()
+	jc := config.ReadConfig()
+	listenAddress := jc.ListenAddress()
 
-	// Set standalone mode first based on configuration
-	standalone := standaloneMode()
-	tee.SealStandaloneMode = standalone
+	tee.SealStandaloneMode = jc.IsStandaloneMode()
 
 	if tee.KeyDistributorPubKey != "" {
 		logrus.Info("This instance will allow only ", tee.KeyDistributorPubKey, " to set the sealing keys")
@@ -21,7 +21,7 @@ func main() {
 
 	// Initialize worker ID - this will work even if sealing key loading failed
 	// The worker ID is designed to be persistent across restarts
-	if err := tee.InitializeWorkerID(dataDir); err != nil {
+	if err := tee.InitializeWorkerID(jc.DataDir()); err != nil {
 		logrus.Fatalf("Failed to initialize persistent worker ID: %v. Exiting...", err)
 	}
 
@@ -29,7 +29,7 @@ func main() {
 	jc["worker_id"] = tee.WorkerID
 
 	// Start the API
-	if err := api.Start(context.Background(), listenAddress, dataDir, standalone, jc); err != nil {
+	if err := api.Start(context.Background(), listenAddress, jc.DataDir(), jc.IsStandaloneMode(), jc); err != nil {
 		panic(err)
 	}
 
