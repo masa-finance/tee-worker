@@ -17,18 +17,18 @@ import (
 	"github.com/masa-finance/tee-worker/pkg/tee"
 )
 
-func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, config config.JobConfiguration) error {
+func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, jc config.JobConfiguration) error {
 
 	// Echo instance
 	e := echo.New()
 
-	logLevel := config.GetString("log_level", "info")
+	// Default loglevel
+	logLevel := jc.GetString("log_level", "info")
 	e.Logger.SetLevel(parseLogLevel(logLevel))
 
-	maxJobs, _ := config.GetInt("max_jobs", 10)
-
 	// Jobserver instance
-	jobServer := jobserver.NewJobServer(maxJobs, config)
+	maxJobs, _ := jc.GetInt("max_jobs", 10)
+	jobServer := jobserver.NewJobServer(maxJobs, jc)
 
 	go jobServer.Run(ctx)
 
@@ -40,7 +40,7 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 	e.Use(middleware.Recover())
 
 	// API Key Authentication Middleware
-	e.Use(APIKeyAuthMiddleware(config))
+	e.Use(APIKeyAuthMiddleware(jc))
 
 	// Health metrics tracking middleware
 	e.Use(HealthMetricsMiddleware(healthMetrics))
@@ -59,28 +59,46 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 	e.GET("/healthz", Healthz())
 	e.GET("/readyz", Readyz(jobServer, healthMetrics))
 
-	// Set up profiling if allowed
-	if config.GetBool("profiling_enabled", false) {
-		_ = enableProfiling(e, standalone)
-	}
+	debug := e.Group("/debug")
+	debug.PUT("/loglevel", func(c echo.Context) error {
+		levelStr := c.QueryParam("level")
+		if levelStr == "" {
+			levelStr = jc.GetString("log_level", "info")
+		}
+
+		// Set logrus log level
+		logrusLevel := config.ParseLogLevel(levelStr)
+		config.SetLogLevel(logrusLevel)
+
+		// Set echo log level
+		echoLevel := parseLogLevel(levelStr)
+		e.Logger.SetLevel(echoLevel)
+
+		return c.String(http.StatusOK, fmt.Sprintf("log level set to %s", levelStr))
+	})
 
 	if standalone {
-		e.Logger.Info("Enabling profiling control endpoints")
-		debug := e.Group("/debug/pprof")
+		// Set up profiling if allowed
+		if jc.GetBool("profiling_enabled", false) {
+			_ = enableProfiling(e, standalone)
+		}
 
-		debug.POST("/enable", func(c echo.Context) error {
+		pprofGroup := debug.Group("/pprof")
+
+		pprofGroup.POST("/enable", func(c echo.Context) error {
 			if enableProfiling(e, standalone) {
 				return c.String(http.StatusOK, "pprof enabled")
 			}
 			return c.String(http.StatusBadRequest, "pprof not supported")
 		})
 
-		debug.POST("/disable", func(c echo.Context) error {
+		pprofGroup.POST("/disable", func(c echo.Context) error {
 			if disableProfiling(e, standalone) {
 				return c.String(http.StatusOK, "pprof disabled")
 			}
 			return c.String(http.StatusBadRequest, "pprof not supported")
 		})
+
 	}
 
 	/*
@@ -150,8 +168,7 @@ func parseLogLevel(logLevel string) log.Lvl {
 	}
 }
 
-// enableProfiling enables pprof profiling
-// In TEE/enclave mode, a warning is displayed but profiling is still enabled
+// enableProfiling enables pprof profiling. Only works in standalone mode.
 func enableProfiling(e *echo.Echo, standaloneMode bool) bool {
 	// Warning if using profiling in TEE mode
 	if !standaloneMode {

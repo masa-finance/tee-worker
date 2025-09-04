@@ -63,6 +63,9 @@ The tee-worker requires various environment variables for operation. These shoul
 - `RESULT_CACHE_MAX_SIZE`: Maximum number of job results to keep in the result cache (default: `1000`).
 - `RESULT_CACHE_MAX_AGE_SECONDS`: Maximum age (in seconds) to keep a result in the cache (default: `600`).
 - `JOB_TIMEOUT_SECONDS`: Maximum duration of a job when multiple calls are needed to get the number of results requested (default: `300`).
+- `STANDALONE`: Set to `true` to run in standalone (non-TEE) mode.
+- `OE_SIMULATION`: Set to `1` to run with a TEE simulator instead of a full TEE.
+- `LOG_LEVEL`: Initial log level. The valid values are `debug`, `info`, `warn` and `error`. You can also set the debug level at runtime (e.g. to debug a production issue) by using the `PUT /debug/loglevel?level=<level>` endpoint.
 
 ## Capabilities
 
@@ -634,6 +637,10 @@ func main() {
     decryptedResult, err := clientInstance.Decrypt(jobSignature, encryptedResult)
 }
 ```
+
+## Setting log levels
+
+You can set the initial log level via the `LOG_LEVEL` environment variable. The valid values are `debug`, `info`, `warn` and `error`. You can also set the debug level at runtime (e.g. to debug a production issue) by using the `PUT /debug/loglevel?level=<level>` endpoint.
 
 ## Profiling
 
