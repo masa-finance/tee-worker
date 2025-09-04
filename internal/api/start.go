@@ -63,7 +63,7 @@ func Start(ctx context.Context, listenAddress, dataDIR string, standalone bool, 
 	debug.PUT("/loglevel", func(c echo.Context) error {
 		levelStr := c.QueryParam("level")
 		if levelStr == "" {
-			return c.String(http.StatusBadRequest, "level query parameter is required")
+			levelStr = jc.GetString("log_level", "info")
 		}
 
 		// Set logrus log level
