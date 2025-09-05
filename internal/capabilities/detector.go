@@ -38,10 +38,12 @@ func DetectCapabilities(jc config.JobConfiguration, jobServer JobServerInterface
 	accounts := jc.GetStringSlice("twitter_accounts", nil)
 	apiKeys := jc.GetStringSlice("twitter_api_keys", nil)
 	apifyApiKey := jc.GetString("apify_api_key", "")
+	geminiApiKey := jc.GetString("gemini_api_key", "")
 
 	hasAccounts := len(accounts) > 0
 	hasApiKeys := len(apiKeys) > 0
 	hasApifyKey := hasValidApifyKey(apifyApiKey)
+	hasGeminiKey := hasValidGeminiKey(geminiApiKey)
 
 	// Add Twitter-specific capabilities based on available authentication
 	if hasAccounts {
@@ -73,6 +75,10 @@ func DetectCapabilities(jc config.JobConfiguration, jobServer JobServerInterface
 		s.Add(teetypes.TiktokSearchCaps...)
 		capabilities[teetypes.TiktokJob] = s.Items()
 
+		if hasGeminiKey {
+			capabilities[teetypes.WebJob] = teetypes.WebCaps
+			capabilities[teetypes.LLMJob] = teetypes.LLMCaps
+		}
 	}
 
 	// Add general TwitterJob capability if any Twitter auth is available
@@ -155,5 +161,14 @@ func hasValidApifyKey(apifyApiKey string) bool {
 	}
 
 	logrus.Infof("Apify API key validated successfully during capability detection")
+	return true
+}
+
+func hasValidGeminiKey(geminiApiKey string) bool {
+	if geminiApiKey == "" {
+		return false
+	}
+
+	// TODO validate the gemini key with a handler
 	return true
 }

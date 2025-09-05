@@ -33,7 +33,8 @@ var _ = Describe("Telemetry Job", func() {
 	Context("Telemetry Data Fetching", func() {
 		It("should fetch telemetry data and log it", func() {
 			// Add some test stats to the collector
-			statsCollector.Add("test-worker-1", stats.WebSuccess, 5)
+			statsCollector.Add("test-worker-1", stats.WebQueries, 5)
+			statsCollector.Add("test-worker-1", stats.WebScrapedPages, 10)
 			statsCollector.Add("test-worker-1", stats.WebErrors, 2)
 			statsCollector.Add("test-worker-2", stats.TwitterScrapes, 10)
 			statsCollector.Add("test-worker-2", stats.TwitterTweets, 50)
