@@ -159,6 +159,14 @@ func ReadConfig() JobConfiguration {
 		jc["apify_api_key"] = ""
 	}
 
+	geminiApiKey := os.Getenv("GEMINI_API_KEY")
+	if geminiApiKey != "" {
+		logrus.Info("Gemini API key found")
+		jc["gemini_api_key"] = geminiApiKey
+	} else {
+		jc["gemini_api_key"] = ""
+	}
+
 	tikTokLang := os.Getenv("TIKTOK_DEFAULT_LANGUAGE")
 	if tikTokLang == "" {
 		tikTokLang = "eng-US"
@@ -292,6 +300,21 @@ type RedditConfig struct {
 func (jc JobConfiguration) GetRedditConfig() RedditConfig {
 	return RedditConfig{
 		ApifyApiKey: jc.GetString("apify_api_key", ""),
+	}
+}
+
+// WebConfig represents the configuration needed for Web scraping via Apify
+type WebConfig struct {
+	ApifyApiKey  string
+	GeminiApiKey string
+}
+
+// GetWebConfig constructs a WebConfig directly from the JobConfiguration
+// This eliminates the need for JSON marshaling/unmarshaling
+func (jc JobConfiguration) GetWebConfig() WebConfig {
+	return WebConfig{
+		ApifyApiKey:  jc.GetString("apify_api_key", ""),
+		GeminiApiKey: jc.GetString("gemini_api_key", ""),
 	}
 }
 

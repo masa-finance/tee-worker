@@ -25,9 +25,9 @@ const (
 	TwitterAuthErrors          StatType = "twitter_auth_errors"
 	TwitterRateErrors          StatType = "twitter_ratelimit_errors"
 	TwitterXSearchQueries      StatType = "twitterx_search" // TODO: investigate if this is needed or used...
-	WebSuccess                 StatType = "web_success"
+	WebQueries                 StatType = "web_queries"
+	WebScrapedPages            StatType = "web_scraped_pages"
 	WebErrors                  StatType = "web_errors"
-	WebInvalid                 StatType = "web_invalid"
 	TikTokTranscriptionSuccess StatType = "tiktok_transcription_success"
 	TikTokTranscriptionErrors  StatType = "tiktok_transcription_errors"
 	TikTokVideos               StatType = "tiktok_returned_videos"
@@ -65,7 +65,7 @@ type StatsCollector struct {
 	Stats            *Stats
 	Chan             chan AddStat
 	jobServer        capabilities.JobServerInterface
-		jobConfiguration config.JobConfiguration
+	jobConfiguration config.JobConfiguration
 }
 
 // StartCollector starts a goroutine that listens to a channel for AddStat messages and updates the stats accordingly.
