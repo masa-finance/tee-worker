@@ -74,6 +74,8 @@ func (w *WebScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 		return types.JobResult{Error: fmt.Sprintf("error marshalling Web response")}, fmt.Errorf("error marshalling Web response: %w", err)
 	}
 
+	// TODO is this where we add the LLM processor?
+
 	return types.JobResult{
 		Data:       data,
 		Job:        j,

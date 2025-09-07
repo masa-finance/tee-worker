@@ -10,6 +10,9 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 
+	"errors"
+
+	"github.com/masa-finance/tee-types/args"
 	teetypes "github.com/masa-finance/tee-types/types"
 	"github.com/masa-finance/tee-worker/api/types"
 	. "github.com/masa-finance/tee-worker/internal/api"
@@ -95,7 +98,7 @@ var _ = Describe("API", func() {
 		Expect(encryptedResult).To(BeEmpty())
 
 		// The error should be about URL scheme validation
-		Expect(err.Error()).To(ContainSubstring("URL must include a scheme"))
+		Expect(errors.Is(err, args.ErrWebURLInvalid)).To(BeTrue())
 	})
 
 	It("should submit a job and get the correct result", func() {
