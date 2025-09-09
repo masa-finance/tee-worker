@@ -8,8 +8,8 @@ import (
 	. "github.com/onsi/gomega"
 
 	teetypes "github.com/masa-finance/tee-types/types"
-	"github.com/masa-finance/tee-worker/internal/config"
 	. "github.com/masa-finance/tee-worker/internal/capabilities"
+	"github.com/masa-finance/tee-worker/internal/config"
 )
 
 // MockJobServer implements JobServerInterface for testing
@@ -65,7 +65,6 @@ var _ = Describe("DetectCapabilities", func() {
 			config.JobConfiguration{},
 			nil,
 			teetypes.WorkerCapabilities{
-				teetypes.WebJob:       {teetypes.CapScraper},
 				teetypes.TelemetryJob: {teetypes.CapTelemetry},
 				teetypes.TiktokJob:    {teetypes.CapTranscription},
 			},
@@ -76,7 +75,6 @@ var _ = Describe("DetectCapabilities", func() {
 			},
 			nil,
 			teetypes.WorkerCapabilities{
-				teetypes.WebJob:               {teetypes.CapScraper},
 				teetypes.TelemetryJob:         {teetypes.CapTelemetry},
 				teetypes.TiktokJob:            {teetypes.CapTranscription},
 				teetypes.TwitterCredentialJob: teetypes.TwitterCredentialCaps,
@@ -89,7 +87,6 @@ var _ = Describe("DetectCapabilities", func() {
 			},
 			nil,
 			teetypes.WorkerCapabilities{
-				teetypes.WebJob:        {teetypes.CapScraper},
 				teetypes.TelemetryJob:  {teetypes.CapTelemetry},
 				teetypes.TiktokJob:     {teetypes.CapTranscription},
 				teetypes.TwitterApiJob: teetypes.TwitterAPICaps,
@@ -102,7 +99,6 @@ var _ = Describe("DetectCapabilities", func() {
 			},
 			nil,
 			teetypes.WorkerCapabilities{
-				teetypes.WebJob:       {teetypes.CapScraper},
 				teetypes.TelemetryJob: {teetypes.CapTelemetry},
 				teetypes.TiktokJob:    {teetypes.CapTranscription},
 				// Note: Mock elevated keys will be detected as basic since we can't make real API calls in tests
@@ -133,19 +129,19 @@ var _ = Describe("DetectCapabilities", func() {
 			},
 			Entry("Basic scrapers only",
 				config.JobConfiguration{},
-				[]string{"web", "telemetry", "tiktok"},
+				[]string{"telemetry", "tiktok"},
 			),
 			Entry("With Twitter accounts",
 				config.JobConfiguration{
 					"twitter_accounts": []string{"user1:pass1"},
 				},
-				[]string{"web", "telemetry", "tiktok", "twitter", "twitter-credential"},
+				[]string{"telemetry", "tiktok", "twitter", "twitter-credential"},
 			),
 			Entry("With Twitter API keys",
 				config.JobConfiguration{
 					"twitter_api_keys": []string{"key1"},
 				},
-				[]string{"web", "telemetry", "tiktok", "twitter", "twitter-api"},
+				[]string{"telemetry", "tiktok", "twitter", "twitter-api"},
 			),
 		)
 	})
@@ -178,6 +174,31 @@ var _ = Describe("DetectCapabilities", func() {
 			// Reddit should be present
 			_, hasReddit := caps[teetypes.RedditJob]
 			Expect(hasReddit).To(BeTrue(), "expected reddit capabilities to be present")
+		})
+		It("should add enhanced capabilities when valid Apify API key is provided alongside a Gemini API key", func() {
+			apifyKey := os.Getenv("APIFY_API_KEY")
+			if apifyKey == "" {
+				Skip("APIFY_API_KEY is not set")
+			}
+
+			geminiKey := os.Getenv("GEMINI_API_KEY")
+			if geminiKey == "" {
+				Skip("GEMINI_API_KEY is not set")
+			}
+
+			jc := config.JobConfiguration{
+				"apify_api_key":  apifyKey,
+				"gemini_api_key": geminiKey,
+			}
+			caps := DetectCapabilities(jc, nil)
+
+			// Web should be present
+			_, hasWeb := caps[teetypes.WebJob]
+			Expect(hasWeb).To(BeTrue(), "expected web capabilities to be present")
+
+			// LLM should be present
+			_, hasLLM := caps[teetypes.LLMJob]
+			Expect(hasLLM).To(BeTrue(), "expected LLM capabilities to be present")
 		})
 	})
 })

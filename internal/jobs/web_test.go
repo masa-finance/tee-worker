@@ -178,6 +178,9 @@ var _ = Describe("WebScraper", func() {
 			Expect(resp).NotTo(BeEmpty())
 			Expect(resp[0]).NotTo(BeNil())
 			Expect(resp[0].URL).To(Equal("https://example.com/"))
+
+			// TODO verify stats are increased via the client
+
 		})
 
 		It("should expose capabilities only when both APIFY and GEMINI keys are present", func() {
