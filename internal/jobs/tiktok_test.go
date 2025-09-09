@@ -44,7 +44,7 @@ var _ = Describe("TikTok", func() {
 
 	Context("when a valid TikTok URL is provided", func() {
 		It("should successfully transcribe the video and record success stats", func(ctx SpecContext) {
-			videoURL := "https://www.tiktok.com/@.jake.ai/video/7516694182245813509"
+			videoURL := "https://www.tiktok.com/@theblockrunner.com/video/7227579907361066282"
 			jobArguments := map[string]interface{}{
 				"type":      teetypes.CapTranscription,
 				"video_url": videoURL,
