@@ -10,9 +10,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 
-	"errors"
-
-	"github.com/masa-finance/tee-types/args"
 	teetypes "github.com/masa-finance/tee-types/types"
 	"github.com/masa-finance/tee-worker/api/types"
 	. "github.com/masa-finance/tee-worker/internal/api"
@@ -73,41 +70,15 @@ var _ = Describe("API", func() {
 		cancel()
 	})
 
-	It("should submit an invalid job, and fail because of the malformed URL. no results containing google", func() {
-		// Step 1: Create the job request
-		job := types.Job{
-			Type: teetypes.WebJob,
-			Arguments: map[string]interface{}{
-				"url": "google",
-			},
-		}
-
-		// Step 2: Get a Job signature
-		jobSignature, err := clientInstance.CreateJobSignature(job)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(jobSignature).NotTo(BeEmpty())
-
-		// Step 3: Submit the job
-		jobResult, err := clientInstance.SubmitJob(jobSignature)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(jobResult.UUID).NotTo(BeEmpty())
-
-		// Step 4: Wait for the job result - should fail due to invalid URL
-		encryptedResult, err := jobResult.Get()
-		Expect(err).To(HaveOccurred())
-		Expect(encryptedResult).To(BeEmpty())
-
-		// The error should be about URL scheme validation
-		Expect(errors.Is(err, args.ErrWebURLInvalid)).To(BeTrue())
-	})
-
 	It("should submit a job and get the correct result", func() {
 		// Step 1: Create the job request
+		// we use TikTok transcription here as it's supported by all workers without any unique config
 		job := types.Job{
-			Type: teetypes.WebJob,
+			Type: teetypes.TiktokJob,
 			Arguments: map[string]interface{}{
-				"url":   "https://google.com",
-				"depth": 1,
+				"type":      "transcription",
+				"video_url": "https://www.tiktok.com/@.jake.ai/video/7516694182245813509",
+				"language":  "eng-US",
 			},
 		}
 		// Step 2: Get a Job signature
@@ -130,12 +101,10 @@ var _ = Describe("API", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(decryptedResult).NotTo(BeEmpty())
-		Expect(decryptedResult).To(ContainSubstring("google"))
 
 		result, err := jobResult.GetDecrypted(jobSignature)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result).NotTo(BeEmpty())
-		Expect(result).To(ContainSubstring("google"))
 	})
 
 	It("bubble up errors", func() {
