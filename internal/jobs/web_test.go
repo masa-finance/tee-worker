@@ -179,7 +179,7 @@ var _ = Describe("WebScraper", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resp).NotTo(BeEmpty())
 			Expect(resp[0]).NotTo(BeNil())
-			Expect(resp[0].URL).To(Equal("https://en.wikipedia.org/wiki/Bitcoin/"))
+			Expect(resp[0].URL).To(Equal("https://en.wikipedia.org/wiki/Bitcoin"))
 			Expect(resp[0].LLMResponse).NotTo(BeEmpty())
 
 			prettyJSON, err := json.MarshalIndent(resp, "", "  ")
