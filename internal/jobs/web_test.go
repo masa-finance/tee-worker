@@ -3,6 +3,7 @@ package jobs_test
 import (
 	"encoding/json"
 	"errors"
+	"os"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -11,6 +12,7 @@ import (
 	"github.com/masa-finance/tee-worker/internal/config"
 	"github.com/masa-finance/tee-worker/internal/jobs"
 	"github.com/masa-finance/tee-worker/internal/jobs/stats"
+	"github.com/masa-finance/tee-worker/internal/jobs/webapify"
 	"github.com/masa-finance/tee-worker/pkg/client"
 
 	teeargs "github.com/masa-finance/tee-types/args"
@@ -122,6 +124,78 @@ var _ = Describe("WebScraper", func() {
 			result, err := scraper.ExecuteJob(job)
 			Expect(err).To(HaveOccurred())
 			Expect(result.Error).To(Equal("error while scraping Web"))
+		})
+	})
+
+	// Integration tests that use the real client
+	Context("Integration tests", func() {
+		var (
+			apifyKey  string
+			geminiKey string
+		)
+
+		BeforeEach(func() {
+			apifyKey = os.Getenv("APIFY_API_KEY")
+			geminiKey = os.Getenv("GEMINI_API_KEY")
+
+			// Reset to use real client for integration tests
+			jobs.NewWebApifyClient = func(apiKey string, s *stats.StatsCollector) (jobs.WebApifyClient, error) {
+				return webapify.NewClient(apiKey, s)
+			}
+		})
+
+		It("should execute a real web scraping job when APIFY_API_KEY is set", func() {
+			if apifyKey == "" {
+				Skip("APIFY_API_KEY is not set")
+			}
+
+			cfg := config.JobConfiguration{
+				"apify_api_key":  apifyKey,
+				"gemini_api_key": geminiKey,
+			}
+			integrationStatsCollector := stats.StartCollector(128, cfg)
+			integrationScraper := jobs.NewWebScraper(cfg, integrationStatsCollector)
+
+			job := types.Job{
+				UUID: "integration-test-uuid",
+				Type: teetypes.WebJob,
+				Arguments: map[string]any{
+					"type":      teetypes.WebScraper,
+					"url":       "https://example.com",
+					"max_depth": 0,
+					"max_pages": 1,
+				},
+			}
+
+			result, err := integrationScraper.ExecuteJob(job)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result.Error).To(BeEmpty())
+			Expect(result.Data).NotTo(BeEmpty())
+
+			var resp []*teetypes.WebScraperResult
+			err = json.Unmarshal(result.Data, &resp)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(resp).NotTo(BeEmpty())
+			Expect(resp[0]).NotTo(BeNil())
+			Expect(resp[0].URL).To(Equal("https://example.com/"))
+		})
+
+		It("should expose capabilities only when both APIFY and GEMINI keys are present", func() {
+			cfg := config.JobConfiguration{
+				"apify_api_key":  apifyKey,
+				"gemini_api_key": geminiKey,
+			}
+			integrationStatsCollector := stats.StartCollector(128, cfg)
+			integrationScraper := jobs.NewWebScraper(cfg, integrationStatsCollector)
+
+			caps := integrationScraper.GetStructuredCapabilities()
+			if apifyKey != "" && geminiKey != "" {
+				Expect(caps[teetypes.WebJob]).NotTo(BeEmpty())
+			} else {
+				// Expect no capabilities when either key is missing
+				_, ok := caps[teetypes.WebJob]
+				Expect(ok).To(BeFalse())
+			}
 		})
 	})
 })

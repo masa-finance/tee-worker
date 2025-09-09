@@ -193,7 +193,7 @@ var _ = Describe("WebApifyClient", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(results).NotTo(BeEmpty())
 			Expect(results[0]).NotTo(BeNil())
-			Expect(results[0].URL).To(Equal("https://example.com"))
+			Expect(results[0].URL).To(Equal("https://example.com/"))
 			Expect(cursor).NotTo(BeEmpty())
 		})
 	})
