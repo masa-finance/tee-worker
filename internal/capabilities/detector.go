@@ -43,7 +43,7 @@ func DetectCapabilities(jc config.JobConfiguration, jobServer JobServerInterface
 	hasAccounts := len(accounts) > 0
 	hasApiKeys := len(apiKeys) > 0
 	hasApifyKey := hasValidApifyKey(apifyApiKey)
-	hasGeminiKey := hasValidGeminiKey(geminiApiKey)
+	hasLLMKey := hasValidLLMKey(geminiApiKey)
 
 	// Add Twitter-specific capabilities based on available authentication
 	if hasAccounts {
@@ -75,9 +75,8 @@ func DetectCapabilities(jc config.JobConfiguration, jobServer JobServerInterface
 		s.Add(teetypes.TiktokSearchCaps...)
 		capabilities[teetypes.TiktokJob] = s.Items()
 
-		if hasGeminiKey {
+		if hasLLMKey {
 			capabilities[teetypes.WebJob] = teetypes.WebCaps
-			capabilities[teetypes.LLMJob] = teetypes.LLMCaps
 		}
 	}
 
@@ -164,8 +163,8 @@ func hasValidApifyKey(apifyApiKey string) bool {
 	return true
 }
 
-func hasValidGeminiKey(geminiApiKey string) bool {
-	if geminiApiKey == "" {
+func hasValidLLMKey(llmApiKey string) bool {
+	if llmApiKey == "" {
 		return false
 	}
 

@@ -195,10 +195,6 @@ var _ = Describe("DetectCapabilities", func() {
 			// Web should be present
 			_, hasWeb := caps[teetypes.WebJob]
 			Expect(hasWeb).To(BeTrue(), "expected web capabilities to be present")
-
-			// LLM should be present
-			_, hasLLM := caps[teetypes.LLMJob]
-			Expect(hasLLM).To(BeTrue(), "expected LLM capabilities to be present")
 		})
 	})
 })
