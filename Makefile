@@ -68,7 +68,7 @@ test: docker-build-test
 	docker run --user root $(ENV_FILE_ARG) -e LOG_LEVEL=debug -v $(PWD)/coverage:/app/coverage --rm --workdir /app $(TEST_IMAGE) go test -coverprofile=coverage/coverage.txt -covermode=atomic -v $(TEST_ARGS)
 
 test-capabilities: docker-build-test
-	@docker run --user root $(ENV_FILE_ARG) -e LOG_LEVEL=debug -v $(PWD)/coverage:/app/coverage --rm --workdir /app $(TEST_IMAGE) go test -coverprofile=coverage/coverage-capabilities.txt -covermode=atomic -v ./internal/capabilities
+	@docker run --user root $(ENV_FILE_ARG) -e LOG_LEVEL=debug -v $(PWD)/coverage:/app/coverage --rm --workdir /app $(TEST_IMAGE) go test -v ./internal/capabilities
 
 test-api: docker-build-test
 	@docker run --user root $(ENV_FILE_ARG) -v $(PWD)/.masa:/home/masa -v $(PWD)/coverage:/app/coverage --rm --workdir /app -e DATA_DIR=/home/masa $(TEST_IMAGE) go test -v ./internal/api
@@ -86,7 +86,7 @@ test-reddit: docker-build-test
 	@docker run --user root $(ENV_FILE_ARG) -v $(PWD)/.masa:/home/masa -v $(PWD)/coverage:/app/coverage --rm --workdir /app -e DATA_DIR=/home/masa $(TEST_IMAGE) go test -v ./internal/jobs/reddit_test.go ./internal/jobs/redditapify/client_test.go ./api/types/reddit/reddit_suite_test.go
 
 test-web: docker-build-test
-	@docker run --user root $(ENV_FILE_ARG) -v $(PWD)/.masa:/home/masa -v $(PWD)/coverage:/app/coverage --rm --workdir /app -e DATA_DIR=/home/masa $(TEST_IMAGE) go test -v ./internal/jobs/webscraper_test.go ./internal/jobs/jobs_suite_test.go
+	@docker run --user root $(ENV_FILE_ARG) -v $(PWD)/.masa:/home/masa -v $(PWD)/coverage:/app/coverage --rm --workdir /app -e DATA_DIR=/home/masa $(TEST_IMAGE) go test -v ./internal/jobs/web_test.go ./internal/jobs/webapify/client_test.go ./internal/jobs/jobs_suite_test.go
 
 test-telemetry: docker-build-test
-	@docker run --user root $(ENV_FILE_ARG) -v $(PWD)/.masa:/home/masa -v $(PWD)/coverage:/app/coverage --rm --workdir /app -e DATA_DIR=/home/masa $(TEST_IMAGE) go test -v ./internal/jobs/telemetry_test.go ./internal/jobs/jobs_suite_test.go
+	@docker run --user root $(ENV_FILE_ARG) -v $(PWD)/.masa:/home/masa -v $(PWD)/coverage:/app/coverage --rm --workdir /app -e DATA_DIR=/home/masa $(TEST_IMAGE) go test -v ./internal/jobs/telemetry_test.go
