@@ -44,7 +44,7 @@ func (c *WebApifyClient) ValidateApiKey() error {
 	return c.apifyClient.ValidateApiKey()
 }
 
-func (c *WebApifyClient) Scrape(workerID string, args teeargs.WebArguments, cursor client.Cursor) ([]*teetypes.WebScraperResult, client.Cursor, error) {
+func (c *WebApifyClient) Scrape(workerID string, args teeargs.WebArguments, cursor client.Cursor) ([]*teetypes.WebScraperResult, string, client.Cursor, error) {
 	if c.statsCollector != nil {
 		c.statsCollector.Add(workerID, stats.WebQueries, 1)
 	}
@@ -59,7 +59,7 @@ func (c *WebApifyClient) Scrape(workerID string, args teeargs.WebArguments, curs
 		if c.statsCollector != nil {
 			c.statsCollector.Add(workerID, stats.WebErrors, 1)
 		}
-		return nil, client.EmptyCursor, err
+		return nil, "", client.EmptyCursor, err
 	}
 
 	response := make([]*teetypes.WebScraperResult, 0, len(dataset.Data.Items))
@@ -77,5 +77,5 @@ func (c *WebApifyClient) Scrape(workerID string, args teeargs.WebArguments, curs
 		c.statsCollector.Add(workerID, stats.WebScrapedPages, uint(len(response)))
 	}
 
-	return response, nextCursor, nil
+	return response, dataset.DatasetId, nextCursor, nil
 }

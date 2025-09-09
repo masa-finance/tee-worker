@@ -3,6 +3,7 @@ package jobs_test
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -21,15 +22,15 @@ import (
 
 // MockWebApifyClient is a mock implementation of the WebApifyClient.
 type MockWebApifyClient struct {
-	ScrapeFunc func(args teeargs.WebArguments) ([]*teetypes.WebScraperResult, client.Cursor, error)
+	ScrapeFunc func(args teeargs.WebArguments) ([]*teetypes.WebScraperResult, string, client.Cursor, error)
 }
 
-func (m *MockWebApifyClient) Scrape(_ string, args teeargs.WebArguments, _ client.Cursor) ([]*teetypes.WebScraperResult, client.Cursor, error) {
+func (m *MockWebApifyClient) Scrape(_ string, args teeargs.WebArguments, _ client.Cursor) ([]*teetypes.WebScraperResult, string, client.Cursor, error) {
 	if m != nil && m.ScrapeFunc != nil {
-		res, next, err := m.ScrapeFunc(args)
-		return res, next, err
+		res, datasetId, next, err := m.ScrapeFunc(args)
+		return res, datasetId, next, err
 	}
-	return nil, client.EmptyCursor, nil
+	return nil, "", client.EmptyCursor, nil
 }
 
 var _ = Describe("WebScraper", func() {
@@ -75,14 +76,15 @@ var _ = Describe("WebScraper", func() {
 				"max_pages": 2,
 			}
 
-			mockClient.ScrapeFunc = func(args teeargs.WebArguments) ([]*teetypes.WebScraperResult, client.Cursor, error) {
+			mockClient.ScrapeFunc = func(args teeargs.WebArguments) ([]*teetypes.WebScraperResult, string, client.Cursor, error) {
 				Expect(args.URL).To(Equal("https://example.com"))
-				return []*teetypes.WebScraperResult{{URL: "https://example.com", Markdown: "# Hello"}}, client.Cursor("next-cursor"), nil
+				return []*teetypes.WebScraperResult{{URL: "https://example.com", Markdown: "# Hello"}}, "dataset-123", client.Cursor("next-cursor"), nil
 			}
 
 			result, err := scraper.ExecuteJob(job)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result.NextCursor).To(Equal("next-cursor"))
+
 			var resp []*teetypes.WebScraperResult
 			err = json.Unmarshal(result.Data, &resp)
 			Expect(err).NotTo(HaveOccurred())
@@ -100,8 +102,8 @@ var _ = Describe("WebScraper", func() {
 			}
 
 			expectedErr := errors.New("client error")
-			mockClient.ScrapeFunc = func(args teeargs.WebArguments) ([]*teetypes.WebScraperResult, client.Cursor, error) {
-				return nil, client.EmptyCursor, expectedErr
+			mockClient.ScrapeFunc = func(args teeargs.WebArguments) ([]*teetypes.WebScraperResult, string, client.Cursor, error) {
+				return nil, "", client.EmptyCursor, expectedErr
 			}
 
 			result, err := scraper.ExecuteJob(job)
@@ -144,7 +146,7 @@ var _ = Describe("WebScraper", func() {
 			}
 		})
 
-		It("should execute a real web scraping job when APIFY_API_KEY is set", func() {
+		FIt("should execute a real web scraping job when APIFY_API_KEY is set", func() {
 			if apifyKey == "" {
 				Skip("APIFY_API_KEY is not set")
 			}
@@ -161,7 +163,7 @@ var _ = Describe("WebScraper", func() {
 				Type: teetypes.WebJob,
 				Arguments: map[string]any{
 					"type":      teetypes.WebScraper,
-					"url":       "https://example.com",
+					"url":       "https://en.wikipedia.org/wiki/Bitcoin",
 					"max_depth": 0,
 					"max_pages": 1,
 				},
@@ -177,10 +179,12 @@ var _ = Describe("WebScraper", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resp).NotTo(BeEmpty())
 			Expect(resp[0]).NotTo(BeNil())
-			Expect(resp[0].URL).To(Equal("https://example.com/"))
+			Expect(resp[0].URL).To(Equal("https://en.wikipedia.org/wiki/Bitcoin/"))
+			Expect(resp[0].LLMResponse).NotTo(BeEmpty())
 
-			// TODO verify stats are increased via the client
-
+			prettyJSON, err := json.MarshalIndent(resp, "", "  ")
+			Expect(err).NotTo(HaveOccurred())
+			fmt.Println(string(prettyJSON))
 		})
 
 		It("should expose capabilities only when both APIFY and GEMINI keys are present", func() {
