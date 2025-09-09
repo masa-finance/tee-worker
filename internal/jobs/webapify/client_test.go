@@ -39,10 +39,12 @@ var _ = Describe("WebApifyClient", func() {
 		mockClient *MockApifyClient
 		webClient  *webapify.WebApifyClient
 		apifyKey   string
+		geminiKey  string
 	)
 
 	BeforeEach(func() {
 		apifyKey = os.Getenv("APIFY_API_KEY")
+		geminiKey = os.Getenv("GEMINI_API_KEY")
 		mockClient = &MockApifyClient{}
 		// Replace the client creation function with one that returns the mock
 		webapify.NewInternalClient = func(apiKey string) (client.Apify, error) {
@@ -67,7 +69,7 @@ var _ = Describe("WebApifyClient", func() {
 				return &client.DatasetResponse{Data: client.ApifyDatasetData{Items: []json.RawMessage{}}}, "next", nil
 			}
 
-			_, _, err := webClient.Scrape("test-worker", args, client.EmptyCursor)
+			_, _, _, err := webClient.Scrape("test-worker", args, client.EmptyCursor)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -82,7 +84,7 @@ var _ = Describe("WebApifyClient", func() {
 				MaxDepth: 0,
 				MaxPages: 1,
 			}
-			_, _, err := webClient.Scrape("test-worker", args, client.EmptyCursor)
+			_, _, _, err := webClient.Scrape("test-worker", args, client.EmptyCursor)
 			Expect(err).To(MatchError(expectedErr))
 		})
 
@@ -102,7 +104,7 @@ var _ = Describe("WebApifyClient", func() {
 				MaxDepth: 0,
 				MaxPages: 1,
 			}
-			results, _, err := webClient.Scrape("test-worker", args, client.EmptyCursor)
+			results, _, _, err := webClient.Scrape("test-worker", args, client.EmptyCursor)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(results).To(BeEmpty()) // The invalid item should be skipped
 		})
@@ -127,7 +129,7 @@ var _ = Describe("WebApifyClient", func() {
 				MaxDepth: 0,
 				MaxPages: 1,
 			}
-			results, cursor, err := webClient.Scrape("test-worker", args, client.EmptyCursor)
+			results, _, cursor, err := webClient.Scrape("test-worker", args, client.EmptyCursor)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(cursor).To(Equal(client.Cursor("next")))
 			Expect(results).To(HaveLen(1))
@@ -156,8 +158,8 @@ var _ = Describe("WebApifyClient", func() {
 	// Integration tests that use the real client
 	Context("Integration tests", func() {
 		It("should validate API key with real client when APIFY_API_KEY is set", func() {
-			if apifyKey == "" {
-				Skip("APIFY_API_KEY is not set")
+			if apifyKey == "" || geminiKey == "" {
+				Skip("APIFY_API_KEY and GEMINI_API_KEY required to run web integration tests")
 			}
 
 			// Reset to use real client
@@ -171,8 +173,8 @@ var _ = Describe("WebApifyClient", func() {
 		})
 
 		It("should scrape a real URL when APIFY_API_KEY is set", func() {
-			if apifyKey == "" {
-				Skip("APIFY_API_KEY is not set")
+			if apifyKey == "" || geminiKey == "" {
+				Skip("APIFY_API_KEY and GEMINI_API_KEY required to run web integration tests")
 			}
 
 			// Reset to use real client
@@ -189,8 +191,9 @@ var _ = Describe("WebApifyClient", func() {
 				MaxPages: 1,
 			}
 
-			results, cursor, err := realClient.Scrape("test-worker", args, client.EmptyCursor)
+			results, datasetId, cursor, err := realClient.Scrape("test-worker", args, client.EmptyCursor)
 			Expect(err).NotTo(HaveOccurred())
+			Expect(datasetId).NotTo(BeEmpty())
 			Expect(results).NotTo(BeEmpty())
 			Expect(results[0]).NotTo(BeNil())
 			Expect(results[0].URL).To(Equal("https://example.com/"))

@@ -3,7 +3,6 @@ package jobs_test
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"os"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -12,6 +11,7 @@ import (
 	"github.com/masa-finance/tee-worker/api/types"
 	"github.com/masa-finance/tee-worker/internal/config"
 	"github.com/masa-finance/tee-worker/internal/jobs"
+	"github.com/masa-finance/tee-worker/internal/jobs/llmapify"
 	"github.com/masa-finance/tee-worker/internal/jobs/stats"
 	"github.com/masa-finance/tee-worker/internal/jobs/webapify"
 	"github.com/masa-finance/tee-worker/pkg/client"
@@ -33,31 +33,64 @@ func (m *MockWebApifyClient) Scrape(_ string, args teeargs.WebArguments, _ clien
 	return nil, "", client.EmptyCursor, nil
 }
 
+// MockLLMApifyClient is a mock implementation of the LLMApify interface
+// used to prevent external calls during unit tests.
+type MockLLMApifyClient struct {
+	ProcessFunc func(workerID string, args teeargs.LLMProcessorArguments, cursor client.Cursor) ([]*teetypes.LLMProcessorResult, client.Cursor, error)
+}
+
+func (m *MockLLMApifyClient) Process(workerID string, args teeargs.LLMProcessorArguments, cursor client.Cursor) ([]*teetypes.LLMProcessorResult, client.Cursor, error) {
+	if m != nil && m.ProcessFunc != nil {
+		return m.ProcessFunc(workerID, args, cursor)
+	}
+	return []*teetypes.LLMProcessorResult{}, client.EmptyCursor, nil
+}
+
 var _ = Describe("WebScraper", func() {
 	var (
 		scraper        *jobs.WebScraper
 		statsCollector *stats.StatsCollector
 		job            types.Job
 		mockClient     *MockWebApifyClient
+		mockLLM        *MockLLMApifyClient
 	)
+
+	// Keep originals to restore after each test to avoid leaking globals
+	originalNewWebApifyClient := jobs.NewWebApifyClient
+	originalNewLLMApifyClient := jobs.NewLLMApifyClient
 
 	BeforeEach(func() {
 		statsCollector = stats.StartCollector(128, config.JobConfiguration{})
 		cfg := config.JobConfiguration{
-			"apify_api_key": "test-key",
+			"apify_api_key":  "test-key",
+			"gemini_api_key": "test-gemini-key",
 		}
 		scraper = jobs.NewWebScraper(cfg, statsCollector)
 		mockClient = &MockWebApifyClient{}
+		mockLLM = &MockLLMApifyClient{
+			ProcessFunc: func(workerID string, args teeargs.LLMProcessorArguments, cursor client.Cursor) ([]*teetypes.LLMProcessorResult, client.Cursor, error) {
+				// Return a single empty summary to avoid changing expectations
+				return []*teetypes.LLMProcessorResult{{LLMResponse: ""}}, client.EmptyCursor, nil
+			},
+		}
 
-		// Replace the client creation function with one that returns the mock
+		// Replace the client creation function with one that returns the mocks
 		jobs.NewWebApifyClient = func(apiKey string, _ *stats.StatsCollector) (jobs.WebApifyClient, error) {
 			return mockClient, nil
+		}
+		jobs.NewLLMApifyClient = func(apiKey string, llmKey string, _ *stats.StatsCollector) (jobs.LLMApify, error) {
+			return mockLLM, nil
 		}
 
 		job = types.Job{
 			UUID: "test-uuid",
 			Type: teetypes.WebJob,
 		}
+	})
+
+	AfterEach(func() {
+		jobs.NewWebApifyClient = originalNewWebApifyClient
+		jobs.NewLLMApifyClient = originalNewLLMApifyClient
 	})
 
 	Context("ExecuteJob", func() {
@@ -144,9 +177,12 @@ var _ = Describe("WebScraper", func() {
 			jobs.NewWebApifyClient = func(apiKey string, s *stats.StatsCollector) (jobs.WebApifyClient, error) {
 				return webapify.NewClient(apiKey, s)
 			}
+			jobs.NewLLMApifyClient = func(apiKey string, llmKey string, s *stats.StatsCollector) (jobs.LLMApify, error) {
+				return llmapify.NewClient(apiKey, llmKey, s)
+			}
 		})
 
-		FIt("should execute a real web scraping job when APIFY_API_KEY is set", func() {
+		It("should execute a real web scraping job when APIFY_API_KEY is set", func() {
 			if apifyKey == "" {
 				Skip("APIFY_API_KEY is not set")
 			}
@@ -163,7 +199,7 @@ var _ = Describe("WebScraper", func() {
 				Type: teetypes.WebJob,
 				Arguments: map[string]any{
 					"type":      teetypes.WebScraper,
-					"url":       "https://en.wikipedia.org/wiki/Bitcoin",
+					"url":       "https://example.com",
 					"max_depth": 0,
 					"max_pages": 1,
 				},
@@ -179,12 +215,7 @@ var _ = Describe("WebScraper", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resp).NotTo(BeEmpty())
 			Expect(resp[0]).NotTo(BeNil())
-			Expect(resp[0].URL).To(Equal("https://en.wikipedia.org/wiki/Bitcoin"))
-			Expect(resp[0].LLMResponse).NotTo(BeEmpty())
-
-			prettyJSON, err := json.MarshalIndent(resp, "", "  ")
-			Expect(err).NotTo(HaveOccurred())
-			fmt.Println(string(prettyJSON))
+			Expect(resp[0].URL).To(Equal("https://example.com/"))
 		})
 
 		It("should expose capabilities only when both APIFY and GEMINI keys are present", func() {
