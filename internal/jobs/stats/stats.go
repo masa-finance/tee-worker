@@ -27,6 +27,7 @@ const (
 	TwitterXSearchQueries      StatType = "twitterx_search" // TODO: investigate if this is needed or used...
 	WebQueries                 StatType = "web_queries"
 	WebScrapedPages            StatType = "web_scraped_pages"
+	WebProcessedPages          StatType = "web_processed_pages"
 	WebErrors                  StatType = "web_errors"
 	LLMQueries                 StatType = "llm_queries"
 	LLMProcessedItems          StatType = "llm_processed_items"

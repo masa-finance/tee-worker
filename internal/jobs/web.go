@@ -123,6 +123,10 @@ func (w *WebScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 		return types.JobResult{Error: fmt.Sprintf("error marshalling Web response")}, fmt.Errorf("error marshalling Web response: %w", err)
 	}
 
+	if w.statsCollector != nil {
+		w.statsCollector.Add(j.WorkerID, stats.WebProcessedPages, uint(len(llmResp)))
+	}
+
 	return types.JobResult{
 		Data:       data,
 		Job:        j,
