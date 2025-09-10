@@ -182,9 +182,9 @@ var _ = Describe("WebScraper", func() {
 			}
 		})
 
-		It("should execute a real web scraping job when APIFY_API_KEY is set", func() {
-			if apifyKey == "" {
-				Skip("APIFY_API_KEY is not set")
+		It("should execute a real web scraping job when keys is set", func() {
+			if apifyKey == "" || geminiKey == "" {
+				Skip("APIFY_API_KEY and GEMINI_API_KEY required for integration web integration tests")
 			}
 
 			cfg := config.JobConfiguration{
@@ -199,7 +199,7 @@ var _ = Describe("WebScraper", func() {
 				Type: teetypes.WebJob,
 				Arguments: map[string]any{
 					"type":      teetypes.WebScraper,
-					"url":       "https://example.com",
+					"url":       "https://example.com/",
 					"max_depth": 0,
 					"max_pages": 1,
 				},
@@ -216,6 +216,7 @@ var _ = Describe("WebScraper", func() {
 			Expect(resp).NotTo(BeEmpty())
 			Expect(resp[0]).NotTo(BeNil())
 			Expect(resp[0].URL).To(Equal("https://example.com/"))
+			Expect(resp[0].LLMResponse).NotTo(BeEmpty())
 		})
 
 		It("should expose capabilities only when both APIFY and GEMINI keys are present", func() {
