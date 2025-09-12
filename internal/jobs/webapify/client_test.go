@@ -37,7 +37,7 @@ func (m *MockApifyClient) ValidateApiKey() error {
 var _ = Describe("WebApifyClient", func() {
 	var (
 		mockClient *MockApifyClient
-		webClient  *webapify.WebApifyClient
+		webClient  *webapify.ApifyClient
 		apifyKey   string
 		geminiKey  string
 	)
@@ -64,7 +64,7 @@ var _ = Describe("WebApifyClient", func() {
 			}
 
 			mockClient.RunActorAndGetResponseFunc = func(actorID string, input any, cursor client.Cursor, limit uint) (*client.DatasetResponse, client.Cursor, error) {
-				Expect(actorID).To(Equal(webapify.WebActorID))
+				Expect(actorID).To(Equal(webapify.ActorID))
 				Expect(limit).To(Equal(uint(2)))
 				return &client.DatasetResponse{Data: client.ApifyDatasetData{Items: []json.RawMessage{}}}, "next", nil
 			}
