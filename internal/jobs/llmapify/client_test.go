@@ -39,7 +39,7 @@ func (m *MockApifyClient) ValidateApiKey() error {
 var _ = Describe("LLMApifyClient", func() {
 	var (
 		mockClient *MockApifyClient
-		llmClient  *llmapify.LLMApifyClient
+		llmClient  *llmapify.ApifyClient
 		apifyKey   string
 	)
 
@@ -69,7 +69,7 @@ var _ = Describe("LLMApifyClient", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			mockClient.RunActorAndGetResponseFunc = func(actorID string, input any, cursor client.Cursor, limit uint) (*client.DatasetResponse, client.Cursor, error) {
-				Expect(actorID).To(Equal(llmapify.LLMActorID))
+				Expect(actorID).To(Equal(llmapify.ActorID))
 				Expect(limit).To(Equal(uint(1)))
 
 				// Verify the input is correctly converted to LLMProcessorRequest

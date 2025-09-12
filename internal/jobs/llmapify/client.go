@@ -13,18 +13,18 @@ import (
 )
 
 const (
-	LLMActorID = "dusan.vystrcil~llm-dataset-processor"
+	ActorID = "dusan.vystrcil~llm-dataset-processor"
 )
 
 var (
-	ErrLlmProviderKeyRequired    = errors.New("llm provider key is required")
-	ErrFailedToCreateApifyClient = errors.New("failed to create apify client")
+	ErrProviderKeyRequired  = errors.New("llm provider key is required")
+	ErrFailedToCreateClient = errors.New("failed to create apify client")
 )
 
-type LLMApifyClient struct {
-	apifyClient    client.Apify
+type ApifyClient struct {
+	client         client.Apify
 	statsCollector *stats.StatsCollector
-	llmProviderKey string
+	providerKey    string
 }
 
 // NewInternalClient is a function variable that can be replaced in tests.
@@ -34,38 +34,38 @@ var NewInternalClient = func(apiKey string) (client.Apify, error) {
 }
 
 // NewClient creates a new LLM Apify client
-func NewClient(apiToken string, llmProviderKey string, statsCollector *stats.StatsCollector) (*LLMApifyClient, error) {
-	apifyClient, err := NewInternalClient(apiToken)
+func NewClient(apiToken string, providerKey string, statsCollector *stats.StatsCollector) (*ApifyClient, error) {
+	client, err := NewInternalClient(apiToken)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrFailedToCreateApifyClient, err)
+		return nil, fmt.Errorf("%w: %v", ErrFailedToCreateClient, err)
 	}
 
-	if llmProviderKey == "" {
-		return nil, ErrLlmProviderKeyRequired
+	if providerKey == "" {
+		return nil, ErrProviderKeyRequired
 	}
 
-	return &LLMApifyClient{
-		apifyClient:    apifyClient,
+	return &ApifyClient{
+		client:         client,
 		statsCollector: statsCollector,
-		llmProviderKey: llmProviderKey,
+		providerKey:    providerKey,
 	}, nil
 }
 
 // ValidateApiKey tests if the Apify API token is valid
-func (c *LLMApifyClient) ValidateApiKey() error {
-	return c.apifyClient.ValidateApiKey()
+func (c *ApifyClient) ValidateApiKey() error {
+	return c.client.ValidateApiKey()
 }
 
-func (c *LLMApifyClient) Process(workerID string, args teeargs.LLMProcessorArguments, cursor client.Cursor) ([]*teetypes.LLMProcessorResult, client.Cursor, error) {
+func (c *ApifyClient) Process(workerID string, args teeargs.LLMProcessorArguments, cursor client.Cursor) ([]*teetypes.LLMProcessorResult, client.Cursor, error) {
 	if c.statsCollector != nil {
 		c.statsCollector.Add(workerID, stats.LLMQueries, 1)
 	}
 
 	input := args.ToLLMProcessorRequest()
-	input.LLMProviderApiKey = c.llmProviderKey
+	input.LLMProviderApiKey = c.providerKey
 
 	limit := uint(1) // TODO, verify you can only ever operate on one dataset at a time
-	dataset, nextCursor, err := c.apifyClient.RunActorAndGetResponse(LLMActorID, input, cursor, limit)
+	dataset, nextCursor, err := c.client.RunActorAndGetResponse(ActorID, input, cursor, limit)
 	if err != nil {
 		if c.statsCollector != nil {
 			c.statsCollector.Add(workerID, stats.LLMErrors, 1)
