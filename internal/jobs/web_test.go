@@ -78,7 +78,7 @@ var _ = Describe("WebScraper", func() {
 		jobs.NewWebApifyClient = func(apiKey string, _ *stats.StatsCollector) (jobs.WebApifyClient, error) {
 			return mockClient, nil
 		}
-		jobs.NewLLMApifyClient = func(apiKey string, llmKey string, _ *stats.StatsCollector) (jobs.LLMApify, error) {
+		jobs.NewLLMApifyClient = func(apiKey string, llmConfig config.LlmConfig, _ *stats.StatsCollector) (jobs.LLMApify, error) {
 			return mockLLM, nil
 		}
 
@@ -177,8 +177,8 @@ var _ = Describe("WebScraper", func() {
 			jobs.NewWebApifyClient = func(apiKey string, s *stats.StatsCollector) (jobs.WebApifyClient, error) {
 				return webapify.NewClient(apiKey, s)
 			}
-			jobs.NewLLMApifyClient = func(apiKey string, llmKey string, s *stats.StatsCollector) (jobs.LLMApify, error) {
-				return llmapify.NewClient(apiKey, llmKey, s)
+			jobs.NewLLMApifyClient = func(apiKey string, llmConfig config.LlmConfig, s *stats.StatsCollector) (jobs.LLMApify, error) {
+				return llmapify.NewClient(apiKey, llmConfig, s)
 			}
 		})
 

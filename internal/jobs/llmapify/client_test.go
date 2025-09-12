@@ -9,6 +9,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/masa-finance/tee-worker/internal/config"
 	"github.com/masa-finance/tee-worker/internal/jobs/llmapify"
 	"github.com/masa-finance/tee-worker/pkg/client"
 
@@ -51,7 +52,7 @@ var _ = Describe("LLMApifyClient", func() {
 			return mockClient, nil
 		}
 		var err error
-		llmClient, err = llmapify.NewClient("test-token", "test-llm-key", nil)
+		llmClient, err = llmapify.NewClient("test-token", config.LlmConfig{GeminiApiKey: "test-llm-key"}, nil)
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -228,7 +229,7 @@ var _ = Describe("LLMApifyClient", func() {
 				return client.NewApifyClient(apiKey)
 			}
 
-			realClient, err := llmapify.NewClient(apifyKey, geminiKey, nil)
+			realClient, err := llmapify.NewClient(apifyKey, config.LlmConfig{GeminiApiKey: geminiKey}, nil)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(realClient.ValidateApiKey()).To(Succeed())
 		})
@@ -244,7 +245,7 @@ var _ = Describe("LLMApifyClient", func() {
 				return client.NewApifyClient(apiKey)
 			}
 
-			realClient, err := llmapify.NewClient(apifyKey, geminiKey, nil)
+			realClient, err := llmapify.NewClient(apifyKey, config.LlmConfig{GeminiApiKey: geminiKey}, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			args := teeargs.LLMProcessorArguments{

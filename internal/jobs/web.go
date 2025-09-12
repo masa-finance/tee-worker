@@ -36,8 +36,8 @@ type LLMApify interface {
 }
 
 // NewLLMApifyClient is a function variable to allow injection in tests
-var NewLLMApifyClient = func(apiKey string, llmKey string, statsCollector *stats.StatsCollector) (LLMApify, error) {
-	return llmapify.NewClient(apiKey, llmKey, statsCollector)
+var NewLLMApifyClient = func(apiKey string, llmConfig config.LlmConfig, statsCollector *stats.StatsCollector) (LLMApify, error) {
+	return llmapify.NewClient(apiKey, llmConfig, statsCollector)
 }
 
 type WebScraper struct {
@@ -92,7 +92,7 @@ func (w *WebScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 		return types.JobResult{Error: "missing dataset id from web scraping"}, errors.New("missing dataset id from web scraping")
 	}
 
-	llmClient, err := NewLLMApifyClient(w.configuration.ApifyApiKey, w.configuration.GeminiApiKey, w.statsCollector)
+	llmClient, err := NewLLMApifyClient(w.configuration.ApifyApiKey, w.configuration.LlmConfig, w.statsCollector)
 	if err != nil {
 		return types.JobResult{Error: "error creating LLM Apify client"}, fmt.Errorf("failed to create LLM Apify client: %w", err)
 	}

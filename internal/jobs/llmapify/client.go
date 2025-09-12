@@ -7,6 +7,7 @@ import (
 
 	teeargs "github.com/masa-finance/tee-types/args"
 	teetypes "github.com/masa-finance/tee-types/types"
+	"github.com/masa-finance/tee-worker/internal/config"
 	"github.com/masa-finance/tee-worker/internal/jobs/stats"
 	"github.com/masa-finance/tee-worker/pkg/client"
 	"github.com/sirupsen/logrus"
@@ -24,7 +25,7 @@ var (
 type ApifyClient struct {
 	client         client.Apify
 	statsCollector *stats.StatsCollector
-	providerKey    string
+	llmConfig      config.LlmConfig
 }
 
 // NewInternalClient is a function variable that can be replaced in tests.
@@ -34,20 +35,20 @@ var NewInternalClient = func(apiKey string) (client.Apify, error) {
 }
 
 // NewClient creates a new LLM Apify client
-func NewClient(apiToken string, providerKey string, statsCollector *stats.StatsCollector) (*ApifyClient, error) {
+func NewClient(apiToken string, llmConfig config.LlmConfig, statsCollector *stats.StatsCollector) (*ApifyClient, error) {
 	client, err := NewInternalClient(apiToken)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrFailedToCreateClient, err)
 	}
 
-	if providerKey == "" {
+	if llmConfig.GeminiApiKey == "" {
 		return nil, ErrProviderKeyRequired
 	}
 
 	return &ApifyClient{
 		client:         client,
 		statsCollector: statsCollector,
-		providerKey:    providerKey,
+		llmConfig:      llmConfig,
 	}, nil
 }
 
@@ -62,7 +63,7 @@ func (c *ApifyClient) Process(workerID string, args teeargs.LLMProcessorArgument
 	}
 
 	input := args.ToLLMProcessorRequest()
-	input.LLMProviderApiKey = c.providerKey
+	input.LLMProviderApiKey = c.llmConfig.GeminiApiKey
 
 	limit := uint(1) // TODO, verify you can only ever operate on one dataset at a time
 	dataset, nextCursor, err := c.client.RunActorAndGetResponse(ActorID, input, cursor, limit)
