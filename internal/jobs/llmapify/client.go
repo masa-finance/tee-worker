@@ -41,7 +41,7 @@ func NewClient(apiToken string, llmConfig config.LlmConfig, statsCollector *stat
 		return nil, fmt.Errorf("%w: %v", ErrFailedToCreateClient, err)
 	}
 
-	if llmConfig.GeminiApiKey == "" {
+	if !llmConfig.GeminiApiKey.IsValid() {
 		return nil, ErrProviderKeyRequired
 	}
 
@@ -63,7 +63,7 @@ func (c *ApifyClient) Process(workerID string, args teeargs.LLMProcessorArgument
 	}
 
 	input := args.ToLLMProcessorRequest()
-	input.LLMProviderApiKey = c.llmConfig.GeminiApiKey
+	input.LLMProviderApiKey = string(c.llmConfig.GeminiApiKey)
 
 	limit := uint(1) // TODO, verify you can only ever operate on one dataset at a time
 	dataset, nextCursor, err := c.client.RunActorAndGetResponse(ActorID, input, cursor, limit)

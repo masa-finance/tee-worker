@@ -60,7 +60,7 @@ func (w *WebScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 	logrus.WithField("job_uuid", j.UUID).Info("Starting ExecuteJob for Web scrape")
 
 	// Require Gemini key for LLM processing in Web flow
-	if w.configuration.GeminiApiKey == "" {
+	if !w.configuration.GeminiApiKey.IsValid() {
 		msg := errors.New("Gemini API key is required for Web job")
 		return types.JobResult{Error: msg.Error()}, msg
 	}
@@ -139,7 +139,7 @@ func (w *WebScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 func (ws *WebScraper) GetStructuredCapabilities() teetypes.WorkerCapabilities {
 	capabilities := make(teetypes.WorkerCapabilities)
 
-	if ws.configuration.ApifyApiKey != "" && ws.configuration.GeminiApiKey != "" {
+	if ws.configuration.ApifyApiKey != "" && ws.configuration.GeminiApiKey.IsValid() {
 		capabilities[teetypes.WebJob] = teetypes.WebCaps
 	}
 

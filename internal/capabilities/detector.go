@@ -43,7 +43,7 @@ func DetectCapabilities(jc config.JobConfiguration, jobServer JobServerInterface
 	hasAccounts := len(accounts) > 0
 	hasApiKeys := len(apiKeys) > 0
 	hasApifyKey := hasValidApifyKey(apifyApiKey)
-	hasLLMKey := hasValidLLMKey(geminiApiKey)
+	hasLLMKey := config.LlmApiKey(geminiApiKey).IsValid()
 
 	// Add Twitter-specific capabilities based on available authentication
 	if hasAccounts {
@@ -160,14 +160,5 @@ func hasValidApifyKey(apifyApiKey string) bool {
 	}
 
 	logrus.Infof("Apify API key validated successfully during capability detection")
-	return true
-}
-
-func hasValidLLMKey(llmApiKey string) bool {
-	if llmApiKey == "" {
-		return false
-	}
-
-	// TODO validate the gemini key with a handler
 	return true
 }

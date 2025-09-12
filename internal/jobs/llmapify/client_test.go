@@ -229,7 +229,7 @@ var _ = Describe("LLMApifyClient", func() {
 				return client.NewApifyClient(apiKey)
 			}
 
-			realClient, err := llmapify.NewClient(apifyKey, config.LlmConfig{GeminiApiKey: geminiKey}, nil)
+			realClient, err := llmapify.NewClient(apifyKey, config.LlmConfig{GeminiApiKey: config.LlmApiKey(geminiKey)}, nil)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(realClient.ValidateApiKey()).To(Succeed())
 		})
@@ -245,7 +245,7 @@ var _ = Describe("LLMApifyClient", func() {
 				return client.NewApifyClient(apiKey)
 			}
 
-			realClient, err := llmapify.NewClient(apifyKey, config.LlmConfig{GeminiApiKey: geminiKey}, nil)
+			realClient, err := llmapify.NewClient(apifyKey, config.LlmConfig{GeminiApiKey: config.LlmApiKey(geminiKey)}, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			args := teeargs.LLMProcessorArguments{

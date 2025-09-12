@@ -303,8 +303,22 @@ func (jc JobConfiguration) GetRedditConfig() RedditConfig {
 	}
 }
 
+// LlmApiKey represents an LLM API key with validation capabilities
+type LlmApiKey string
+
+// IsValid checks if the LLM API key is valid
+func (k LlmApiKey) IsValid() bool {
+	if k == "" {
+		return false
+	}
+	
+	// TODO: Add actual Gemini API key validation with a handler
+	// For now, just check if it's not empty
+	return true
+}
+
 type LlmConfig struct {
-	GeminiApiKey string
+	GeminiApiKey LlmApiKey
 }
 
 // WebConfig represents the configuration needed for Web scraping via Apify
@@ -318,7 +332,7 @@ type WebConfig struct {
 func (jc JobConfiguration) GetWebConfig() WebConfig {
 	return WebConfig{
 		LlmConfig: LlmConfig{
-			GeminiApiKey: jc.GetString("gemini_api_key", ""),
+			GeminiApiKey: LlmApiKey(jc.GetString("gemini_api_key", "")),
 		},
 		ApifyApiKey: jc.GetString("apify_api_key", ""),
 	}
