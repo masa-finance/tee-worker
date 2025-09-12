@@ -39,6 +39,7 @@
       {"name": "TWITTER_ACCOUNTS", "fromHost":true},
       {"name": "TWITTER_API_KEYS", "fromHost":true},
       {"name": "APIFY_API_KEY", "fromHost":true},
+      {"name": "GEMINI_API_KEY", "fromHost":true},
       {"name": "TWITTER_SKIP_LOGIN_VERIFICATION", "fromHost":true},
       {"name": "WEBSCRAPER_BLACKLIST", "fromHost":true}
     ],

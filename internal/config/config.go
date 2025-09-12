@@ -159,6 +159,14 @@ func ReadConfig() JobConfiguration {
 		jc["apify_api_key"] = ""
 	}
 
+	geminiApiKey := os.Getenv("GEMINI_API_KEY")
+	if geminiApiKey != "" {
+		logrus.Info("Gemini API key found")
+		jc["gemini_api_key"] = geminiApiKey
+	} else {
+		jc["gemini_api_key"] = ""
+	}
+
 	tikTokLang := os.Getenv("TIKTOK_DEFAULT_LANGUAGE")
 	if tikTokLang == "" {
 		tikTokLang = "eng-US"
@@ -291,6 +299,41 @@ type RedditConfig struct {
 // This eliminates the need for JSON marshaling/unmarshaling
 func (jc JobConfiguration) GetRedditConfig() RedditConfig {
 	return RedditConfig{
+		ApifyApiKey: jc.GetString("apify_api_key", ""),
+	}
+}
+
+// LlmApiKey represents an LLM API key with validation capabilities
+type LlmApiKey string
+
+// IsValid checks if the LLM API key is valid
+func (k LlmApiKey) IsValid() bool {
+	if k == "" {
+		return false
+	}
+	
+	// TODO: Add actual Gemini API key validation with a handler
+	// For now, just check if it's not empty
+	return true
+}
+
+type LlmConfig struct {
+	GeminiApiKey LlmApiKey
+}
+
+// WebConfig represents the configuration needed for Web scraping via Apify
+type WebConfig struct {
+	LlmConfig
+	ApifyApiKey string
+}
+
+// GetWebConfig constructs a WebConfig directly from the JobConfiguration
+// This eliminates the need for JSON marshaling/unmarshaling
+func (jc JobConfiguration) GetWebConfig() WebConfig {
+	return WebConfig{
+		LlmConfig: LlmConfig{
+			GeminiApiKey: LlmApiKey(jc.GetString("gemini_api_key", "")),
+		},
 		ApifyApiKey: jc.GetString("apify_api_key", ""),
 	}
 }

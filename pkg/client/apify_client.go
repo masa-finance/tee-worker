@@ -56,7 +56,8 @@ type ApifyDatasetData struct {
 
 // DatasetResponse represents the response from getting dataset items
 type DatasetResponse struct {
-	Data ApifyDatasetData `json:"data"`
+	Data      ApifyDatasetData `json:"data"`
+	DatasetId string           `json:"dataset_id"`
 }
 
 // CursorData represents the pagination data stored in cursor
@@ -340,6 +341,9 @@ PollLoop:
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to get dataset items: %w", err)
 	}
+
+	// Propagate dataset id for downstream consumers
+	dataset.DatasetId = runResp.Data.DefaultDatasetId
 
 	// 4. Generate next cursor if more data may be available
 	var nextCursor Cursor
