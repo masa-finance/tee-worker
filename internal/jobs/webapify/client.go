@@ -12,11 +12,11 @@ import (
 )
 
 const (
-	WebActorID = "apify~website-content-crawler"
+	ActorID = "apify~website-content-crawler"
 )
 
-type WebApifyClient struct {
-	apifyClient    client.Apify
+type ApifyClient struct {
+	client         client.Apify
 	statsCollector *stats.StatsCollector
 }
 
@@ -27,24 +27,24 @@ var NewInternalClient = func(apiKey string) (client.Apify, error) {
 }
 
 // NewClient creates a new Reddit Apify client
-func NewClient(apiToken string, statsCollector *stats.StatsCollector) (*WebApifyClient, error) {
-	apifyClient, err := NewInternalClient(apiToken)
+func NewClient(apiToken string, statsCollector *stats.StatsCollector) (*ApifyClient, error) {
+	client, err := NewInternalClient(apiToken)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create apify client: %w", err)
 	}
 
-	return &WebApifyClient{
-		apifyClient:    apifyClient,
+	return &ApifyClient{
+		client:         client,
 		statsCollector: statsCollector,
 	}, nil
 }
 
 // ValidateApiKey tests if the Apify API token is valid
-func (c *WebApifyClient) ValidateApiKey() error {
-	return c.apifyClient.ValidateApiKey()
+func (c *ApifyClient) ValidateApiKey() error {
+	return c.client.ValidateApiKey()
 }
 
-func (c *WebApifyClient) Scrape(workerID string, args teeargs.WebArguments, cursor client.Cursor) ([]*teetypes.WebScraperResult, string, client.Cursor, error) {
+func (c *ApifyClient) Scrape(workerID string, args teeargs.WebArguments, cursor client.Cursor) ([]*teetypes.WebScraperResult, string, client.Cursor, error) {
 	if c.statsCollector != nil {
 		c.statsCollector.Add(workerID, stats.WebQueries, 1)
 	}
@@ -54,7 +54,7 @@ func (c *WebApifyClient) Scrape(workerID string, args teeargs.WebArguments, curs
 	// TODO: limit could be greater than max pages if max depth is greater than 0?
 	// TODO: need to test this more thoroughly with various request types
 	limit := uint(args.MaxPages)
-	dataset, nextCursor, err := c.apifyClient.RunActorAndGetResponse(WebActorID, input, cursor, limit)
+	dataset, nextCursor, err := c.client.RunActorAndGetResponse(ActorID, input, cursor, limit)
 	if err != nil {
 		if c.statsCollector != nil {
 			c.statsCollector.Add(workerID, stats.WebErrors, 1)
