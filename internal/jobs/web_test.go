@@ -3,6 +3,7 @@ package jobs_test
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -186,7 +187,7 @@ var _ = Describe("WebScraper", func() {
 			}
 		})
 
-		It("should execute a real web scraping job when keys is set", func() {
+		FIt("should execute a real web scraping job when keys is set", func() {
 			cfg := config.JobConfiguration{
 				"apify_api_key":  apifyKey,
 				"gemini_api_key": geminiKey,
@@ -199,9 +200,9 @@ var _ = Describe("WebScraper", func() {
 				Type: teetypes.WebJob,
 				Arguments: map[string]any{
 					"type":      teetypes.WebScraper,
-					"url":       "https://example.com/",
-					"max_depth": 0,
-					"max_pages": 1,
+					"url":       "https://docs.learnbittensor.org",
+					"max_depth": 1,
+					"max_pages": 3,
 				},
 			}
 
@@ -212,11 +213,18 @@ var _ = Describe("WebScraper", func() {
 
 			var resp []*teetypes.WebScraperResult
 			err = json.Unmarshal(result.Data, &resp)
+
 			Expect(err).NotTo(HaveOccurred())
-			Expect(resp).NotTo(BeEmpty())
-			Expect(resp[0]).NotTo(BeNil())
-			Expect(resp[0].URL).To(Equal("https://example.com/"))
-			Expect(resp[0].LLMResponse).NotTo(BeEmpty())
+			Expect(resp).To(HaveLen(3))
+
+			for i := 0; i < 3; i++ {
+				Expect(resp[i]).NotTo(BeNil())
+				Expect(resp[i].URL).To(ContainSubstring("https://docs.learnbittensor.org/"))
+				Expect(resp[i].LLMResponse).NotTo(BeEmpty())
+				Expect(resp[i].Markdown).NotTo(BeEmpty())
+				Expect(resp[i].Text).NotTo(BeEmpty())
+				fmt.Println(resp[i].LLMResponse)
+			}
 		})
 
 		It("should expose capabilities only when both APIFY and GEMINI keys are present", func() {
