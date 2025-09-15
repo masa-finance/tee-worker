@@ -244,11 +244,9 @@ func (ttt *TikTokTranscriber) executeTranscription(j types.Job, a *teeargs.TikTo
 	}
 
 	if vttText == "" {
-		errMsg := ""
+		errMsg := "No transcripts found in API response"
 		if tiktokArgs.HasLanguagePreference() {
 			errMsg = fmt.Sprintf("Transcript for requested language %s not found in API response", languageCode)
-		} else {
-			errMsg = fmt.Sprintf("No transcripts found in API response")
 		}
 		logrus.WithFields(logrus.Fields{
 			"job_uuid":       j.UUID,
