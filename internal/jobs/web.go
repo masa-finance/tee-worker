@@ -15,6 +15,7 @@ import (
 	"github.com/masa-finance/tee-worker/pkg/client"
 
 	teeargs "github.com/masa-finance/tee-types/args"
+	"github.com/masa-finance/tee-types/pkg/util"
 	teetypes "github.com/masa-finance/tee-types/types"
 )
 
@@ -82,7 +83,7 @@ func (w *WebScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 		return types.JobResult{Error: "error while scraping Web"}, fmt.Errorf("error creating Web Apify client: %w", err)
 	}
 
-	resp, datasetId, cursor, err := webClient.Scrape(j.WorkerID, *webArgs, client.EmptyCursor)
+	webResp, datasetId, cursor, err := webClient.Scrape(j.WorkerID, *webArgs, client.EmptyCursor)
 	if err != nil {
 		return types.JobResult{Error: fmt.Sprintf("error while scraping Web: %s", err.Error())}, fmt.Errorf("error scraping Web: %w", err)
 	}
@@ -108,17 +109,14 @@ func (w *WebScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 		return types.JobResult{Error: fmt.Sprintf("error while processing LLM: %s", llmErr.Error())}, fmt.Errorf("error processing LLM: %w", llmErr)
 	}
 
-	max := len(resp)
-	if len(llmResp) < max {
-		max = len(llmResp)
-	}
+	max := util.Min(len(webResp), len(llmResp))
 	for i := 0; i < max; i++ {
-		if resp[i] != nil {
-			resp[i].LLMResponse = llmResp[i].LLMResponse
+		if webResp[i] != nil {
+			webResp[i].LLMResponse = llmResp[i].LLMResponse
 		}
 	}
 
-	data, err := json.Marshal(resp)
+	data, err := json.Marshal(webResp)
 	if err != nil {
 		return types.JobResult{Error: fmt.Sprintf("error marshalling Web response")}, fmt.Errorf("error marshalling Web response: %w", err)
 	}
