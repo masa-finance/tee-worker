@@ -65,7 +65,7 @@ func (c *ApifyClient) Process(workerID string, args teeargs.LLMProcessorArgument
 	input := args.ToLLMProcessorRequest()
 	input.LLMProviderApiKey = string(c.llmConfig.GeminiApiKey)
 
-	limit := uint(1) // TODO, verify you can only ever operate on one dataset at a time
+	limit := uint(args.MaxPages)
 	dataset, nextCursor, err := c.client.RunActorAndGetResponse(ActorID, input, cursor, limit)
 	if err != nil {
 		if c.statsCollector != nil {
