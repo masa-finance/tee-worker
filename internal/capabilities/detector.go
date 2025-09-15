@@ -38,12 +38,12 @@ func DetectCapabilities(jc config.JobConfiguration, jobServer JobServerInterface
 	accounts := jc.GetStringSlice("twitter_accounts", nil)
 	apiKeys := jc.GetStringSlice("twitter_api_keys", nil)
 	apifyApiKey := jc.GetString("apify_api_key", "")
-	geminiApiKey := jc.GetString("gemini_api_key", "")
+	geminiApiKey := config.LlmApiKey(jc.GetString("gemini_api_key", ""))
 
 	hasAccounts := len(accounts) > 0
 	hasApiKeys := len(apiKeys) > 0
 	hasApifyKey := hasValidApifyKey(apifyApiKey)
-	hasLLMKey := config.LlmApiKey(geminiApiKey).IsValid()
+	hasLLMKey := geminiApiKey.IsValid()
 
 	// Add Twitter-specific capabilities based on available authentication
 	if hasAccounts {
