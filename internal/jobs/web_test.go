@@ -195,14 +195,17 @@ var _ = Describe("WebScraper", func() {
 			integrationStatsCollector := stats.StartCollector(128, cfg)
 			integrationScraper := jobs.NewWebScraper(cfg, integrationStatsCollector)
 
+			maxDepth := 1
+			maxPages := 3
+
 			job := types.Job{
 				UUID: "integration-test-uuid",
 				Type: teetypes.WebJob,
 				Arguments: map[string]any{
 					"type":      teetypes.WebScraper,
 					"url":       "https://docs.learnbittensor.org",
-					"max_depth": 1,
-					"max_pages": 3,
+					"max_depth": maxDepth,
+					"max_pages": maxPages,
 				},
 			}
 
@@ -217,12 +220,12 @@ var _ = Describe("WebScraper", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resp).To(HaveLen(3))
 
-			for i := 0; i < 3; i++ {
+			for i := 0; i < maxPages; i++ {
 				Expect(resp[i]).NotTo(BeNil())
 				Expect(resp[i].URL).To(ContainSubstring("https://docs.learnbittensor.org/"))
 				Expect(resp[i].LLMResponse).NotTo(BeEmpty())
 				Expect(resp[i].Markdown).NotTo(BeEmpty())
-				Expect(resp[i].Text).NotTo(BeEmpty())
+				Expect(resp[i].Text).To(ContainSubstring("Bittensor"))
 				fmt.Println(resp[i].LLMResponse)
 			}
 		})

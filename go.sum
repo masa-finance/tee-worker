@@ -30,6 +30,10 @@ github.com/labstack/echo/v4 v4.13.4 h1:oTZZW+T3s9gAu5L8vmzihV7/lkXGZuITzTQkTEhcX
 github.com/labstack/echo/v4 v4.13.4/go.mod h1:g63b33BZ5vZzcIUF8AtRH40DrTlXnx4UMC8rBdndmjQ=
 github.com/labstack/gommon v0.4.2 h1:F8qTUNXgG1+6WQmqoUWnz8WiEU60mXVVw0P4ht1WRA0=
 github.com/labstack/gommon v0.4.2/go.mod h1:QlUFxVM+SNXhDL/Z7YhocGIBYOiwB0mXm1+1bAPHPyU=
+github.com/masa-finance/tee-types v1.1.14-0.20250915212410-68d7a9a7a802 h1:mV6C1lZDGz5MXxJXwyWjlVLoS9Q1JFs0Jd3EmdFniOU=
+github.com/masa-finance/tee-types v1.1.14-0.20250915212410-68d7a9a7a802/go.mod h1:sB98t0axFlPi2d0zUPFZSQ84mPGwbr9eRY5yLLE3fSc=
+github.com/masa-finance/tee-types v1.1.14-0.20250915212635-8ad23d0c9eb6 h1:Wue5Rkl26SkU9t6RnmijHJr2UJxvaTjqiJLMM1HwBQQ=
+github.com/masa-finance/tee-types v1.1.14-0.20250915212635-8ad23d0c9eb6/go.mod h1:sB98t0axFlPi2d0zUPFZSQ84mPGwbr9eRY5yLLE3fSc=
 github.com/masa-finance/tee-types v1.1.14 h1:g6tqU1JQx8SSPZNVmkhGAViDIcbrzGsGk77hbrx59GY=
 github.com/masa-finance/tee-types v1.1.14/go.mod h1:sB98t0axFlPi2d0zUPFZSQ84mPGwbr9eRY5yLLE3fSc=
 github.com/masa-finance/twitter-scraper v1.0.2 h1:him+wvYZHg/7EDdy73z1ceUywDJDRAhPLD2CSEa2Vfk=

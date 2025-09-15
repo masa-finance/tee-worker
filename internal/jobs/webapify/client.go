@@ -51,8 +51,6 @@ func (c *ApifyClient) Scrape(workerID string, args teeargs.WebArguments, cursor 
 
 	input := args.ToWebScraperRequest()
 
-	// TODO: limit could be greater than max pages if max depth is greater than 0?
-	// TODO: need to test this more thoroughly with various request types
 	limit := uint(args.MaxPages)
 	dataset, nextCursor, err := c.client.RunActorAndGetResponse(ActorID, input, cursor, limit)
 	if err != nil {
