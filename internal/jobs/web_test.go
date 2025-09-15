@@ -221,7 +221,7 @@ var _ = Describe("WebScraper", func() {
 
 			for i := 0; i < maxPages; i++ {
 				Expect(resp[i]).NotTo(BeNil())
-				Expect(resp[i].URL).To(ContainSubstring("https://docs.learnbittensor.org/"))
+				Expect(resp[i].URL).To(ContainSubstring("https://docs.learnbittensor.org"))
 				Expect(resp[i].LLMResponse).NotTo(BeEmpty())
 				Expect(resp[i].Markdown).NotTo(BeEmpty())
 				Expect(resp[i].Text).To(ContainSubstring("Bittensor"))
