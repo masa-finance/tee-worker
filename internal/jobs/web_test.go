@@ -187,7 +187,7 @@ var _ = Describe("WebScraper", func() {
 			}
 		})
 
-		FIt("should execute a real web scraping job when keys is set", func() {
+		It("should execute a real web scraping job when keys is set", func() {
 			cfg := config.JobConfiguration{
 				"apify_api_key":  apifyKey,
 				"gemini_api_key": geminiKey,
