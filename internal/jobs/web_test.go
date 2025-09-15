@@ -173,6 +173,10 @@ var _ = Describe("WebScraper", func() {
 			apifyKey = os.Getenv("APIFY_API_KEY")
 			geminiKey = os.Getenv("GEMINI_API_KEY")
 
+			if apifyKey == "" || geminiKey == "" {
+				Skip("APIFY_API_KEY and GEMINI_API_KEY required for integration web integration tests")
+			}
+
 			// Reset to use real client for integration tests
 			jobs.NewWebApifyClient = func(apiKey string, s *stats.StatsCollector) (jobs.WebApifyClient, error) {
 				return webapify.NewClient(apiKey, s)
@@ -183,10 +187,6 @@ var _ = Describe("WebScraper", func() {
 		})
 
 		It("should execute a real web scraping job when keys is set", func() {
-			if apifyKey == "" || geminiKey == "" {
-				Skip("APIFY_API_KEY and GEMINI_API_KEY required for integration web integration tests")
-			}
-
 			cfg := config.JobConfiguration{
 				"apify_api_key":  apifyKey,
 				"gemini_api_key": geminiKey,
