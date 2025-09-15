@@ -77,8 +77,7 @@ var _ = Describe("API", func() {
 			Type: teetypes.TiktokJob,
 			Arguments: map[string]interface{}{
 				"type":      "transcription",
-				"video_url": "https://www.tiktok.com/@.jake.ai/video/7516694182245813509",
-				"language":  "eng-US",
+				"video_url": "https://www.tiktok.com/@theblockrunner.com/video/7227579907361066282",
 			},
 		}
 		// Step 2: Get a Job signature
