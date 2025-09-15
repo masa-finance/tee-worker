@@ -3,7 +3,6 @@ package jobs_test
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"os"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -226,7 +225,6 @@ var _ = Describe("WebScraper", func() {
 				Expect(resp[i].LLMResponse).NotTo(BeEmpty())
 				Expect(resp[i].Markdown).NotTo(BeEmpty())
 				Expect(resp[i].Text).To(ContainSubstring("Bittensor"))
-				fmt.Println(resp[i].LLMResponse)
 			}
 		})
 
