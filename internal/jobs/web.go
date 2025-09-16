@@ -103,7 +103,7 @@ func (w *WebScraper) ExecuteJob(j types.Job) (types.JobResult, error) {
 		Prompt:      "summarize the content of this webpage, focusing on keywords and topics: ${markdown}",
 		MaxTokens:   teeargs.LLMDefaultMaxTokens,
 		Temperature: teeargs.LLMDefaultTemperature,
-		Items:       len(webResp),
+		Items:       uint(len(webResp)),
 	}
 	llmResp, _, llmErr := llmClient.Process(j.WorkerID, llmArgs, client.EmptyCursor)
 	if llmErr != nil {

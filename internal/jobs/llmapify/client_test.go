@@ -181,7 +181,7 @@ var _ = Describe("LLMApifyClient", func() {
 				DatasetId:   "test-dataset-id",
 				Prompt:      "test-prompt",
 				MaxTokens:   500,
-				Temperature: "0.5",
+				Temperature: 0.5,
 			}
 
 			mockClient.RunActorAndGetResponseFunc = func(actorID string, input any, cursor client.Cursor, limit uint) (*client.DatasetResponse, client.Cursor, error) {
