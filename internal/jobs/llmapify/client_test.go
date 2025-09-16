@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -78,11 +79,11 @@ var _ = Describe("LLMApifyClient", func() {
 				Expect(ok).To(BeTrue())
 				Expect(request.InputDatasetId).To(Equal("test-dataset-id"))
 				Expect(request.Prompt).To(Equal("test-prompt"))
-				Expect(request.LLMProviderApiKey).To(Equal("test-llm-key"))                  // should be set from constructor
-				Expect(request.Model).To(Equal(teeargs.LLMDefaultModel))                     // default model
-				Expect(request.MultipleColumns).To(Equal(teeargs.LLMDefaultMultipleColumns)) // default value
-				Expect(request.MaxTokens).To(Equal(teeargs.LLMDefaultMaxTokens))             // default value
-				Expect(request.Temperature).To(Equal(teeargs.LLMDefaultTemperature))         // default value
+				Expect(request.LLMProviderApiKey).To(Equal("test-llm-key"))                                            // should be set from constructor
+				Expect(request.Model).To(Equal(teeargs.LLMDefaultModel))                                               // default model
+				Expect(request.MultipleColumns).To(Equal(teeargs.LLMDefaultMultipleColumns))                           // default value
+				Expect(request.MaxTokens).To(Equal(teeargs.LLMDefaultMaxTokens))                                       // default value
+				Expect(request.Temperature).To(Equal(strconv.FormatFloat(teeargs.LLMDefaultTemperature, 'f', -1, 64))) // default value
 
 				return &client.DatasetResponse{Data: client.ApifyDatasetData{Items: []json.RawMessage{}}}, "next", nil
 			}
@@ -187,7 +188,7 @@ var _ = Describe("LLMApifyClient", func() {
 			mockClient.RunActorAndGetResponseFunc = func(actorID string, input any, cursor client.Cursor, limit uint) (*client.DatasetResponse, client.Cursor, error) {
 				request, ok := input.(teetypes.LLMProcessorRequest)
 				Expect(ok).To(BeTrue())
-				Expect(request.MaxTokens).To(Equal(500))
+				Expect(request.MaxTokens).To(Equal(uint(500)))
 				Expect(request.Temperature).To(Equal("0.5"))
 				Expect(request.LLMProviderApiKey).To(Equal("test-llm-key")) // should be set from constructor
 
