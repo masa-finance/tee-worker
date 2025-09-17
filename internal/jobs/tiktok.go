@@ -152,14 +152,6 @@ func (ttt *TikTokTranscriber) executeTranscription(j types.Job, a *teeargs.TikTo
 		return types.JobResult{Error: "VideoURL is required"}, fmt.Errorf("videoURL is required")
 	}
 
-	// Use the enhanced language selection logic
-	selectedLanguageKey := tiktokArgs.GetLanguageCode() // This handles defaults automatically
-	if tiktokArgs.HasLanguagePreference() {
-		logrus.WithField("job_uuid", j.UUID).Infof("Using custom language preference: %s", selectedLanguageKey)
-	} else {
-		logrus.WithField("job_uuid", j.UUID).Infof("Using default language: %s", selectedLanguageKey)
-	}
-
 	// Sub-Step 3.1: Call TikTok Transcription API
 	apiRequestBody := map[string]string{"url": tiktokArgs.GetVideoURL()}
 	jsonBody, err := json.Marshal(apiRequestBody)
@@ -229,28 +221,42 @@ func (ttt *TikTokTranscriber) executeTranscription(j types.Job, a *teeargs.TikTo
 	}
 
 	vttText := ""
+	languageCode := tiktokArgs.GetLanguageCode() // either requested or default
 
-	// Directly use the requested/default language; if missing, return an error
-	if transcript, ok := parsedAPIResponse.Transcripts[selectedLanguageKey]; ok && strings.TrimSpace(transcript) != "" {
-		vttText = transcript
+	if tiktokArgs.HasLanguagePreference() {
+		if transcript, ok := parsedAPIResponse.Transcripts[tiktokArgs.Language]; ok && strings.TrimSpace(transcript) != "" {
+			vttText = transcript
+		}
 	} else {
-		errMsg := fmt.Sprintf("Transcript for requested language %s not found in API response", selectedLanguageKey)
+		// Attempt to use the default language
+		if transcript, ok := parsedAPIResponse.Transcripts[languageCode]; ok && strings.TrimSpace(transcript) != "" {
+			vttText = transcript
+		} else {
+			// No preference and default not found - return the first available transcript
+			for langCode, transcript := range parsedAPIResponse.Transcripts {
+				if strings.TrimSpace(transcript) != "" {
+					vttText = transcript
+					languageCode = langCode
+					break
+				}
+			}
+		}
+	}
+
+	if vttText == "" {
+		errMsg := "No transcripts found in API response"
+		if tiktokArgs.HasLanguagePreference() {
+			errMsg = fmt.Sprintf("Transcript for requested language %s not found in API response", languageCode)
+		}
 		logrus.WithFields(logrus.Fields{
 			"job_uuid":       j.UUID,
-			"requested_lang": selectedLanguageKey,
+			"requested_lang": languageCode,
 		}).Error(errMsg)
 		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1)
 		return types.JobResult{Error: errMsg}, fmt.Errorf(errMsg)
 	}
 
-	if vttText == "" {
-		errMsg := "Suitable transcript could not be extracted from API response"
-		logrus.WithField("job_uuid", j.UUID).Error(errMsg)
-		ttt.stats.Add(j.WorkerID, stats.TikTokTranscriptionErrors, 1)
-		return types.JobResult{Error: errMsg}, fmt.Errorf(errMsg)
-	}
-
-	logrus.Debugf("Job %s: Raw VTT content for language %s:\n%s", j.UUID, selectedLanguageKey, vttText)
+	logrus.Debugf("Job %s: Raw VTT content for language %s:\n%s", j.UUID, languageCode, vttText)
 
 	// Convert VTT to Plain Text
 	plainTextTranscription, err := convertVTTToPlainText(vttText)
@@ -265,7 +271,7 @@ func (ttt *TikTokTranscriber) executeTranscription(j types.Job, a *teeargs.TikTo
 	// Process Result & Return
 	resultData := teetypes.TikTokTranscriptionResult{
 		TranscriptionText: plainTextTranscription,
-		DetectedLanguage:  selectedLanguageKey,
+		DetectedLanguage:  languageCode,
 		VideoTitle:        parsedAPIResponse.VideoTitle,
 		OriginalURL:       tiktokArgs.GetVideoURL(),
 		ThumbnailURL:      parsedAPIResponse.ThumbnailURL,
