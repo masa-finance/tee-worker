@@ -80,7 +80,7 @@ func DetectCapabilities(jc config.JobConfiguration, jobServer JobServerInterface
 					continue
 				}
 
-				if ok, _ := c.ProbeActorAccess(actor.ActorId, map[string]any(actor.DefaultInput)); ok {
+				if ok, _ := c.ProbeActorAccess(actor.ActorId, actor.DefaultInput); ok {
 					if _, exists := jobToSet[actor.JobType]; !exists {
 						jobToSet[actor.JobType] = util.NewSet[teetypes.Capability]()
 					}

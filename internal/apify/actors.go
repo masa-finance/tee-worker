@@ -59,7 +59,7 @@ var Actors = []ActorConfig{
 	},
 	{
 		ActorId:      ActorIds.WebScraper,
-		DefaultInput: defaultActorInput{},
+		DefaultInput: defaultActorInput{"startUrls": []map[string]any{{"url": "https://docs.learnbittensor.org"}}},
 		Capabilities: teetypes.WebCaps,
 		JobType:      teetypes.WebJob,
 	},

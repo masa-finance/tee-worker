@@ -197,8 +197,9 @@ var _ = Describe("DetectCapabilities", func() {
 			caps := DetectCapabilities(jc, nil)
 
 			// Web should be present
-			_, hasWeb := caps[teetypes.WebJob]
+			webCaps, hasWeb := caps[teetypes.WebJob]
 			Expect(hasWeb).To(BeTrue(), "expected web capabilities to be present")
+			Expect(webCaps).To(ContainElement(teetypes.CapScraper), "expected web to include CapScraper capability")
 		})
 	})
 })
