@@ -63,7 +63,7 @@ func (c *ApifyClient) Process(workerID string, args teeargs.LLMProcessorArgument
 	input.LLMProviderApiKey = string(c.llmConfig.GeminiApiKey)
 
 	limit := uint(args.Items)
-	dataset, nextCursor, err := c.client.RunActorAndGetResponse(apify.Actors.LLMDatasetProcessor, input, cursor, limit)
+	dataset, nextCursor, err := c.client.RunActorAndGetResponse(apify.ActorIds.LLMDatasetProcessor, input, cursor, limit)
 	if err != nil {
 		if c.statsCollector != nil {
 			c.statsCollector.Add(workerID, stats.LLMErrors, 1)

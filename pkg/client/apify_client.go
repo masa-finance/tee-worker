@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/masa-finance/tee-worker/internal/apify"
 	"github.com/sirupsen/logrus"
 )
 
@@ -26,9 +27,9 @@ const (
 
 // Apify provides an interface for interacting with the Apify API.
 type Apify interface {
-	RunActorAndGetResponse(actorId string, input any, cursor Cursor, limit uint) (*DatasetResponse, Cursor, error)
+	RunActorAndGetResponse(actorId apify.ActorId, input any, cursor Cursor, limit uint) (*DatasetResponse, Cursor, error)
 	ValidateApiKey() error
-	ProbeActorAccess(actorId string, input map[string]any) (bool, error)
+	ProbeActorAccess(actorId apify.ActorId, input map[string]any) (bool, error)
 }
 
 // ApifyClient represents a client for the Apify API
@@ -123,7 +124,7 @@ func (c *ApifyClient) AbortActorRun(runId string) error {
 // ProbeActorAccess attempts to start a run and immediately abort to verify access
 // Returns true if the token can start the actor (permission/rental present)
 // Some actors require a default input to be provided
-func (c *ApifyClient) ProbeActorAccess(actorId string, input map[string]any) (bool, error) {
+func (c *ApifyClient) ProbeActorAccess(actorId apify.ActorId, input map[string]any) (bool, error) {
 	// Use empty input; most actors accept defaults. We do not wait for finish.
 	runResp, err := c.RunActor(actorId, input)
 	if err != nil {
@@ -141,7 +142,7 @@ func (c *ApifyClient) ProbeActorAccess(actorId string, input map[string]any) (bo
 }
 
 // RunActor runs an actor with the given input
-func (c *ApifyClient) RunActor(actorId string, input any) (*ActorRunResponse, error) {
+func (c *ApifyClient) RunActor(actorId apify.ActorId, input any) (*ActorRunResponse, error) {
 	url := fmt.Sprintf("%s/acts/%s/runs?token=%s", c.baseUrl, actorId, c.apiToken)
 	logrus.Infof("Running actor %s", actorId)
 
@@ -335,7 +336,7 @@ var (
 )
 
 // runActorAndGetProfiles runs the actor and retrieves profiles from the dataset
-func (c *ApifyClient) RunActorAndGetResponse(actorId string, input any, cursor Cursor, limit uint) (*DatasetResponse, Cursor, error) {
+func (c *ApifyClient) RunActorAndGetResponse(actorId apify.ActorId, input any, cursor Cursor, limit uint) (*DatasetResponse, Cursor, error) {
 	var offset uint
 	if cursor != EmptyCursor {
 		offset = parseCursor(cursor)

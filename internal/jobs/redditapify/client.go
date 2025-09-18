@@ -164,7 +164,7 @@ func (c *RedditApifyClient) queryReddit(workerID string, input RedditActorReques
 		c.statsCollector.Add(workerID, stats.RedditQueries, 1)
 	}
 
-	dataset, nextCursor, err := c.apifyClient.RunActorAndGetResponse(apify.Actors.RedditScraper, input, cursor, limit)
+	dataset, nextCursor, err := c.apifyClient.RunActorAndGetResponse(apify.ActorIds.RedditScraper, input, cursor, limit)
 	if err != nil {
 		if c.statsCollector != nil {
 			c.statsCollector.Add(workerID, stats.RedditErrors, 1)

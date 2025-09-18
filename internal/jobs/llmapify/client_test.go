@@ -21,12 +21,12 @@ import (
 
 // MockApifyClient is a mock implementation of the ApifyClient.
 type MockApifyClient struct {
-	RunActorAndGetResponseFunc func(actorID string, input any, cursor client.Cursor, limit uint) (*client.DatasetResponse, client.Cursor, error)
+	RunActorAndGetResponseFunc func(actorID apify.ActorId, input any, cursor client.Cursor, limit uint) (*client.DatasetResponse, client.Cursor, error)
 	ValidateApiKeyFunc         func() error
-	ProbeActorAccessFunc       func(actorID string, input map[string]any) (bool, error)
+	ProbeActorAccessFunc       func(actorID apify.ActorId, input map[string]any) (bool, error)
 }
 
-func (m *MockApifyClient) RunActorAndGetResponse(actorID string, input any, cursor client.Cursor, limit uint) (*client.DatasetResponse, client.Cursor, error) {
+func (m *MockApifyClient) RunActorAndGetResponse(actorID apify.ActorId, input any, cursor client.Cursor, limit uint) (*client.DatasetResponse, client.Cursor, error) {
 	if m.RunActorAndGetResponseFunc != nil {
 		return m.RunActorAndGetResponseFunc(actorID, input, cursor, limit)
 	}
@@ -40,7 +40,7 @@ func (m *MockApifyClient) ValidateApiKey() error {
 	return errors.New("ValidateApiKeyFunc not defined")
 }
 
-func (m *MockApifyClient) ProbeActorAccess(actorID string, input map[string]any) (bool, error) {
+func (m *MockApifyClient) ProbeActorAccess(actorID apify.ActorId, input map[string]any) (bool, error) {
 	if m.ProbeActorAccessFunc != nil {
 		return m.ProbeActorAccessFunc(actorID, input)
 	}
@@ -79,8 +79,8 @@ var _ = Describe("LLMApifyClient", func() {
 			err = json.Unmarshal(jsonData, &args)
 			Expect(err).ToNot(HaveOccurred())
 
-			mockClient.RunActorAndGetResponseFunc = func(actorID string, input any, cursor client.Cursor, limit uint) (*client.DatasetResponse, client.Cursor, error) {
-				Expect(actorID).To(Equal(apify.Actors.LLMDatasetProcessor))
+			mockClient.RunActorAndGetResponseFunc = func(actorID apify.ActorId, input any, cursor client.Cursor, limit uint) (*client.DatasetResponse, client.Cursor, error) {
+				Expect(actorID).To(Equal(apify.ActorIds.LLMDatasetProcessor))
 				Expect(limit).To(Equal(uint(1)))
 
 				// Verify the input is correctly converted to LLMProcessorRequest
@@ -103,7 +103,7 @@ var _ = Describe("LLMApifyClient", func() {
 
 		It("should handle errors from the apify client", func() {
 			expectedErr := errors.New("apify error")
-			mockClient.RunActorAndGetResponseFunc = func(actorID string, input any, cursor client.Cursor, limit uint) (*client.DatasetResponse, client.Cursor, error) {
+			mockClient.RunActorAndGetResponseFunc = func(actorID apify.ActorId, input any, cursor client.Cursor, limit uint) (*client.DatasetResponse, client.Cursor, error) {
 				return nil, "", expectedErr
 			}
 
@@ -122,7 +122,7 @@ var _ = Describe("LLMApifyClient", func() {
 					Items: []json.RawMessage{invalidJSON},
 				},
 			}
-			mockClient.RunActorAndGetResponseFunc = func(actorID string, input any, cursor client.Cursor, limit uint) (*client.DatasetResponse, client.Cursor, error) {
+			mockClient.RunActorAndGetResponseFunc = func(actorID apify.ActorId, input any, cursor client.Cursor, limit uint) (*client.DatasetResponse, client.Cursor, error) {
 				return dataset, "next", nil
 			}
 
@@ -144,7 +144,7 @@ var _ = Describe("LLMApifyClient", func() {
 					Items: []json.RawMessage{llmResultJSON},
 				},
 			}
-			mockClient.RunActorAndGetResponseFunc = func(actorID string, input any, cursor client.Cursor, limit uint) (*client.DatasetResponse, client.Cursor, error) {
+			mockClient.RunActorAndGetResponseFunc = func(actorID apify.ActorId, input any, cursor client.Cursor, limit uint) (*client.DatasetResponse, client.Cursor, error) {
 				return dataset, "next", nil
 			}
 
@@ -171,7 +171,7 @@ var _ = Describe("LLMApifyClient", func() {
 					Items: []json.RawMessage{llmResult1, llmResult2},
 				},
 			}
-			mockClient.RunActorAndGetResponseFunc = func(actorID string, input any, cursor client.Cursor, limit uint) (*client.DatasetResponse, client.Cursor, error) {
+			mockClient.RunActorAndGetResponseFunc = func(actorID apify.ActorId, input any, cursor client.Cursor, limit uint) (*client.DatasetResponse, client.Cursor, error) {
 				return dataset, "next", nil
 			}
 
@@ -194,7 +194,7 @@ var _ = Describe("LLMApifyClient", func() {
 				Temperature: 0.5,
 			}
 
-			mockClient.RunActorAndGetResponseFunc = func(actorID string, input any, cursor client.Cursor, limit uint) (*client.DatasetResponse, client.Cursor, error) {
+			mockClient.RunActorAndGetResponseFunc = func(actorID apify.ActorId, input any, cursor client.Cursor, limit uint) (*client.DatasetResponse, client.Cursor, error) {
 				request, ok := input.(teetypes.LLMProcessorRequest)
 				Expect(ok).To(BeTrue())
 				Expect(request.MaxTokens).To(Equal(uint(500)))

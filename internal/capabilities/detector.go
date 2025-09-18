@@ -75,24 +75,24 @@ func DetectCapabilities(jc config.JobConfiguration, jobServer JobServerInterface
 			logrus.Errorf("Failed to create Apify client for access probe: %v", err)
 		} else {
 			// Reddit access probe
-			if ok, _ := c.ProbeActorAccess(apify.Actors.RedditScraper, map[string]any{}); ok {
+			if ok, _ := c.ProbeActorAccess(apify.ActorIds.RedditScraper, map[string]any{}); ok {
 				capabilities[teetypes.RedditJob] = teetypes.RedditCaps
 			} else {
-				logrus.Warnf("Apify token does not have access to actor %s", apify.Actors.RedditScraper)
+				logrus.Warnf("Apify token does not have access to actor %s", apify.ActorIds.RedditScraper)
 			}
 
 			// TikTok probes (search and trending handled independently)
 			tiktokCapSet := util.NewSet(capabilities[teetypes.TiktokJob]...)
 
-			if ok, _ := c.ProbeActorAccess(apify.Actors.TikTokSearchScraper, map[string]any{"proxy": map[string]any{"useApifyProxy": true}}); ok {
+			if ok, _ := c.ProbeActorAccess(apify.ActorIds.TikTokSearchScraper, map[string]any{"proxy": map[string]any{"useApifyProxy": true}}); ok {
 				tiktokCapSet.Add(teetypes.CapSearchByQuery)
 			} else {
-				logrus.Warnf("Apify token does not have access to actor %s", apify.Actors.TikTokSearchScraper)
+				logrus.Warnf("Apify token does not have access to actor %s", apify.ActorIds.TikTokSearchScraper)
 			}
-			if ok, _ := c.ProbeActorAccess(apify.Actors.TikTokTrendingScraper, map[string]any{}); ok {
+			if ok, _ := c.ProbeActorAccess(apify.ActorIds.TikTokTrendingScraper, map[string]any{}); ok {
 				tiktokCapSet.Add(teetypes.CapSearchByTrending)
 			} else {
-				logrus.Warnf("Apify token does not have access to actor %s", apify.Actors.TikTokTrendingScraper)
+				logrus.Warnf("Apify token does not have access to actor %s", apify.ActorIds.TikTokTrendingScraper)
 			}
 
 			capabilities[teetypes.TiktokJob] = tiktokCapSet.Items()

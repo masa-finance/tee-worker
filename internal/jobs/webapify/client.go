@@ -49,7 +49,7 @@ func (c *ApifyClient) Scrape(workerID string, args teeargs.WebArguments, cursor 
 	input := args.ToWebScraperRequest()
 
 	limit := uint(args.MaxPages)
-	dataset, nextCursor, err := c.client.RunActorAndGetResponse(apify.Actors.WebScraper, input, cursor, limit)
+	dataset, nextCursor, err := c.client.RunActorAndGetResponse(apify.ActorIds.WebScraper, input, cursor, limit)
 	if err != nil {
 		if c.statsCollector != nil {
 			c.statsCollector.Add(workerID, stats.WebErrors, 1)
