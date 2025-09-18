@@ -64,43 +64,37 @@ func DetectCapabilities(jc config.JobConfiguration, jobServer JobServerInterface
 		capabilities[teetypes.TwitterApiJob] = apiCaps
 	}
 
-	// Add Apify-specific capabilities based on available API key
 	if hasApifyKey {
-		// Add default Apify capabilities
-		capabilities[teetypes.TwitterApifyJob] = teetypes.TwitterApifyCaps
-
-		// Create an Apify client for probing rented actors
+		// Create an Apify client for probing actors
 		c, err := client.NewApifyClient(apifyApiKey)
 		if err != nil {
-			logrus.Errorf("Failed to create Apify client for access probe: %v", err)
+			logrus.Errorf("Failed to create Apify client for access probes: %v", err)
 		} else {
-			// Reddit access probe
-			if ok, _ := c.ProbeActorAccess(apify.ActorIds.RedditScraper, map[string]any{}); ok {
-				capabilities[teetypes.RedditJob] = teetypes.RedditCaps
-			} else {
-				logrus.Warnf("Apify token does not have access to actor %s", apify.ActorIds.RedditScraper)
+			// Aggregate capabilities per job from accessible actors
+			jobToSet := map[teetypes.JobType]*util.Set[teetypes.Capability]{}
+
+			for _, actor := range apify.Actors {
+				// Web requires a valid Gemini API key
+				if actor.JobType == teetypes.WebJob && !hasLLMKey {
+					logrus.Debug("Skipping Web actor due to missing Gemini key")
+					continue
+				}
+
+				if ok, _ := c.ProbeActorAccess(actor.ActorId, map[string]any(actor.DefaultInput)); ok {
+					if _, exists := jobToSet[actor.JobType]; !exists {
+						jobToSet[actor.JobType] = util.NewSet[teetypes.Capability]()
+					}
+					jobToSet[actor.JobType].Add(actor.Capabilities...)
+				} else {
+					logrus.Warnf("Apify token does not have access to actor %s", actor.ActorId)
+				}
 			}
 
-			// TikTok probes (search and trending handled independently)
-			tiktokCapSet := util.NewSet(capabilities[teetypes.TiktokJob]...)
-
-			if ok, _ := c.ProbeActorAccess(apify.ActorIds.TikTokSearchScraper, map[string]any{"proxy": map[string]any{"useApifyProxy": true}}); ok {
-				tiktokCapSet.Add(teetypes.CapSearchByQuery)
-			} else {
-				logrus.Warnf("Apify token does not have access to actor %s", apify.ActorIds.TikTokSearchScraper)
+			// Union accessible-actor caps into existing caps
+			for job, set := range jobToSet {
+				existingCaps := util.NewSet(capabilities[job]...)
+				capabilities[job] = existingCaps.Add(set.Items()...).Items()
 			}
-			if ok, _ := c.ProbeActorAccess(apify.ActorIds.TikTokTrendingScraper, map[string]any{}); ok {
-				tiktokCapSet.Add(teetypes.CapSearchByTrending)
-			} else {
-				logrus.Warnf("Apify token does not have access to actor %s", apify.ActorIds.TikTokTrendingScraper)
-			}
-
-			capabilities[teetypes.TiktokJob] = tiktokCapSet.Items()
-
-		}
-
-		if hasLLMKey {
-			capabilities[teetypes.WebJob] = teetypes.WebCaps
 		}
 	}
 
