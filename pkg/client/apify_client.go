@@ -28,6 +28,7 @@ const (
 type Apify interface {
 	RunActorAndGetResponse(actorId string, input any, cursor Cursor, limit uint) (*DatasetResponse, Cursor, error)
 	ValidateApiKey() error
+	ProbeActorAccess(actorId string, input map[string]any) (bool, error)
 }
 
 // ApifyClient represents a client for the Apify API

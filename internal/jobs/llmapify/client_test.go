@@ -23,6 +23,7 @@ import (
 type MockApifyClient struct {
 	RunActorAndGetResponseFunc func(actorID string, input any, cursor client.Cursor, limit uint) (*client.DatasetResponse, client.Cursor, error)
 	ValidateApiKeyFunc         func() error
+    ProbeActorAccessFunc       func(actorID string, input map[string]any) (bool, error)
 }
 
 func (m *MockApifyClient) RunActorAndGetResponse(actorID string, input any, cursor client.Cursor, limit uint) (*client.DatasetResponse, client.Cursor, error) {
@@ -37,6 +38,13 @@ func (m *MockApifyClient) ValidateApiKey() error {
 		return m.ValidateApiKeyFunc()
 	}
 	return errors.New("ValidateApiKeyFunc not defined")
+}
+
+func (m *MockApifyClient) ProbeActorAccess(actorID string, input map[string]any) (bool, error) {
+    if m.ProbeActorAccessFunc != nil {
+        return m.ProbeActorAccessFunc(actorID, input)
+    }
+    return false, errors.New("ProbeActorAccessFunc not defined")
 }
 
 var _ = Describe("LLMApifyClient", func() {
