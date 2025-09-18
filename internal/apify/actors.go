@@ -4,8 +4,6 @@ import teetypes "github.com/masa-finance/tee-types/types"
 
 type ActorId string
 
-type defaultActorInput map[string]any
-
 type actorIds struct {
 	RedditScraper         ActorId
 	TikTokSearchScraper   ActorId
@@ -24,17 +22,11 @@ var ActorIds = actorIds{
 	WebScraper:            "apify~website-content-crawler",
 }
 
-var (
-	rentedActorIds = []ActorId{
-		ActorIds.RedditScraper,
-		ActorIds.TikTokSearchScraper,
-		ActorIds.TikTokTrendingScraper,
-	}
-)
+type defaultActorInput map[string]any
 
 type ActorConfig struct {
 	ActorId      ActorId
-	Input        defaultActorInput
+	DefaultInput defaultActorInput
 	Capabilities []teetypes.Capability
 	JobType      teetypes.JobType
 }
@@ -43,32 +35,32 @@ type ActorConfig struct {
 var Actors = []ActorConfig{
 	{
 		ActorId:      ActorIds.RedditScraper,
-		Input:        defaultActorInput{},
-		Capabilities: []teetypes.Capability{teetypes.CapScrapeUrls},
+		DefaultInput: defaultActorInput{},
+		Capabilities: teetypes.RedditCaps,
 		JobType:      teetypes.RedditJob,
 	},
 	{
 		ActorId:      ActorIds.TikTokSearchScraper,
-		Input:        defaultActorInput{"proxy": map[string]any{"useApifyProxy": true}},
+		DefaultInput: defaultActorInput{"proxy": map[string]any{"useApifyProxy": true}},
 		Capabilities: []teetypes.Capability{teetypes.CapSearchByQuery},
 		JobType:      teetypes.TiktokJob,
 	},
 	{
 		ActorId:      ActorIds.TikTokTrendingScraper,
-		Input:        defaultActorInput{},
+		DefaultInput: defaultActorInput{},
 		Capabilities: []teetypes.Capability{teetypes.CapSearchByTrending},
 		JobType:      teetypes.TiktokJob,
 	},
 	{
 		ActorId:      ActorIds.TwitterFollowers,
-		Input:        defaultActorInput{},
+		DefaultInput: defaultActorInput{},
 		Capabilities: teetypes.TwitterApifyCaps,
 		JobType:      teetypes.TwitterApifyJob,
 	},
 	{
 		ActorId:      ActorIds.WebScraper,
-		Input:        defaultActorInput{},
-		Capabilities: []teetypes.Capability{teetypes.CapScraper},
+		DefaultInput: defaultActorInput{},
+		Capabilities: teetypes.WebCaps,
 		JobType:      teetypes.WebJob,
 	},
 }
