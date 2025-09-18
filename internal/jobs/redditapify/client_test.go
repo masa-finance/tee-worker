@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/masa-finance/tee-worker/internal/actors"
 	"github.com/masa-finance/tee-worker/internal/jobs/redditapify"
 	"github.com/masa-finance/tee-worker/pkg/client"
 
@@ -59,7 +60,7 @@ var _ = Describe("RedditApifyClient", func() {
 			args := redditapify.CommonArgs{MaxPosts: 10}
 
 			mockClient.RunActorAndGetResponseFunc = func(actorID string, input any, cursor client.Cursor, limit uint) (*client.DatasetResponse, client.Cursor, error) {
-				Expect(actorID).To(Equal(redditapify.RedditActorID))
+				Expect(actorID).To(Equal(actors.RedditScraper))
 				req := input.(redditapify.RedditActorRequest)
 				Expect(req.StartUrls).To(Equal(urls))
 				Expect(*req.PostDateLimit).To(BeTemporally("~", after, time.Second))
@@ -84,7 +85,7 @@ var _ = Describe("RedditApifyClient", func() {
 			args := redditapify.CommonArgs{MaxComments: 5}
 
 			mockClient.RunActorAndGetResponseFunc = func(actorID string, input any, cursor client.Cursor, limit uint) (*client.DatasetResponse, client.Cursor, error) {
-				Expect(actorID).To(Equal(redditapify.RedditActorID))
+				Expect(actorID).To(Equal(actors.RedditScraper))
 				req := input.(redditapify.RedditActorRequest)
 				Expect(req.Searches).To(Equal(queries))
 				Expect(req.StartUrls).To(BeNil())
@@ -107,7 +108,7 @@ var _ = Describe("RedditApifyClient", func() {
 			args := redditapify.CommonArgs{}
 
 			mockClient.RunActorAndGetResponseFunc = func(actorID string, input any, cursor client.Cursor, limit uint) (*client.DatasetResponse, client.Cursor, error) {
-				Expect(actorID).To(Equal(redditapify.RedditActorID))
+				Expect(actorID).To(Equal(actors.RedditScraper))
 				req := input.(redditapify.RedditActorRequest)
 				Expect(req.Searches).To(Equal(queries))
 				Expect(req.StartUrls).To(BeNil())
@@ -127,7 +128,7 @@ var _ = Describe("RedditApifyClient", func() {
 			args := redditapify.CommonArgs{}
 
 			mockClient.RunActorAndGetResponseFunc = func(actorID string, input any, cursor client.Cursor, limit uint) (*client.DatasetResponse, client.Cursor, error) {
-				Expect(actorID).To(Equal(redditapify.RedditActorID))
+				Expect(actorID).To(Equal(actors.RedditScraper))
 				req := input.(redditapify.RedditActorRequest)
 				Expect(req.Searches).To(Equal(queries))
 				Expect(req.StartUrls).To(BeNil())

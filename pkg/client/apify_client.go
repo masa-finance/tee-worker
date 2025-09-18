@@ -96,6 +96,49 @@ func (c *ApifyClient) HTTPClient() *http.Client {
 	return c.httpOptions.HttpClient
 }
 
+// AbortActorRun sends an abort request for a given actor run ID
+func (c *ApifyClient) AbortActorRun(runId string) error {
+	url := fmt.Sprintf("%s/actor-runs/%s/abort?token=%s", c.baseUrl, runId, c.apiToken)
+	logrus.Infof("Stopping actor run: %s", runId)
+
+	req, err := http.NewRequest("POST", url, nil)
+	if err != nil {
+		return fmt.Errorf("error creating abort request: %w", err)
+	}
+
+	resp, err := c.httpOptions.HttpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("error making abort request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK { // Apify returns 200 OK on abort
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("unexpected status code on abort %d: %s", resp.StatusCode, string(body))
+	}
+	return nil
+}
+
+// ProbeActorAccess attempts to start a run and immediately abort to verify access
+// Returns true if the token can start the actor (permission/rental present)
+// Some actors require a default input to be provided
+func (c *ApifyClient) ProbeActorAccess(actorId string, input map[string]any) (bool, error) {
+	// Use empty input; most actors accept defaults. We do not wait for finish.
+	runResp, err := c.RunActor(actorId, input)
+	if err != nil {
+		// RunActor already wraps status and message; treat any non-201 as no access
+		return false, err
+	}
+	// Best-effort abort to avoid consuming resources
+	if runResp != nil && runResp.Data.ID != "" {
+		if err := c.AbortActorRun(runResp.Data.ID); err != nil {
+			// Do not fail access detection if abort fails; just log
+			logrus.Warnf("Failed to abort probe run %s for actor %s: %v", runResp.Data.ID, actorId, err)
+		}
+	}
+	return true, nil
+}
+
 // RunActor runs an actor with the given input
 func (c *ApifyClient) RunActor(actorId string, input any) (*ActorRunResponse, error) {
 	url := fmt.Sprintf("%s/acts/%s/runs?token=%s", c.baseUrl, actorId, c.apiToken)

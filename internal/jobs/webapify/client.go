@@ -6,13 +6,10 @@ import (
 
 	teeargs "github.com/masa-finance/tee-types/args"
 	teetypes "github.com/masa-finance/tee-types/types"
+	"github.com/masa-finance/tee-worker/internal/actors"
 	"github.com/masa-finance/tee-worker/internal/jobs/stats"
 	"github.com/masa-finance/tee-worker/pkg/client"
 	"github.com/sirupsen/logrus"
-)
-
-const (
-	ActorID = "apify~website-content-crawler"
 )
 
 type ApifyClient struct {
@@ -52,7 +49,7 @@ func (c *ApifyClient) Scrape(workerID string, args teeargs.WebArguments, cursor 
 	input := args.ToWebScraperRequest()
 
 	limit := uint(args.MaxPages)
-	dataset, nextCursor, err := c.client.RunActorAndGetResponse(ActorID, input, cursor, limit)
+	dataset, nextCursor, err := c.client.RunActorAndGetResponse(actors.WebScraper, input, cursor, limit)
 	if err != nil {
 		if c.statsCollector != nil {
 			c.statsCollector.Add(workerID, stats.WebErrors, 1)

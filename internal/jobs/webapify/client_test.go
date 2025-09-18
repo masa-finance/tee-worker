@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/masa-finance/tee-worker/internal/actors"
 	"github.com/masa-finance/tee-worker/internal/jobs/webapify"
 	"github.com/masa-finance/tee-worker/pkg/client"
 
@@ -64,7 +65,7 @@ var _ = Describe("WebApifyClient", func() {
 			}
 
 			mockClient.RunActorAndGetResponseFunc = func(actorID string, input any, cursor client.Cursor, limit uint) (*client.DatasetResponse, client.Cursor, error) {
-				Expect(actorID).To(Equal(webapify.ActorID))
+				Expect(actorID).To(Equal(actors.WebScraper))
 				Expect(limit).To(Equal(uint(2)))
 				return &client.DatasetResponse{Data: client.ApifyDatasetData{Items: []json.RawMessage{}}}, "next", nil
 			}

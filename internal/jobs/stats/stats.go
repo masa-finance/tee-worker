@@ -6,11 +6,15 @@ import (
 	"time"
 
 	teetypes "github.com/masa-finance/tee-types/types"
-	"github.com/masa-finance/tee-worker/internal/capabilities"
 	"github.com/masa-finance/tee-worker/internal/config"
 	"github.com/masa-finance/tee-worker/internal/versioning"
 	"github.com/sirupsen/logrus"
 )
+
+// WorkerCapabilitiesProvider abstracts capability retrieval to avoid import cycles
+type WorkerCapabilitiesProvider interface {
+	GetWorkerCapabilities() teetypes.WorkerCapabilities
+}
 
 // These are the types of statistics that we can add. The value is the JSON key that will be used for serialization.
 type StatType string
@@ -68,7 +72,7 @@ type Stats struct {
 type StatsCollector struct {
 	Stats            *Stats
 	Chan             chan AddStat
-	jobServer        capabilities.JobServerInterface
+	jobServer        WorkerCapabilitiesProvider
 	jobConfiguration config.JobConfiguration
 }
 
@@ -83,12 +87,6 @@ func StartCollector(bufSize uint, jc config.JobConfiguration) *StatsCollector {
 		ApplicationVersion: versioning.ApplicationVersion,
 	}
 
-	// Initial capability detection without JobServer (basic capabilities only)
-	// Full capability detection will happen when JobServer is set
-	s.ReportedCapabilities = capabilities.DetectCapabilities(jc, nil)
-
-	logrus.Infof("Initial structured capabilities: %+v", s.ReportedCapabilities)
-
 	ch := make(chan AddStat, bufSize)
 
 	go func(s *Stats, ch chan AddStat) {
@@ -99,11 +97,7 @@ func StartCollector(bufSize uint, jc config.JobConfiguration) *StatsCollector {
 			if _, ok := s.Stats[stat.WorkerID]; !ok {
 				s.Stats[stat.WorkerID] = make(map[StatType]uint)
 			}
-			if _, ok := s.Stats[stat.WorkerID][stat.Type]; ok {
-				s.Stats[stat.WorkerID][stat.Type] += stat.Num
-			} else {
-				s.Stats[stat.WorkerID][stat.Type] = stat.Num
-			}
+			s.Stats[stat.WorkerID][stat.Type] += stat.Num
 			s.Unlock()
 			logrus.Debugf("Added %d to stat %s. Current stats: %#v", stat.Num, stat.Type, s)
 		}
@@ -132,16 +126,16 @@ func (s *StatsCollector) SetWorkerID(workerID string) {
 	s.Stats.WorkerID = workerID
 }
 
-// SetJobServer sets the JobServer reference and updates capabilities with full detection
-func (s *StatsCollector) SetJobServer(js capabilities.JobServerInterface) {
+// SetJobServer sets the JobServer reference and updates capabilities
+func (s *StatsCollector) SetJobServer(js WorkerCapabilitiesProvider) {
 	s.jobServer = js
 
-	// Now that we have the JobServer, update capabilities with full detection
+	// Now that we have the JobServer, update capabilities
 	s.Stats.Lock()
 	defer s.Stats.Unlock()
 
-	// Auto-detect capabilities using the JobServer
-	s.Stats.ReportedCapabilities = capabilities.DetectCapabilities(s.jobConfiguration, js)
+	// Get capabilities from the JobServer directly
+	s.Stats.ReportedCapabilities = js.GetWorkerCapabilities()
 
 	logrus.Infof("Updated structured capabilities with JobServer: %+v", s.Stats.ReportedCapabilities)
 }

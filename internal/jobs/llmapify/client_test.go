@@ -10,6 +10,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/masa-finance/tee-worker/internal/actors"
 	"github.com/masa-finance/tee-worker/internal/config"
 	"github.com/masa-finance/tee-worker/internal/jobs/llmapify"
 	"github.com/masa-finance/tee-worker/pkg/client"
@@ -71,7 +72,7 @@ var _ = Describe("LLMApifyClient", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			mockClient.RunActorAndGetResponseFunc = func(actorID string, input any, cursor client.Cursor, limit uint) (*client.DatasetResponse, client.Cursor, error) {
-				Expect(actorID).To(Equal(llmapify.ActorID))
+				Expect(actorID).To(Equal(actors.LLMDatasetProcessor))
 				Expect(limit).To(Equal(uint(1)))
 
 				// Verify the input is correctly converted to LLMProcessorRequest

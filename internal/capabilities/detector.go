@@ -8,6 +8,7 @@ import (
 
 	util "github.com/masa-finance/tee-types/pkg/util"
 	teetypes "github.com/masa-finance/tee-types/types"
+	"github.com/masa-finance/tee-worker/internal/actors"
 	"github.com/masa-finance/tee-worker/internal/config"
 	"github.com/masa-finance/tee-worker/internal/jobs/twitter"
 	"github.com/masa-finance/tee-worker/pkg/client"
@@ -64,16 +65,39 @@ func DetectCapabilities(jc config.JobConfiguration, jobServer JobServerInterface
 	}
 
 	// Add Apify-specific capabilities based on available API key
-	// TODO: We should verify whether each of the actors is actually available through this API key
 	if hasApifyKey {
+		// Add default Apify capabilities
 		capabilities[teetypes.TwitterApifyJob] = teetypes.TwitterApifyCaps
-		capabilities[teetypes.RedditJob] = teetypes.RedditCaps
 
-		// Merge TikTok search caps with any existing
-		existing := capabilities[teetypes.TiktokJob]
-		s := util.NewSet(existing...)
-		s.Add(teetypes.TiktokSearchCaps...)
-		capabilities[teetypes.TiktokJob] = s.Items()
+		// Create an Apify client for probing rented actors
+		c, err := client.NewApifyClient(apifyApiKey)
+		if err != nil {
+			logrus.Errorf("Failed to create Apify client for access probe: %v", err)
+		} else {
+			// Reddit access probe
+			if ok, _ := c.(*client.ApifyClient).ProbeActorAccess(actors.RedditScraper, map[string]any{}); ok {
+				capabilities[teetypes.RedditJob] = teetypes.RedditCaps
+			} else {
+				logrus.Warnf("Apify token does not have access to actor %s", actors.RedditScraper)
+			}
+
+			// TikTok probes (search and trending handled independently)
+			tiktokCapSet := util.NewSet(capabilities[teetypes.TiktokJob]...)
+
+			if ok, _ := c.(*client.ApifyClient).ProbeActorAccess(actors.TikTokSearchScraper, map[string]any{"proxy": map[string]any{"useApifyProxy": true}}); ok {
+				tiktokCapSet.Add(teetypes.CapSearchByQuery)
+			} else {
+				logrus.Warnf("Apify token does not have access to actor %s", actors.TikTokSearchScraper)
+			}
+			if ok, _ := c.(*client.ApifyClient).ProbeActorAccess(actors.TikTokTrendingScraper, map[string]any{}); ok {
+				tiktokCapSet.Add(teetypes.CapSearchByTrending)
+			} else {
+				logrus.Warnf("Apify token does not have access to actor %s", actors.TikTokTrendingScraper)
+			}
+
+			capabilities[teetypes.TiktokJob] = tiktokCapSet.Items()
+
+		}
 
 		if hasLLMKey {
 			capabilities[teetypes.WebJob] = teetypes.WebCaps
