@@ -171,9 +171,13 @@ var _ = Describe("DetectCapabilities", func() {
 			Expect(twitterApifyCaps).To(ContainElement(teetypes.CapGetFollowers), "expected twitter-apify to include CapGetFollowers capability")
 			Expect(twitterApifyCaps).To(ContainElement(teetypes.CapGetFollowing), "expected twitter-apify to include CapGetFollowing capability")
 
-			// Reddit should be present
-			_, hasReddit := caps[teetypes.RedditJob]
+			// Reddit should be present (only if rented!)
+			redditCaps, hasReddit := caps[teetypes.RedditJob]
 			Expect(hasReddit).To(BeTrue(), "expected reddit capabilities to be present")
+			Expect(redditCaps).To(ContainElement(teetypes.CapScrapeUrls), "expected reddit to include CapScrapeUrls capability")
+			Expect(redditCaps).To(ContainElement(teetypes.CapSearchPosts), "expected reddit to include CapSearchPosts capability")
+			Expect(redditCaps).To(ContainElement(teetypes.CapSearchUsers), "expected reddit to include CapSearchUsers capability")
+			Expect(redditCaps).To(ContainElement(teetypes.CapSearchCommunities), "expected reddit to include CapSearchCommunities capability")
 		})
 		It("should add enhanced capabilities when valid Apify API key is provided alongside a Gemini API key", func() {
 			apifyKey := os.Getenv("APIFY_API_KEY")

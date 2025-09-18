@@ -8,15 +8,12 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/masa-finance/tee-worker/api/types/reddit"
+	"github.com/masa-finance/tee-worker/internal/apify"
 	"github.com/masa-finance/tee-worker/internal/jobs/stats"
 	"github.com/masa-finance/tee-worker/pkg/client"
 
 	teeargs "github.com/masa-finance/tee-types/args"
 	teetypes "github.com/masa-finance/tee-types/types"
-)
-
-const (
-	RedditActorID = "trudax~reddit-scraper" // must rent this actor from apify explicitly
 )
 
 // CommonArgs holds the parameters that all Reddit searches support, in a single struct
@@ -167,7 +164,7 @@ func (c *RedditApifyClient) queryReddit(workerID string, input RedditActorReques
 		c.statsCollector.Add(workerID, stats.RedditQueries, 1)
 	}
 
-	dataset, nextCursor, err := c.apifyClient.RunActorAndGetResponse(RedditActorID, input, cursor, limit)
+	dataset, nextCursor, err := c.apifyClient.RunActorAndGetResponse(apify.ActorIds.RedditScraper, input, cursor, limit)
 	if err != nil {
 		if c.statsCollector != nil {
 			c.statsCollector.Add(workerID, stats.RedditErrors, 1)

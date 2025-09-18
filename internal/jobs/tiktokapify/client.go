@@ -6,13 +6,8 @@ import (
 
 	teeargs "github.com/masa-finance/tee-types/args"
 	teetypes "github.com/masa-finance/tee-types/types"
+	"github.com/masa-finance/tee-worker/internal/apify"
 	"github.com/masa-finance/tee-worker/pkg/client"
-)
-
-const (
-	// Actors
-	SearchActorID   = "epctex~tiktok-search-scraper"                   // must rent this actor from apify explicitly
-	TrendingActorID = "lexis-solutions~tiktok-trending-videos-scraper" // must rent this actor from apify explicitly
 )
 
 type TikTokSearchByQueryRequest struct {
@@ -79,7 +74,7 @@ func (c *TikTokApifyClient) SearchByQuery(input teeargs.TikTokSearchByQueryArgum
 		return nil, "", fmt.Errorf("failed to unmarshal to map: %w", err)
 	}
 
-	dataset, next, err := c.apify.RunActorAndGetResponse(SearchActorID, apifyInput, cursor, limit)
+	dataset, next, err := c.apify.RunActorAndGetResponse(apify.ActorIds.TikTokSearchScraper, apifyInput, cursor, limit)
 	if err != nil {
 		return nil, "", fmt.Errorf("apify run (search): %w", err)
 	}
@@ -115,7 +110,7 @@ func (c *TikTokApifyClient) SearchByTrending(input teeargs.TikTokSearchByTrendin
 		return nil, "", fmt.Errorf("failed to unmarshal to map: %w", err)
 	}
 
-	dataset, next, err := c.apify.RunActorAndGetResponse(TrendingActorID, apifyInput, cursor, limit)
+	dataset, next, err := c.apify.RunActorAndGetResponse(apify.ActorIds.TikTokTrendingScraper, apifyInput, cursor, limit)
 	if err != nil {
 		return nil, "", fmt.Errorf("apify run (trending): %w", err)
 	}

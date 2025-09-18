@@ -7,14 +7,11 @@ import (
 
 	teeargs "github.com/masa-finance/tee-types/args"
 	teetypes "github.com/masa-finance/tee-types/types"
+	"github.com/masa-finance/tee-worker/internal/apify"
 	"github.com/masa-finance/tee-worker/internal/config"
 	"github.com/masa-finance/tee-worker/internal/jobs/stats"
 	"github.com/masa-finance/tee-worker/pkg/client"
 	"github.com/sirupsen/logrus"
-)
-
-const (
-	ActorID = "dusan.vystrcil~llm-dataset-processor"
 )
 
 var (
@@ -66,7 +63,7 @@ func (c *ApifyClient) Process(workerID string, args teeargs.LLMProcessorArgument
 	input.LLMProviderApiKey = string(c.llmConfig.GeminiApiKey)
 
 	limit := uint(args.Items)
-	dataset, nextCursor, err := c.client.RunActorAndGetResponse(ActorID, input, cursor, limit)
+	dataset, nextCursor, err := c.client.RunActorAndGetResponse(apify.ActorIds.LLMDatasetProcessor, input, cursor, limit)
 	if err != nil {
 		if c.statsCollector != nil {
 			c.statsCollector.Add(workerID, stats.LLMErrors, 1)

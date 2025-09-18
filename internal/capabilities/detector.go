@@ -8,6 +8,7 @@ import (
 
 	util "github.com/masa-finance/tee-types/pkg/util"
 	teetypes "github.com/masa-finance/tee-types/types"
+	"github.com/masa-finance/tee-worker/internal/apify"
 	"github.com/masa-finance/tee-worker/internal/config"
 	"github.com/masa-finance/tee-worker/internal/jobs/twitter"
 	"github.com/masa-finance/tee-worker/pkg/client"
@@ -63,20 +64,37 @@ func DetectCapabilities(jc config.JobConfiguration, jobServer JobServerInterface
 		capabilities[teetypes.TwitterApiJob] = apiCaps
 	}
 
-	// Add Apify-specific capabilities based on available API key
-	// TODO: We should verify whether each of the actors is actually available through this API key
 	if hasApifyKey {
-		capabilities[teetypes.TwitterApifyJob] = teetypes.TwitterApifyCaps
-		capabilities[teetypes.RedditJob] = teetypes.RedditCaps
+		// Create an Apify client for probing actors
+		c, err := client.NewApifyClient(apifyApiKey)
+		if err != nil {
+			logrus.Errorf("Failed to create Apify client for access probes: %v", err)
+		} else {
+			// Aggregate capabilities per job from accessible actors
+			jobToSet := map[teetypes.JobType]*util.Set[teetypes.Capability]{}
 
-		// Merge TikTok search caps with any existing
-		existing := capabilities[teetypes.TiktokJob]
-		s := util.NewSet(existing...)
-		s.Add(teetypes.TiktokSearchCaps...)
-		capabilities[teetypes.TiktokJob] = s.Items()
+			for _, actor := range apify.Actors {
+				// Web requires a valid Gemini API key
+				if actor.JobType == teetypes.WebJob && !hasLLMKey {
+					logrus.Debug("Skipping Web actor due to missing Gemini key")
+					continue
+				}
 
-		if hasLLMKey {
-			capabilities[teetypes.WebJob] = teetypes.WebCaps
+				if ok, _ := c.ProbeActorAccess(actor.ActorId, map[string]any(actor.DefaultInput)); ok {
+					if _, exists := jobToSet[actor.JobType]; !exists {
+						jobToSet[actor.JobType] = util.NewSet[teetypes.Capability]()
+					}
+					jobToSet[actor.JobType].Add(actor.Capabilities...)
+				} else {
+					logrus.Warnf("Apify token does not have access to actor %s", actor.ActorId)
+				}
+			}
+
+			// Union accessible-actor caps into existing caps
+			for job, set := range jobToSet {
+				existingCaps := util.NewSet(capabilities[job]...)
+				capabilities[job] = existingCaps.Add(set.Items()...).Items()
+			}
 		}
 	}
 

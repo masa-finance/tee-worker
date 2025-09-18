@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/masa-finance/tee-worker/internal/apify"
 	"github.com/masa-finance/tee-worker/internal/jobs/webapify"
 	"github.com/masa-finance/tee-worker/pkg/client"
 
@@ -16,11 +17,12 @@ import (
 
 // MockApifyClient is a mock implementation of the ApifyClient.
 type MockApifyClient struct {
-	RunActorAndGetResponseFunc func(actorID string, input any, cursor client.Cursor, limit uint) (*client.DatasetResponse, client.Cursor, error)
+	RunActorAndGetResponseFunc func(actorID apify.ActorId, input any, cursor client.Cursor, limit uint) (*client.DatasetResponse, client.Cursor, error)
 	ValidateApiKeyFunc         func() error
+	ProbeActorAccessFunc       func(actorID apify.ActorId, input map[string]any) (bool, error)
 }
 
-func (m *MockApifyClient) RunActorAndGetResponse(actorID string, input any, cursor client.Cursor, limit uint) (*client.DatasetResponse, client.Cursor, error) {
+func (m *MockApifyClient) RunActorAndGetResponse(actorID apify.ActorId, input any, cursor client.Cursor, limit uint) (*client.DatasetResponse, client.Cursor, error) {
 	if m.RunActorAndGetResponseFunc != nil {
 		return m.RunActorAndGetResponseFunc(actorID, input, cursor, limit)
 	}
@@ -32,6 +34,13 @@ func (m *MockApifyClient) ValidateApiKey() error {
 		return m.ValidateApiKeyFunc()
 	}
 	return errors.New("ValidateApiKeyFunc not defined")
+}
+
+func (m *MockApifyClient) ProbeActorAccess(actorID apify.ActorId, input map[string]any) (bool, error) {
+	if m.ProbeActorAccessFunc != nil {
+		return m.ProbeActorAccessFunc(actorID, input)
+	}
+	return false, errors.New("ProbeActorAccessFunc not defined")
 }
 
 var _ = Describe("WebApifyClient", func() {
@@ -63,8 +72,8 @@ var _ = Describe("WebApifyClient", func() {
 				MaxPages: 2,
 			}
 
-			mockClient.RunActorAndGetResponseFunc = func(actorID string, input any, cursor client.Cursor, limit uint) (*client.DatasetResponse, client.Cursor, error) {
-				Expect(actorID).To(Equal(webapify.ActorID))
+			mockClient.RunActorAndGetResponseFunc = func(actorID apify.ActorId, input any, cursor client.Cursor, limit uint) (*client.DatasetResponse, client.Cursor, error) {
+				Expect(actorID).To(Equal(apify.ActorIds.WebScraper))
 				Expect(limit).To(Equal(uint(2)))
 				return &client.DatasetResponse{Data: client.ApifyDatasetData{Items: []json.RawMessage{}}}, "next", nil
 			}
@@ -75,7 +84,7 @@ var _ = Describe("WebApifyClient", func() {
 
 		It("should handle errors from the apify client", func() {
 			expectedErr := errors.New("apify error")
-			mockClient.RunActorAndGetResponseFunc = func(actorID string, input any, cursor client.Cursor, limit uint) (*client.DatasetResponse, client.Cursor, error) {
+			mockClient.RunActorAndGetResponseFunc = func(actorID apify.ActorId, input any, cursor client.Cursor, limit uint) (*client.DatasetResponse, client.Cursor, error) {
 				return nil, "", expectedErr
 			}
 
@@ -95,7 +104,7 @@ var _ = Describe("WebApifyClient", func() {
 					Items: []json.RawMessage{invalidJSON},
 				},
 			}
-			mockClient.RunActorAndGetResponseFunc = func(actorID string, input any, cursor client.Cursor, limit uint) (*client.DatasetResponse, client.Cursor, error) {
+			mockClient.RunActorAndGetResponseFunc = func(actorID apify.ActorId, input any, cursor client.Cursor, limit uint) (*client.DatasetResponse, client.Cursor, error) {
 				return dataset, "next", nil
 			}
 
@@ -120,7 +129,7 @@ var _ = Describe("WebApifyClient", func() {
 					Items: []json.RawMessage{webResultJSON},
 				},
 			}
-			mockClient.RunActorAndGetResponseFunc = func(actorID string, input any, cursor client.Cursor, limit uint) (*client.DatasetResponse, client.Cursor, error) {
+			mockClient.RunActorAndGetResponseFunc = func(actorID apify.ActorId, input any, cursor client.Cursor, limit uint) (*client.DatasetResponse, client.Cursor, error) {
 				return dataset, "next", nil
 			}
 
