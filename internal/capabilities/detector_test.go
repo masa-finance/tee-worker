@@ -147,7 +147,7 @@ var _ = Describe("DetectCapabilities", func() {
 	})
 
 	Context("Apify Integration", func() {
-		FIt("should add enhanced capabilities when valid Apify API key is provided", func() {
+		It("should add enhanced capabilities when valid Apify API key is provided", func() {
 			apifyKey := os.Getenv("APIFY_API_KEY")
 			if apifyKey == "" {
 				Skip("APIFY_API_KEY is not set")
