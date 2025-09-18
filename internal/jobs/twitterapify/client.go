@@ -6,7 +6,7 @@ import (
 
 	util "github.com/masa-finance/tee-types/pkg/util"
 	teetypes "github.com/masa-finance/tee-types/types"
-	"github.com/masa-finance/tee-worker/internal/actors"
+	"github.com/masa-finance/tee-worker/internal/apify"
 	"github.com/masa-finance/tee-worker/pkg/client"
 	"github.com/sirupsen/logrus"
 )
@@ -83,7 +83,7 @@ func (c *TwitterApifyClient) GetFollowing(username string, cursor client.Cursor,
 
 // getProfiles runs the actor and retrieves profiles from the dataset
 func (c *TwitterApifyClient) getProfiles(input FollowerActorRunRequest, cursor client.Cursor, limit uint) ([]*teetypes.ProfileResultApify, client.Cursor, error) {
-	dataset, nextCursor, err := c.apifyClient.RunActorAndGetResponse(actors.TwitterFollowers, input, cursor, limit)
+	dataset, nextCursor, err := c.apifyClient.RunActorAndGetResponse(apify.Actors.TwitterFollowers, input, cursor, limit)
 	if err != nil {
 		return nil, client.EmptyCursor, err
 	}

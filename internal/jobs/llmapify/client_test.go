@@ -10,7 +10,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/masa-finance/tee-worker/internal/actors"
+	"github.com/masa-finance/tee-worker/internal/apify"
 	"github.com/masa-finance/tee-worker/internal/config"
 	"github.com/masa-finance/tee-worker/internal/jobs/llmapify"
 	"github.com/masa-finance/tee-worker/pkg/client"
@@ -23,7 +23,7 @@ import (
 type MockApifyClient struct {
 	RunActorAndGetResponseFunc func(actorID string, input any, cursor client.Cursor, limit uint) (*client.DatasetResponse, client.Cursor, error)
 	ValidateApiKeyFunc         func() error
-    ProbeActorAccessFunc       func(actorID string, input map[string]any) (bool, error)
+	ProbeActorAccessFunc       func(actorID string, input map[string]any) (bool, error)
 }
 
 func (m *MockApifyClient) RunActorAndGetResponse(actorID string, input any, cursor client.Cursor, limit uint) (*client.DatasetResponse, client.Cursor, error) {
@@ -41,10 +41,10 @@ func (m *MockApifyClient) ValidateApiKey() error {
 }
 
 func (m *MockApifyClient) ProbeActorAccess(actorID string, input map[string]any) (bool, error) {
-    if m.ProbeActorAccessFunc != nil {
-        return m.ProbeActorAccessFunc(actorID, input)
-    }
-    return false, errors.New("ProbeActorAccessFunc not defined")
+	if m.ProbeActorAccessFunc != nil {
+		return m.ProbeActorAccessFunc(actorID, input)
+	}
+	return false, errors.New("ProbeActorAccessFunc not defined")
 }
 
 var _ = Describe("LLMApifyClient", func() {
@@ -80,7 +80,7 @@ var _ = Describe("LLMApifyClient", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			mockClient.RunActorAndGetResponseFunc = func(actorID string, input any, cursor client.Cursor, limit uint) (*client.DatasetResponse, client.Cursor, error) {
-				Expect(actorID).To(Equal(actors.LLMDatasetProcessor))
+				Expect(actorID).To(Equal(apify.Actors.LLMDatasetProcessor))
 				Expect(limit).To(Equal(uint(1)))
 
 				// Verify the input is correctly converted to LLMProcessorRequest

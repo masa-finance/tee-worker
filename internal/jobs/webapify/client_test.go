@@ -8,7 +8,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/masa-finance/tee-worker/internal/actors"
+	"github.com/masa-finance/tee-worker/internal/apify"
 	"github.com/masa-finance/tee-worker/internal/jobs/webapify"
 	"github.com/masa-finance/tee-worker/pkg/client"
 
@@ -19,7 +19,7 @@ import (
 type MockApifyClient struct {
 	RunActorAndGetResponseFunc func(actorID string, input any, cursor client.Cursor, limit uint) (*client.DatasetResponse, client.Cursor, error)
 	ValidateApiKeyFunc         func() error
-    ProbeActorAccessFunc       func(actorID string, input map[string]any) (bool, error)
+	ProbeActorAccessFunc       func(actorID string, input map[string]any) (bool, error)
 }
 
 func (m *MockApifyClient) RunActorAndGetResponse(actorID string, input any, cursor client.Cursor, limit uint) (*client.DatasetResponse, client.Cursor, error) {
@@ -37,10 +37,10 @@ func (m *MockApifyClient) ValidateApiKey() error {
 }
 
 func (m *MockApifyClient) ProbeActorAccess(actorID string, input map[string]any) (bool, error) {
-    if m.ProbeActorAccessFunc != nil {
-        return m.ProbeActorAccessFunc(actorID, input)
-    }
-    return false, errors.New("ProbeActorAccessFunc not defined")
+	if m.ProbeActorAccessFunc != nil {
+		return m.ProbeActorAccessFunc(actorID, input)
+	}
+	return false, errors.New("ProbeActorAccessFunc not defined")
 }
 
 var _ = Describe("WebApifyClient", func() {
@@ -73,7 +73,7 @@ var _ = Describe("WebApifyClient", func() {
 			}
 
 			mockClient.RunActorAndGetResponseFunc = func(actorID string, input any, cursor client.Cursor, limit uint) (*client.DatasetResponse, client.Cursor, error) {
-				Expect(actorID).To(Equal(actors.WebScraper))
+				Expect(actorID).To(Equal(apify.Actors.WebScraper))
 				Expect(limit).To(Equal(uint(2)))
 				return &client.DatasetResponse{Data: client.ApifyDatasetData{Items: []json.RawMessage{}}}, "next", nil
 			}

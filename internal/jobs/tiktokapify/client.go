@@ -6,7 +6,7 @@ import (
 
 	teeargs "github.com/masa-finance/tee-types/args"
 	teetypes "github.com/masa-finance/tee-types/types"
-	"github.com/masa-finance/tee-worker/internal/actors"
+	"github.com/masa-finance/tee-worker/internal/apify"
 	"github.com/masa-finance/tee-worker/pkg/client"
 )
 
@@ -74,7 +74,7 @@ func (c *TikTokApifyClient) SearchByQuery(input teeargs.TikTokSearchByQueryArgum
 		return nil, "", fmt.Errorf("failed to unmarshal to map: %w", err)
 	}
 
-	dataset, next, err := c.apify.RunActorAndGetResponse(actors.TikTokSearchScraper, apifyInput, cursor, limit)
+	dataset, next, err := c.apify.RunActorAndGetResponse(apify.Actors.TikTokSearchScraper, apifyInput, cursor, limit)
 	if err != nil {
 		return nil, "", fmt.Errorf("apify run (search): %w", err)
 	}
@@ -110,7 +110,7 @@ func (c *TikTokApifyClient) SearchByTrending(input teeargs.TikTokSearchByTrendin
 		return nil, "", fmt.Errorf("failed to unmarshal to map: %w", err)
 	}
 
-	dataset, next, err := c.apify.RunActorAndGetResponse(actors.TikTokTrendingScraper, apifyInput, cursor, limit)
+	dataset, next, err := c.apify.RunActorAndGetResponse(apify.Actors.TikTokTrendingScraper, apifyInput, cursor, limit)
 	if err != nil {
 		return nil, "", fmt.Errorf("apify run (trending): %w", err)
 	}

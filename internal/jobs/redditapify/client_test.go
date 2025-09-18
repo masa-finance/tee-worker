@@ -8,7 +8,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/masa-finance/tee-worker/internal/actors"
+	"github.com/masa-finance/tee-worker/internal/apify"
 	"github.com/masa-finance/tee-worker/internal/jobs/redditapify"
 	"github.com/masa-finance/tee-worker/pkg/client"
 
@@ -20,7 +20,7 @@ import (
 type MockApifyClient struct {
 	RunActorAndGetResponseFunc func(actorID string, input any, cursor client.Cursor, limit uint) (*client.DatasetResponse, client.Cursor, error)
 	ValidateApiKeyFunc         func() error
-    ProbeActorAccessFunc       func(actorID string, input map[string]any) (bool, error)
+	ProbeActorAccessFunc       func(actorID string, input map[string]any) (bool, error)
 }
 
 func (m *MockApifyClient) RunActorAndGetResponse(actorID string, input any, cursor client.Cursor, limit uint) (*client.DatasetResponse, client.Cursor, error) {
@@ -38,10 +38,10 @@ func (m *MockApifyClient) ValidateApiKey() error {
 }
 
 func (m *MockApifyClient) ProbeActorAccess(actorID string, input map[string]any) (bool, error) {
-    if m.ProbeActorAccessFunc != nil {
-        return m.ProbeActorAccessFunc(actorID, input)
-    }
-    return false, errors.New("ProbeActorAccessFunc not defined")
+	if m.ProbeActorAccessFunc != nil {
+		return m.ProbeActorAccessFunc(actorID, input)
+	}
+	return false, errors.New("ProbeActorAccessFunc not defined")
 }
 
 var _ = Describe("RedditApifyClient", func() {
@@ -68,7 +68,7 @@ var _ = Describe("RedditApifyClient", func() {
 			args := redditapify.CommonArgs{MaxPosts: 10}
 
 			mockClient.RunActorAndGetResponseFunc = func(actorID string, input any, cursor client.Cursor, limit uint) (*client.DatasetResponse, client.Cursor, error) {
-				Expect(actorID).To(Equal(actors.RedditScraper))
+				Expect(actorID).To(Equal(apify.Actors.RedditScraper))
 				req := input.(redditapify.RedditActorRequest)
 				Expect(req.StartUrls).To(Equal(urls))
 				Expect(*req.PostDateLimit).To(BeTemporally("~", after, time.Second))
@@ -93,7 +93,7 @@ var _ = Describe("RedditApifyClient", func() {
 			args := redditapify.CommonArgs{MaxComments: 5}
 
 			mockClient.RunActorAndGetResponseFunc = func(actorID string, input any, cursor client.Cursor, limit uint) (*client.DatasetResponse, client.Cursor, error) {
-				Expect(actorID).To(Equal(actors.RedditScraper))
+				Expect(actorID).To(Equal(apify.Actors.RedditScraper))
 				req := input.(redditapify.RedditActorRequest)
 				Expect(req.Searches).To(Equal(queries))
 				Expect(req.StartUrls).To(BeNil())
@@ -116,7 +116,7 @@ var _ = Describe("RedditApifyClient", func() {
 			args := redditapify.CommonArgs{}
 
 			mockClient.RunActorAndGetResponseFunc = func(actorID string, input any, cursor client.Cursor, limit uint) (*client.DatasetResponse, client.Cursor, error) {
-				Expect(actorID).To(Equal(actors.RedditScraper))
+				Expect(actorID).To(Equal(apify.Actors.RedditScraper))
 				req := input.(redditapify.RedditActorRequest)
 				Expect(req.Searches).To(Equal(queries))
 				Expect(req.StartUrls).To(BeNil())
@@ -136,7 +136,7 @@ var _ = Describe("RedditApifyClient", func() {
 			args := redditapify.CommonArgs{}
 
 			mockClient.RunActorAndGetResponseFunc = func(actorID string, input any, cursor client.Cursor, limit uint) (*client.DatasetResponse, client.Cursor, error) {
-				Expect(actorID).To(Equal(actors.RedditScraper))
+				Expect(actorID).To(Equal(apify.Actors.RedditScraper))
 				req := input.(redditapify.RedditActorRequest)
 				Expect(req.Searches).To(Equal(queries))
 				Expect(req.StartUrls).To(BeNil())
