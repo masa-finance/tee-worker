@@ -53,7 +53,7 @@ var Actors = []ActorConfig{
 	},
 	{
 		ActorId:      ActorIds.TwitterFollowers,
-		DefaultInput: defaultActorInput{},
+		DefaultInput: defaultActorInput{"maxFollowers": 200, "maxFollowings": 200},
 		Capabilities: teetypes.TwitterApifyCaps,
 		JobType:      teetypes.TwitterApifyJob,
 	},
